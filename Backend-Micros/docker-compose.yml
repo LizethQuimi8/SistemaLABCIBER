@@ -1,0 +1,213 @@
+name: lici-backend
+
+networks:
+  lici-net:
+    driver: bridge
+
+volumes:
+  mysql_auth_data:
+  mysql_academic_data:
+  mysql_document_data:
+  mysql_admin_data:
+
+x-mysql-common: &mysql-common
+  image: mysql:8.0
+  restart: unless-stopped
+  networks: [lici-net]
+  environment:
+    MYSQL_USER: ${DB_USER}
+    MYSQL_PASSWORD: ${DB_PASSWORD}
+    MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+  command: ["--default-authentication-plugin=mysql_native_password"]
+
+x-app-common: &app-common
+  restart: unless-stopped
+  networks: [lici-net]
+  environment:
+    DB_USER: ${DB_USER}
+    DB_PASSWORD: ${DB_PASSWORD}
+    DB_PORT: 3306
+
+services:
+  mysql-auth:
+    <<: *mysql-common
+    environment:
+      MYSQL_DATABASE: lici_auth
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql-academic:
+    <<: *mysql-common
+    environment:
+      MYSQL_DATABASE: lici_academic
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_academic_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql-document:
+    <<: *mysql-common
+    environment:
+      MYSQL_DATABASE: lici_document
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_document_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql-admin:
+    <<: *mysql-common
+    environment:
+      MYSQL_DATABASE: lici_admin
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_admin_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  core-security-users-service:
+    <<: *app-common
+    build:
+      context: .
+      dockerfile: core-security-users-service/Dockerfile
+    depends_on:
+      mysql-auth:
+        condition: service_healthy
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: 3306
+      DB_HOST: mysql-auth
+      DB_NAME: lici_auth
+      JWT_ISSUER: http://core-security-users-service:8081
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD}
+    ports:
+      - "8081:8081"
+
+  core-academic-research-service:
+    <<: *app-common
+    build:
+      context: .
+      dockerfile: core-academic-research-service/Dockerfile
+    depends_on:
+      mysql-academic:
+        condition: service_healthy
+      core-security-users-service:
+        condition: service_started
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: 3306
+      DB_HOST: mysql-academic
+      DB_NAME: lici_academic
+      JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
+    ports:
+      - "8082:8082"
+
+  document-workflow-service:
+    <<: *app-common
+    build:
+      context: .
+      dockerfile: document-workflow-service/Dockerfile
+    depends_on:
+      mysql-document:
+        condition: service_healthy
+      core-security-users-service:
+        condition: service_started
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: 3306
+      DB_HOST: mysql-document
+      DB_NAME: lici_document
+      JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
+    ports:
+      - "8083:8083"
+
+  administrative-logistics-service:
+    <<: *app-common
+    build:
+      context: .
+      dockerfile: administrative-logistics-service/Dockerfile
+    depends_on:
+      mysql-admin:
+        condition: service_healthy
+      core-security-users-service:
+        condition: service_started
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: 3306
+      DB_HOST: mysql-admin
+      DB_NAME: lici_admin
+      JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
+    ports:
+      - "8084:8084"
+
+  reporting-service:
+    restart: unless-stopped
+    networks: [lici-net]
+    build:
+      context: .
+      dockerfile: reporting-service/Dockerfile
+    depends_on:
+      - core-security-users-service
+      - core-academic-research-service
+      - document-workflow-service
+      - administrative-logistics-service
+    environment:
+      JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
+      SECURITY_SERVICE_URL: http://core-security-users-service:8081
+      ACADEMIC_SERVICE_URL: http://core-academic-research-service:8082
+      DOCUMENT_SERVICE_URL: http://document-workflow-service:8083
+      ADMIN_SERVICE_URL: http://administrative-logistics-service:8084
+    ports:
+      - "8085:8085"
+
+  api-gateway:
+    restart: unless-stopped
+    networks: [lici-net]
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    depends_on:
+      - core-security-users-service
+      - core-academic-research-service
+      - document-workflow-service
+      - administrative-logistics-service
+      - reporting-service
+    environment:
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      SECURITY_SERVICE_URL: http://core-security-users-service:8081
+      ACADEMIC_SERVICE_URL: http://core-academic-research-service:8082
+      DOCUMENT_SERVICE_URL: http://document-workflow-service:8083
+      ADMIN_SERVICE_URL: http://administrative-logistics-service:8084
+      REPORTING_SERVICE_URL: http://reporting-service:8085
+    ports:
+      - "8080:8080"

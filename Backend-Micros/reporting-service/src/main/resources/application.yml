@@ -1,0 +1,21 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: reporting-service
+
+lici:
+  security:
+    jwk-set-uri: ${JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+  services:
+    security-service-url: ${SECURITY_SERVICE_URL:http://localhost:8081}
+    academic-service-url: ${ACADEMIC_SERVICE_URL:http://localhost:8082}
+    document-service-url: ${DOCUMENT_SERVICE_URL:http://localhost:8083}
+    admin-service-url: ${ADMIN_SERVICE_URL:http://localhost:8084}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

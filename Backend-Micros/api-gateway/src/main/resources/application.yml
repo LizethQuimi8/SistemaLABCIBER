@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${FRONTEND_ORIGIN:http://localhost:5173}
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: '*'
+            allowCredentials: true
+      routes:
+        - id: core-security-users-service
+          uri: ${SECURITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**,/api/usuarios/**,/oauth2/jwks
+
+        - id: core-academic-research-service
+          uri: ${ACADEMIC_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/proyectos/**,/api/investigadores/**,/api/publicaciones/**
+
+        - id: document-workflow-service
+          uri: ${DOCUMENT_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/documentos/**,/api/memos/**,/api/notificaciones/**
+
+        - id: administrative-logistics-service
+          uri: ${ADMIN_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/inventario/**,/api/compras/**
+
+        - id: reporting-service
+          uri: ${REPORTING_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/reportes/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
