@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Servicio de solo lectura: agrega conteos consultando a los demas
@@ -15,6 +16,9 @@ import java.util.List;
  * token (ver CurrentUser en cada dominio), un DOCENTE_INVESTIGADOR recibe de
  * forma natural solo el conteo de sus propios registros, y un
  * ADMINISTRADOR recibe el total global, sin logica adicional aqui.
+ *
+ * Todas las llamadas son no bloqueantes y se componen con Mono.zip en el
+ * controller: ninguna consulta debe bloquear el event-loop de WebFlux.
  */
 @Service
 public class ReporteAggregatorService {
@@ -37,48 +41,47 @@ public class ReporteAggregatorService {
         this.adminServiceUrl = adminServiceUrl;
     }
 
-    public Integer contarProyectos(String bearerToken) {
+    public Mono<Optional<Integer>> contarProyectos(String bearerToken) {
         return contarLista(academicServiceUrl + "/api/proyectos", bearerToken);
     }
 
-    public Integer contarInvestigadores(String bearerToken) {
+    public Mono<Optional<Integer>> contarInvestigadores(String bearerToken) {
         return contarLista(academicServiceUrl + "/api/investigadores", bearerToken);
     }
 
-    public Integer contarPublicaciones(String bearerToken) {
+    public Mono<Optional<Integer>> contarPublicaciones(String bearerToken) {
         return contarLista(academicServiceUrl + "/api/publicaciones", bearerToken);
     }
 
-    public Integer contarDocumentos(String bearerToken) {
+    public Mono<Optional<Integer>> contarDocumentos(String bearerToken) {
         return contarLista(documentServiceUrl + "/api/documentos", bearerToken);
     }
 
-    public Integer contarMemos(String bearerToken) {
+    public Mono<Optional<Integer>> contarMemos(String bearerToken) {
         return contarLista(documentServiceUrl + "/api/memos", bearerToken);
     }
 
-    public Integer contarBienesInventario(String bearerToken) {
+    public Mono<Optional<Integer>> contarBienesInventario(String bearerToken) {
         return contarLista(adminServiceUrl + "/api/inventario", bearerToken);
     }
 
-    public Integer contarComprasPublicas(String bearerToken) {
+    public Mono<Optional<Integer>> contarComprasPublicas(String bearerToken) {
         return contarLista(adminServiceUrl + "/api/compras", bearerToken);
     }
 
-    public Integer contarUsuarios(String bearerToken) {
+    public Mono<Optional<Integer>> contarUsuarios(String bearerToken) {
         return contarLista(securityServiceUrl + "/api/usuarios", bearerToken);
     }
 
-    /** Devuelve null si el usuario no tiene acceso al recurso (403) en vez de fallar todo el reporte. */
-    private Integer contarLista(String url, String bearerToken) {
+    /** Emite Optional.empty() si el usuario no tiene acceso al recurso (403) en vez de fallar todo el reporte. */
+    private Mono<Optional<Integer>> contarLista(String url, String bearerToken) {
         return webClient.get()
                 .uri(url)
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
                 .retrieve()
                 .bodyToMono(List.class)
                 .map(List::size)
-                .onErrorResume(ex -> Mono.empty())
-                .blockOptional()
-                .orElse(null);
+                .map(Optional::of)
+                .onErrorResume(ex -> Mono.just(Optional.empty()));
     }
 }

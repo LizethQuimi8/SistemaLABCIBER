@@ -22,9 +22,13 @@ lici:
   jwt:
     issuer: ${JWT_ISSUER:http://core-security-users-service:8081}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+    private-key-path: ${JWT_PRIVATE_KEY_PATH:}
+    key-id: ${JWT_KEY_ID:lici-auth-key-1}
   admin-seed:
     email: ${ADMIN_SEED_EMAIL:admin@espe.edu.ec}
-    password: ${ADMIN_SEED_PASSWORD:Admin123*}
+    # Sin valor por defecto a proposito: el arranque debe fallar si no se define
+    # explicitamente, en vez de crear el admin inicial con una clave adivinable.
+    password: ${ADMIN_SEED_PASSWORD}
 
 management:
   endpoints:

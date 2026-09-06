@@ -2,7 +2,7 @@ package ec.edu.espe.lici.document.controller;
 
 import ec.edu.espe.lici.document.domain.Notificacion;
 import ec.edu.espe.lici.document.repository.NotificacionRepository;
-import ec.edu.espe.lici.document.security.CurrentUser;
+import ec.edu.espe.lici.common.security.CurrentUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -105,10 +105,14 @@ services:
       DB_NAME: lici_auth
       JWT_ISSUER: http://core-security-users-service:8081
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      JWT_PRIVATE_KEY_PATH: /keys/private_key.pem
+      JWT_KEY_ID: ${JWT_KEY_ID:-lici-auth-key-1}
       ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL}
       ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD}
-    ports:
-      - "8081:8081"
+    volumes:
+      - ${JWT_KEYS_DIR:-./secrets/jwt}:/keys:ro
+    expose:
+      - "8081"
 
   core-academic-research-service:
     <<: *app-common
@@ -127,8 +131,8 @@ services:
       DB_HOST: mysql-academic
       DB_NAME: lici_academic
       JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
-    ports:
-      - "8082:8082"
+    expose:
+      - "8082"
 
   document-workflow-service:
     <<: *app-common
@@ -147,8 +151,8 @@ services:
       DB_HOST: mysql-document
       DB_NAME: lici_document
       JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
-    ports:
-      - "8083:8083"
+    expose:
+      - "8083"
 
   administrative-logistics-service:
     <<: *app-common
@@ -167,8 +171,8 @@ services:
       DB_HOST: mysql-admin
       DB_NAME: lici_admin
       JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
-    ports:
-      - "8084:8084"
+    expose:
+      - "8084"
 
   reporting-service:
     restart: unless-stopped
@@ -187,8 +191,8 @@ services:
       ACADEMIC_SERVICE_URL: http://core-academic-research-service:8082
       DOCUMENT_SERVICE_URL: http://document-workflow-service:8083
       ADMIN_SERVICE_URL: http://administrative-logistics-service:8084
-    ports:
-      - "8085:8085"
+    expose:
+      - "8085"
 
   api-gateway:
     restart: unless-stopped
@@ -204,6 +208,8 @@ services:
       - reporting-service
     environment:
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-60}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
       SECURITY_SERVICE_URL: http://core-security-users-service:8081
       ACADEMIC_SERVICE_URL: http://core-academic-research-service:8082
       DOCUMENT_SERVICE_URL: http://document-workflow-service:8083
