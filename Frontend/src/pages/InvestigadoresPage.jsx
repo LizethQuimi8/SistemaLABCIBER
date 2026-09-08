@@ -1,25 +1,36 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2, UserCheck } from 'lucide-react'
-import { investigadoresApi } from '../api/services'
+import { investigadoresApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
+import { useAuth } from '../context/AuthContext'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 
+const FORM_INICIAL = { nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '', usuarioId: '' }
+
 export default function InvestigadoresPage() {
+  const { isAdmin } = useAuth()
   const fetcher = useCallback(() => investigadoresApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '' })
+  const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
+  const [usuarios, setUsuarios] = useState([])
+
+  useEffect(() => {
+    if (!isAdmin || !showForm) return
+    usuariosApi.list().then(setUsuarios).catch((err) => setError(err.message))
+  }, [isAdmin, showForm, setError])
 
   const handleCreate = async (e) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
-      await investigadoresApi.create(form)
+      const payload = isAdmin ? { ...form, usuarioId: Number(form.usuarioId) } : form
+      await investigadoresApi.create(payload)
       setShowForm(false)
-      setForm({ nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '' })
+      setForm(FORM_INICIAL)
       reload()
     } catch (err) {
       setError(err.message)
@@ -75,6 +86,21 @@ export default function InvestigadoresPage() {
       {showForm && (
         <Modal title="Nuevo perfil de investigador" onClose={() => setShowForm(false)}>
           <form onSubmit={handleCreate} className="space-y-3">
+            {isAdmin && (
+              <Field label="Usuario">
+                <select
+                  required
+                  className="input"
+                  value={form.usuarioId}
+                  onChange={(e) => setForm({ ...form, usuarioId: e.target.value })}
+                >
+                  <option value="" disabled>Seleccionar usuario...</option>
+                  {usuarios.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombres} {u.apellidos} ({u.email})</option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <Field label="Nombre completo">
               <input required className="input" value={form.nombreCompleto} onChange={(e) => setForm({ ...form, nombreCompleto: e.target.value })} />
             </Field>
