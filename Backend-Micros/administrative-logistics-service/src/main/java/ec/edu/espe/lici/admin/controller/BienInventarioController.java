@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /** GET habilitado para ambos roles; escritura restringida a ADMINISTRADOR (ver SecurityConfig). */
+
 @RestController
 @RequestMapping("/api/inventario")
 public class BienInventarioController {
