@@ -217,3 +217,14 @@ services:
       REPORTING_SERVICE_URL: http://reporting-service:8085
     ports:
       - "8080:8080"
+
+  frontend:
+    restart: unless-stopped
+    networks: [lici-net]
+    build:
+      context: ../Frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:80"
