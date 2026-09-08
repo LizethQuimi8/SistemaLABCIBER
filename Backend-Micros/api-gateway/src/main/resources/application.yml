@@ -39,6 +39,11 @@ spring:
           predicates:
             - Path=/api/reportes/**
 
+lici:
+  rate-limit:
+    max-requests: ${RATE_LIMIT_MAX_REQUESTS:60}
+    window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+
 management:
   endpoints:
     web:

@@ -1,4 +1,4 @@
-package ec.edu.espe.lici.academic.security;
+package ec.edu.espe.lici.common.security;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -7,7 +7,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 /**
  * Extrae el id de usuario y el rol desde los claims del JWT validado por el
  * resource server. La autorizacion por propiedad ("solo mis proyectos") se
- * resuelve aqui, comparando este id con el usuarioId dueno del recurso.
+ * resuelve comparando este id con el usuarioId dueno del recurso.
  */
 public final class CurrentUser {
 
@@ -15,8 +15,7 @@ public final class CurrentUser {
     }
 
     public static Long id() {
-        Jwt jwt = jwt();
-        return Long.valueOf(jwt.getSubject());
+        return Long.valueOf(jwt().getSubject());
     }
 
     public static boolean isAdministrador() {

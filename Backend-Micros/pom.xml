@@ -20,6 +20,7 @@
     </properties>
 
     <modules>
+        <module>common-security</module>
         <module>core-security-users-service</module>
         <module>core-academic-research-service</module>
         <module>document-workflow-service</module>
