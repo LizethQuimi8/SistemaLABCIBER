@@ -14,13 +14,15 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <!-- Sin spring-boot-starter-parent (que lo activa por defecto), hay que forzarlo:
+             sin esto, @PathVariable Long id sin nombre explicito falla en tiempo de ejecucion. -->
+        <maven.compiler.parameters>true</maven.compiler.parameters>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
     </properties>
 
     <modules>
-        <module>common-security</module>
         <module>core-security-users-service</module>
         <module>core-academic-research-service</module>
         <module>document-workflow-service</module>

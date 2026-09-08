@@ -4,7 +4,6 @@ FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
 COPY pom.xml .
-COPY common-security/pom.xml common-security/pom.xml
 COPY core-security-users-service/pom.xml core-security-users-service/pom.xml
 COPY core-academic-research-service/pom.xml core-academic-research-service/pom.xml
 COPY document-workflow-service/pom.xml document-workflow-service/pom.xml

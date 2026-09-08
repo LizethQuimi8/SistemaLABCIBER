@@ -2,7 +2,7 @@ package ec.edu.espe.lici.document.controller;
 
 import ec.edu.espe.lici.document.domain.Documento;
 import ec.edu.espe.lici.document.repository.DocumentoRepository;
-import ec.edu.espe.lici.common.security.CurrentUser;
+import ec.edu.espe.lici.document.security.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

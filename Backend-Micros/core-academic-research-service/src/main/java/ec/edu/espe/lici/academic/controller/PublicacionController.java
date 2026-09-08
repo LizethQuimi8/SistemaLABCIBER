@@ -2,7 +2,7 @@ package ec.edu.espe.lici.academic.controller;
 
 import ec.edu.espe.lici.academic.domain.Publicacion;
 import ec.edu.espe.lici.academic.repository.PublicacionRepository;
-import ec.edu.espe.lici.common.security.CurrentUser;
+import ec.edu.espe.lici.academic.security.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
