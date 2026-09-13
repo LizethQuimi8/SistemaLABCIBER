@@ -50,7 +50,7 @@ export default function InvestigadoresPage() {
   }
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Investigadores"
         subtitle="core-academic-research-service — directorio publico; edicion solo por el dueno del perfil o un Administrador."

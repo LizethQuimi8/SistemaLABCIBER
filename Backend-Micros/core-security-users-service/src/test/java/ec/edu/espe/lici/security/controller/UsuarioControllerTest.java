@@ -80,6 +80,19 @@ class UsuarioControllerTest {
     }
 
     @Test
+    void crearRejectsABlankPasswordWithoutTouchingTheRepository() {
+        UsuarioRequest request = new UsuarioRequest("Ada", "Lovelace", "ada@espe.edu.ec", "  ", "1234567890", Rol.DOCENTE_INVESTIGADOR);
+
+        assertThatThrownBy(() -> controller.crear(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
+
+        verify(usuarioRepository, never()).existsByEmail(any());
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
     void crearHashesThePasswordAndPersistsTheNewUser() {
         UsuarioRequest request = new UsuarioRequest("Ada", "Lovelace", "ada@espe.edu.ec", "plain-password", "1234567890", Rol.ADMINISTRADOR);
         when(usuarioRepository.existsByEmail("ada@espe.edu.ec")).thenReturn(false);

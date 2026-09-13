@@ -43,6 +43,9 @@ public class UsuarioController {
 
     @PostMapping
     public ResponseEntity<UsuarioResponse> crear(@Valid @RequestBody UsuarioRequest request) {
+        if (request.password() == null || request.password().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña es obligatoria");
+        }
         if (usuarioRepository.existsByEmail(request.email())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un usuario con ese email");
         }

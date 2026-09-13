@@ -29,7 +29,7 @@ export default function Navbar({ onNavigate }) {
   const closeAll = () => { setShowNotif(false); setShowAccount(false) }
 
   return (
-    <header className="bg-white text-[#0f172a] w-full border-b border-gray-200 shadow-sm relative z-20">
+    <header className="bg-white text-[#052a18] w-full border-b border-gray-200 shadow-sm relative z-20">
       {(showNotif || showAccount) && (
         <div className="fixed inset-0 z-10" onClick={closeAll} />
       )}
@@ -42,7 +42,7 @@ export default function Navbar({ onNavigate }) {
             style={{ width: '130px', height: '58px' }}
           />
           <div>
-            <h1 className="text-xl font-black text-[#0f172a] tracking-wide leading-tight">
+            <h1 className="text-xl font-black text-[#052a18] tracking-wide leading-tight">
               UNIVERSIDAD DE LAS FUERZAS ARMADAS ESPE
             </h1>
             <p className="text-[11px] text-gray-500 tracking-wider uppercase">
@@ -53,10 +53,10 @@ export default function Navbar({ onNavigate }) {
 
         <div className="flex items-center gap-5 flex-shrink-0">
           <div className="flex items-center gap-1 border border-gray-400 rounded px-2 py-1">
-            <Shield className="w-5 h-5 text-blue-600" />
+            <Shield className="w-5 h-5 text-[#0e6b3c]" />
             <div className="text-left">
-              <div className="text-[10px] font-bold text-blue-600 leading-none">ISO</div>
-              <div className="text-[10px] font-black text-[#0f172a] leading-none">27001</div>
+              <div className="text-[10px] font-bold text-[#0e6b3c] leading-none">ISO</div>
+              <div className="text-[10px] font-black text-[#052a18] leading-none">27001</div>
             </div>
           </div>
 
@@ -64,7 +64,7 @@ export default function Navbar({ onNavigate }) {
           <div className="relative">
             <button
               onClick={() => { setShowAccount((v) => !v); setShowNotif(false) }}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#0f172a] transition-colors"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#052a18] transition-colors"
             >
               <User className="w-5 h-5" />
               <span className="text-[10px]">Mi Cuenta</span>
@@ -92,7 +92,7 @@ export default function Navbar({ onNavigate }) {
           <div className="relative">
             <button
               onClick={() => { setShowNotif((v) => !v); setShowAccount(false) }}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#0f172a] transition-colors"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#052a18] transition-colors"
             >
               <div className="relative">
                 <Bell className="w-5 h-5" />
@@ -113,14 +113,14 @@ export default function Navbar({ onNavigate }) {
                   <button
                     key={n.id}
                     onClick={() => marcarLeida(n.id)}
-                    className={`w-full text-left px-4 py-2 text-xs border-b border-gray-50 last:border-0 hover:bg-gray-50 ${!n.leida ? 'bg-blue-50/50 font-medium text-gray-800' : 'text-gray-500'}`}
+                    className={`w-full text-left px-4 py-2 text-xs border-b border-gray-50 last:border-0 hover:bg-gray-50 ${!n.leida ? 'bg-green-50/50 font-medium text-gray-800' : 'text-gray-500'}`}
                   >
                     {n.mensaje}
                   </button>
                 ))}
                 <button
                   onClick={() => { onNavigate?.('notificaciones'); closeAll() }}
-                  className="w-full text-center px-4 py-2 text-[11px] text-blue-600 hover:underline"
+                  className="w-full text-center px-4 py-2 text-[11px] text-[#0e6b3c] hover:underline"
                 >
                   Ver todas
                 </button>
@@ -128,7 +128,7 @@ export default function Navbar({ onNavigate }) {
             )}
           </div>
 
-          <button className="flex items-center gap-1 text-gray-600 hover:text-[#0f172a] transition-colors border border-gray-300 rounded px-2 py-1">
+          <button className="flex items-center gap-1 text-gray-600 hover:text-[#052a18] transition-colors border border-gray-300 rounded px-2 py-1">
             <Globe className="w-4 h-4" />
             <span className="text-xs font-medium">ES</span>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

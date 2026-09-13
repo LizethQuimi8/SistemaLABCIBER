@@ -45,7 +45,7 @@ export default function ProyectosPage() {
   }
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Portafolio de Proyectos"
         subtitle="core-academic-research-service — visibilidad segun rol: Administrador ve todos, Docente Investigador solo los propios."
@@ -67,7 +67,7 @@ export default function ProyectosPage() {
               <FolderOpen className="w-3.5 h-3.5 text-gray-400" /> {p.nombre}
             </td>
             <td className="px-3 py-2">
-              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">
+              <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-semibold">
                 {p.estado}
               </span>
             </td>

@@ -32,8 +32,8 @@ export default function Sidebar({ currentView, onNavigate }) {
   const items = menuItems.filter((item) => !item.adminOnly || isAdmin)
 
   return (
-    <aside className="w-52 bg-[#1e293b] text-white flex flex-col flex-shrink-0 overflow-y-auto">
-      <div className="bg-[#0f172a] px-4 py-3 border-b border-[#334155]">
+    <aside className="w-52 bg-[#0e6b3c] text-white flex flex-col flex-shrink-0 overflow-y-auto">
+      <div className="bg-[#052a18] px-4 py-3 border-b border-[#16874c]">
         <span className="text-xs font-bold tracking-widest text-gray-400 uppercase">
           Menú Principal
         </span>
@@ -47,10 +47,10 @@ export default function Sidebar({ currentView, onNavigate }) {
               key={id}
               onClick={() => onNavigate(id)}
               className={`w-full flex items-center gap-3 px-4 py-3 text-left text-xs font-semibold
-                border-b border-[#334155] hover:bg-[#0f172a] transition-colors group
-                ${active ? 'bg-[#0f172a] text-white border-l-2 border-l-yellow-400' : 'text-gray-300'}`}
+                border-b border-[#16874c] hover:bg-[#052a18] transition-colors group
+                ${active ? 'bg-[#052a18] text-white border-l-2 border-l-brand-gold' : 'text-gray-300'}`}
             >
-              <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-yellow-400' : 'text-gray-400 group-hover:text-white'}`} />
+              <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-brand-gold' : 'text-gray-400 group-hover:text-white'}`} />
               <span className="flex-1 leading-tight">{label}</span>
             </button>
           )

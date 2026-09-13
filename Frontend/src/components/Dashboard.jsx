@@ -19,12 +19,12 @@ function DocSummaryCard({ resumen }) {
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="bg-[#1e293b] text-white p-2 rounded">
+          <div className="bg-[#0e6b3c] text-white p-2 rounded">
             <FileText className="w-6 h-6" />
           </div>
           <span className="text-sm font-semibold text-gray-600">Documentos + Memos</span>
         </div>
-        <span className="text-3xl font-black text-[#0f172a]">{total}</span>
+        <span className="text-3xl font-black text-[#052a18]">{total}</span>
       </div>
 
       <ul className="space-y-2">
@@ -46,11 +46,11 @@ function DocSummaryCard({ resumen }) {
 function PendingSignatureTable({ pendientes, loading }) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-bold text-[#0f172a] mb-3">Documentos Pendientes de Firma</h3>
+      <h3 className="text-sm font-bold text-[#052a18] mb-3">Documentos Pendientes de Firma</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-[#1e293b] text-white">
+            <tr className="bg-[#0e6b3c] text-white">
               <th className="text-left px-3 py-2 font-semibold rounded-tl-sm">Documento</th>
               <th className="text-center px-3 py-2 font-semibold">Firmante</th>
               <th className="text-center px-3 py-2 font-semibold rounded-tr-sm">Estado</th>
@@ -91,13 +91,13 @@ function ShortcutsRow({ onNavigate }) {
   ]
   return (
     <div>
-      <h3 className="text-sm font-bold text-[#0f172a] mb-3">Accesos Directos Destacados</h3>
+      <h3 className="text-sm font-bold text-[#052a18] mb-3">Accesos Directos Destacados</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {shortcuts.map(({ label, icon: Icon, view }) => (
           <button
             key={label}
             onClick={() => onNavigate?.(view)}
-            className="bg-[#1e293b] hover:bg-[#334155] text-white text-xs font-semibold px-4 py-4 rounded-lg
+            className="bg-[#0e6b3c] hover:bg-[#16874c] text-white text-xs font-semibold px-4 py-4 rounded-lg
               flex items-center justify-center gap-2 text-center transition-colors shadow"
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
@@ -114,20 +114,20 @@ function IsoBanner() {
   return (
     <div className="bg-[#f1f5f9] border border-gray-300 rounded-lg flex items-center justify-between px-6 py-4 gap-4">
       <div className="flex items-center gap-4">
-        <div className="bg-yellow-400 p-3 rounded-full">
-          <Lock className="w-7 h-7 text-[#0f172a]" />
+        <div className="bg-brand-gold p-3 rounded-full">
+          <Lock className="w-7 h-7 text-[#052a18]" />
         </div>
         <p className="text-sm text-gray-700 font-medium max-w-xl">
           Este sistema cumple con los estándares de seguridad{' '}
-          <span className="font-black text-[#0f172a]">ISO/IEC 27001:2013</span>{' '}
+          <span className="font-black text-[#052a18]">ISO/IEC 27001:2013</span>{' '}
           para la gestión de la información.
         </p>
       </div>
-      <div className="flex items-center gap-1 border-2 border-[#0f172a] rounded px-3 py-2 flex-shrink-0">
-        <Shield className="w-6 h-6 text-blue-600" />
+      <div className="flex items-center gap-1 border-2 border-[#052a18] rounded px-3 py-2 flex-shrink-0">
+        <Shield className="w-6 h-6 text-[#0e6b3c]" />
         <div>
-          <div className="text-[10px] font-bold text-blue-600 leading-none">ISO</div>
-          <div className="text-base font-black text-[#0f172a] leading-none">27001</div>
+          <div className="text-[10px] font-bold text-[#0e6b3c] leading-none">ISO</div>
+          <div className="text-base font-black text-[#052a18] leading-none">27001</div>
         </div>
       </div>
     </div>
@@ -179,12 +179,12 @@ export default function Dashboard({ onNavigate }) {
   ] : []
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <div className="mb-4">
-        <h2 className="text-base font-black text-[#0f172a] uppercase tracking-wide">
+        <h2 className="text-base font-black text-[#052a18] uppercase tracking-wide">
           Dashboard de Gestión Documental — LICI
         </h2>
-        <div className="h-0.5 bg-[#1e293b] mt-1 w-48" />
+        <div className="h-0.5 bg-[#0e6b3c] mt-1 w-48" />
         <p className="text-xs text-gray-500 mt-2">
           {usuario?.rol === 'ADMINISTRADOR'
             ? 'Vista global — reporting-service agrega datos de los 4 servicios de dominio.'

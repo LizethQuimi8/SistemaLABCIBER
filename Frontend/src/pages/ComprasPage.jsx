@@ -39,7 +39,7 @@ export default function ComprasPage() {
   }
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Compras Públicas"
         subtitle="administrative-logistics-service — modulo exclusivo del Administrador (Docente Investigador sin acceso)."

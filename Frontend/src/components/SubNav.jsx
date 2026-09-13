@@ -11,7 +11,7 @@ const tabs = [
 
 export default function SubNav({ currentView, onNavigate }) {
   return (
-    <nav className="bg-[#1e293b] border-b border-[#334155]">
+    <nav className="bg-[#0e6b3c] border-b border-[#16874c]">
       <div className="flex items-stretch">
         {tabs.map(({ label, icon: Icon, view }) => {
           const active = view && currentView === view
@@ -22,8 +22,8 @@ export default function SubNav({ currentView, onNavigate }) {
               disabled={!view}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors border-b-2
                 ${active
-                  ? 'bg-[#0f172a] text-white border-yellow-400'
-                  : 'text-gray-300 border-transparent hover:bg-[#0f172a] hover:text-white disabled:hover:bg-transparent disabled:opacity-50'
+                  ? 'bg-[#052a18] text-white border-brand-gold'
+                  : 'text-gray-300 border-transparent hover:bg-[#052a18] hover:text-white disabled:hover:bg-transparent disabled:opacity-50'
                 }`}
             >
               <Icon className="w-4 h-4" />

@@ -50,7 +50,7 @@ export default function MemosPage() {
   }
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Memos y Correspondencia"
         subtitle="document-workflow-service — visible para remitente y destinatario."
@@ -78,7 +78,7 @@ export default function MemosPage() {
             </td>
             <td className="px-3 py-2 text-right flex items-center justify-end gap-2">
               {String(m.destinatarioId) === String(usuario?.id) && m.estado === 'ENVIADO' && (
-                <button onClick={() => handleEstado(m.id, 'LEIDO')} className="text-blue-600 hover:text-blue-800" title="Marcar como leido">
+                <button onClick={() => handleEstado(m.id, 'LEIDO')} className="text-[#0e6b3c] hover:text-[#052a18]" title="Marcar como leido">
                   <CheckCheck className="w-3.5 h-3.5" />
                 </button>
               )}

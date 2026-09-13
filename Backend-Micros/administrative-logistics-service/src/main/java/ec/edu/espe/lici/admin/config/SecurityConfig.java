@@ -21,6 +21,8 @@ import java.util.Collection;
 /**
  * Reglas de rol de la seccion 8 de la documentacion:
  * Inventario -> Administrador CRUD completo, Docente solo lectura.
+ * Prestamos -> Administrador y Docente (el Docente solo ve/gestiona los propios,
+ * verificado en PrestamoController).
  * Compras Publicas -> Administrador CRUD completo, Docente sin acceso.
  */
 @Configuration
@@ -55,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/inventario/**")
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
                         .requestMatchers("/api/inventario/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers("/api/prestamos/**")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
                         .requestMatchers("/api/compras/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

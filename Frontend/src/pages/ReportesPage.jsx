@@ -29,7 +29,7 @@ export default function ReportesPage() {
   ] : []
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Reportes"
         subtitle="reporting-service — agrega en tiempo real datos de los 4 servicios de dominio, propagando tu mismo token."
@@ -44,11 +44,11 @@ export default function ReportesPage() {
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="bg-[#1e293b] text-white p-2 rounded">
+            <div className="bg-[#0e6b3c] text-white p-2 rounded">
               <BarChart2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#0f172a]">Generado para {resumen?.generadoPara}</p>
+              <p className="text-sm font-bold text-[#052a18]">Generado para {resumen?.generadoPara}</p>
               <p className="text-xs text-gray-500">
                 Rol: {resumen?.rol} — {usuario?.rol === 'ADMINISTRADOR' ? 'dashboard global' : 'limitado a tu actividad'}
               </p>
@@ -58,7 +58,7 @@ export default function ReportesPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {filas.map(([label, value]) => (
               <div key={label} className="border border-gray-100 rounded-lg p-3 text-center bg-gray-50">
-                <p className="text-2xl font-black text-[#0f172a]">
+                <p className="text-2xl font-black text-[#052a18]">
                   {value === null || value === undefined ? '—' : value}
                 </p>
                 <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">{label}</p>

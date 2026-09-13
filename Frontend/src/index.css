@@ -4,7 +4,7 @@
 
 @layer components {
   .input {
-    @apply w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b];
+    @apply w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0e6b3c];
   }
 }
 
@@ -21,7 +21,7 @@ html, body, #root {
 
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background-color: #f8fafc;
+  background-color: #f3faf6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -30,12 +30,12 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #0e6b3c;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #16874c;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #1c9c58;
 }

@@ -13,9 +13,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#052a18] px-4">
       <div className="w-full max-w-sm bg-white rounded-lg shadow-xl overflow-hidden">
-        <div className="bg-[#1e293b] px-6 py-6 text-center">
+        <div className="bg-[#0e6b3c] px-6 py-6 text-center">
           <img
             src="/espe-logo.png"
             alt="Escudo ESPE"
@@ -35,7 +35,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0e6b3c]"
               placeholder="usuario@espe.edu.ec"
             />
           </div>
@@ -46,7 +46,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0e6b3c]"
               placeholder="••••••••"
             />
           </div>
@@ -60,7 +60,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-[#1e293b] hover:bg-[#334155] disabled:opacity-60 text-white font-semibold text-sm py-2.5 rounded transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-[#0e6b3c] hover:bg-[#16874c] disabled:opacity-60 text-white font-semibold text-sm py-2.5 rounded transition-colors"
           >
             <LogIn className="w-4 h-4" />
             {loading ? 'Ingresando...' : 'Ingresar'}

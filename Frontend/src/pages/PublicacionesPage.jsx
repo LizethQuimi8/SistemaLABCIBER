@@ -43,7 +43,7 @@ export default function PublicacionesPage() {
   }
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Artículos Científicos y Publicaciones"
         subtitle="core-academic-research-service — CRUD solo sobre publicaciones propias para el Docente Investigador."

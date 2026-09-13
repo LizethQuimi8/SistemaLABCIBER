@@ -75,6 +75,42 @@ class BienInventarioControllerTest {
     }
 
     @Test
+    void cambiarEstadoRechazaAsignarEnUsoManualmente() {
+        when(repository.findById(1L)).thenReturn(Optional.of(bienDe(1L)));
+
+        assertThatThrownBy(() -> controller.cambiarEstado(1L, EstadoBien.EN_USO))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void cambiarEstadoRechazaModificarUnBienPrestado() {
+        BienInventario prestado = BienInventario.builder().id(1L).nombre("Laptop").estado(EstadoBien.EN_USO).cantidad(1).build();
+        when(repository.findById(1L)).thenReturn(Optional.of(prestado));
+
+        assertThatThrownBy(() -> controller.cambiarEstado(1L, EstadoBien.MANTENIMIENTO))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void cambiarEstadoActualizaElBienDisponible() {
+        BienInventario disponible = bienDe(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(disponible));
+        when(repository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BienInventario actualizado = controller.cambiarEstado(1L, EstadoBien.MANTENIMIENTO);
+
+        assertThat(actualizado.getEstado()).isEqualTo(EstadoBien.MANTENIMIENTO);
+    }
+
+    @Test
     void eliminarLanzaNotFoundCuandoNoExiste() {
         when(repository.existsById(1L)).thenReturn(false);
 

@@ -40,7 +40,7 @@ function AuthenticatedApp() {
   const ActiveView = VIEWS[view] || Dashboard
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc]">
+    <div className="flex flex-col min-h-screen bg-[#f3faf6]">
       <Navbar onNavigate={setCurrentView} />
       <SubNav currentView={view} onNavigate={setCurrentView} />
 

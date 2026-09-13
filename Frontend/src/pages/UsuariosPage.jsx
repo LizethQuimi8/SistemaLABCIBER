@@ -1,27 +1,46 @@
 import { useCallback, useState } from 'react'
-import { Plus, Trash2, Users, Power } from 'lucide-react'
+import { Plus, Pencil, Trash2, Users, Power } from 'lucide-react'
 import { usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 
 const ROLES = ['ADMINISTRADOR', 'DOCENTE_INVESTIGADOR']
+const FORM_INICIAL = { nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' }
 
 export default function UsuariosPage() {
   const fetcher = useCallback(() => usuariosApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' })
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
 
-  const handleCreate = async (e) => {
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(FORM_INICIAL)
+    setShowForm(true)
+  }
+
+  const openEdit = (u) => {
+    setEditingId(u.id)
+    setForm({ nombres: u.nombres, apellidos: u.apellidos, email: u.email, password: '', cedula: u.cedula || '', rol: u.rol })
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
-      await usuariosApi.create(form)
+      if (editingId) {
+        await usuariosApi.update(editingId, form)
+      } else {
+        await usuariosApi.create(form)
+      }
       setShowForm(false)
-      setForm({ nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' })
+      setForm(FORM_INICIAL)
+      setEditingId(null)
       reload()
     } catch (err) {
       setError(err.message)
@@ -50,12 +69,12 @@ export default function UsuariosPage() {
   }
 
   return (
-    <main className="flex-1 bg-[#f8fafc] p-5 overflow-y-auto">
+    <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Gestión de Usuarios"
         subtitle="core-security-users-service — modulo exclusivo del Administrador."
         action={
-          <PrimaryButton onClick={() => setShowForm(true)}>
+          <PrimaryButton onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nuevo usuario
           </PrimaryButton>
         }
@@ -81,7 +100,10 @@ export default function UsuariosPage() {
               </span>
             </td>
             <td className="px-3 py-2 text-right flex items-center justify-end gap-2">
-              <button onClick={() => toggleEstado(u)} className="text-gray-500 hover:text-[#0f172a]" title="Activar/Desactivar">
+              <button onClick={() => openEdit(u)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => toggleEstado(u)} className="text-gray-500 hover:text-[#052a18]" title="Activar/Desactivar">
                 <Power className="w-3.5 h-3.5" />
               </button>
               <button onClick={() => handleDelete(u.id)} className="text-red-500 hover:text-red-700">
@@ -93,8 +115,8 @@ export default function UsuariosPage() {
       </Table>
 
       {showForm && (
-        <Modal title="Nuevo usuario" onClose={() => setShowForm(false)}>
-          <form onSubmit={handleCreate} className="space-y-3">
+        <Modal title={editingId ? 'Editar usuario' : 'Nuevo usuario'} onClose={() => setShowForm(false)}>
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Nombres">
                 <input required className="input" value={form.nombres} onChange={(e) => setForm({ ...form, nombres: e.target.value })} />
@@ -106,8 +128,14 @@ export default function UsuariosPage() {
             <Field label="Correo institucional">
               <input required type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </Field>
-            <Field label="Contraseña">
-              <input required type="password" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            <Field label={editingId ? 'Contraseña (dejar en blanco para no cambiarla)' : 'Contraseña'}>
+              <input
+                required={!editingId}
+                type="password"
+                className="input"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Cedula">
@@ -120,7 +148,7 @@ export default function UsuariosPage() {
               </Field>
             </div>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
-              {saving ? 'Guardando...' : 'Crear usuario'}
+              {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear usuario'}
             </PrimaryButton>
           </form>
         </Modal>

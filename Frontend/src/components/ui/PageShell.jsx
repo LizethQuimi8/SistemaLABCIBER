@@ -4,8 +4,8 @@ export function PageHeader({ title, subtitle, action }) {
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-base font-black text-[#0f172a] uppercase tracking-wide">{title}</h2>
-        <div className="h-0.5 bg-[#1e293b] mt-1 w-48" />
+        <h2 className="text-base font-black text-[#052a18] uppercase tracking-wide">{title}</h2>
+        <div className="h-0.5 bg-[#0e6b3c] mt-1 w-48" />
         {subtitle && <p className="text-xs text-gray-500 mt-2">{subtitle}</p>}
       </div>
       {action}
@@ -48,7 +48,7 @@ export function PrimaryButton({ children, className = '', ...props }) {
   return (
     <button
       {...props}
-      className={`flex items-center gap-2 bg-[#1e293b] hover:bg-[#334155] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded transition-colors ${className}`}
+      className={`flex items-center gap-2 bg-[#0e6b3c] hover:bg-[#16874c] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded transition-colors ${className}`}
     >
       {children}
     </button>
@@ -61,7 +61,7 @@ export function Table({ headers, children }) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-[#1e293b] text-white">
+            <tr className="bg-[#0e6b3c] text-white">
               {headers.map((h) => (
                 <th key={h} className="text-left px-3 py-2 font-semibold whitespace-nowrap">
                   {h}

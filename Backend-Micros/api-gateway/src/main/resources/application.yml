@@ -32,7 +32,7 @@ spring:
         - id: administrative-logistics-service
           uri: ${ADMIN_SERVICE_URL:http://localhost:8084}
           predicates:
-            - Path=/api/inventario/**,/api/compras/**
+            - Path=/api/inventario/**,/api/prestamos/**,/api/compras/**
 
         - id: reporting-service
           uri: ${REPORTING_SERVICE_URL:http://localhost:8085}

@@ -7,6 +7,7 @@ export const login = (email, password) =>
 export const usuariosApi = {
   list: () => apiFetch('/api/usuarios'),
   create: (data) => apiFetch('/api/usuarios', { method: 'POST', body: data }),
+  update: (id, data) => apiFetch(`/api/usuarios/${id}`, { method: 'PUT', body: data }),
   setEstado: (id, activo) => apiFetch(`/api/usuarios/${id}/estado?activo=${activo}`, { method: 'PATCH' }),
   remove: (id) => apiFetch(`/api/usuarios/${id}`, { method: 'DELETE' }),
 }
@@ -53,7 +54,14 @@ export const notificacionesApi = {
 export const inventarioApi = {
   list: () => apiFetch('/api/inventario'),
   create: (data) => apiFetch('/api/inventario', { method: 'POST', body: data }),
+  setEstado: (id, estado) => apiFetch(`/api/inventario/${id}/estado?estado=${estado}`, { method: 'PATCH' }),
   remove: (id) => apiFetch(`/api/inventario/${id}`, { method: 'DELETE' }),
+}
+
+export const prestamosApi = {
+  list: () => apiFetch('/api/prestamos'),
+  solicitar: (data) => apiFetch('/api/prestamos', { method: 'POST', body: data }),
+  devolver: (id) => apiFetch(`/api/prestamos/${id}/devolver`, { method: 'PATCH' }),
 }
 
 export const comprasApi = {

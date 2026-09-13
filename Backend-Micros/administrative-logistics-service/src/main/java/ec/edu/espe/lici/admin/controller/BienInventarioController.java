@@ -1,6 +1,7 @@
 package ec.edu.espe.lici.admin.controller;
 
 import ec.edu.espe.lici.admin.domain.BienInventario;
+import ec.edu.espe.lici.admin.domain.EstadoBien;
 import ec.edu.espe.lici.admin.repository.BienInventarioRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,23 @@ public class BienInventarioController {
         bien.setCantidad(request.getCantidad());
         bien.setEstado(request.getEstado());
         bien.setUbicacion(request.getUbicacion());
+        return bienInventarioRepository.save(bien);
+    }
+
+    @PatchMapping("/{id}/estado")
+    public BienInventario cambiarEstado(@PathVariable Long id, @RequestParam EstadoBien estado) {
+        BienInventario bien = buscar(id);
+
+        if (estado == EstadoBien.EN_USO) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El estado EN_USO solo se asigna al solicitar un prestamo");
+        }
+        if (bien.getEstado() == EstadoBien.EN_USO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El bien esta prestado; registre la devolucion del prestamo antes de cambiar su estado");
+        }
+
+        bien.setEstado(estado);
         return bienInventarioRepository.save(bien);
     }
 
