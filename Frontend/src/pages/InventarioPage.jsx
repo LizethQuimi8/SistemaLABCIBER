@@ -116,7 +116,6 @@ export default function InventarioPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Inventario"
-        subtitle={`administrative-logistics-service — ${isAdmin ? 'CRUD completo y control de estados (Administrador)' : 'consulta de equipos y solicitud de prestamo'}`}
         action={isAdmin && (
           <PrimaryButton onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4" /> Nuevo bien

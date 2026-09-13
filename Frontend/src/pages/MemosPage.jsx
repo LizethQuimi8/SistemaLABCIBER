@@ -53,7 +53,6 @@ export default function MemosPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Memos y Correspondencia"
-        subtitle="document-workflow-service — visible para remitente y destinatario."
         action={
           <PrimaryButton onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4" /> Nuevo memo

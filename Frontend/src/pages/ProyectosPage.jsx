@@ -48,7 +48,6 @@ export default function ProyectosPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Portafolio de Proyectos"
-        subtitle="core-academic-research-service — visibilidad segun rol: Administrador ve todos, Docente Investigador solo los propios."
         action={
           <PrimaryButton onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4" /> Nuevo proyecto

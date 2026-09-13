@@ -45,7 +45,6 @@ export default function DocumentosPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Documentos y Correspondencia"
-        subtitle="document-workflow-service — visible para el propietario o el firmante asignado; Administrador ve y firma todos."
         action={
           <PrimaryButton onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4" /> Nuevo documento

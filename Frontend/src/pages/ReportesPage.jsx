@@ -32,7 +32,6 @@ export default function ReportesPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Reportes"
-        subtitle="reporting-service — agrega en tiempo real datos de los 4 servicios de dominio, propagando tu mismo token."
       />
 
       <ErrorBanner message={error} />

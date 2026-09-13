@@ -21,7 +21,6 @@ export default function NotificacionesPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Notificaciones"
-        subtitle="document-workflow-service — cada usuario ve unicamente sus propias notificaciones."
       />
 
       <ErrorBanner message={error} />
