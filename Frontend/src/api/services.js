@@ -67,6 +67,8 @@ export const prestamosApi = {
 export const comprasApi = {
   list: () => apiFetch('/api/compras'),
   create: (data) => apiFetch('/api/compras', { method: 'POST', body: data }),
+  update: (id, data) => apiFetch(`/api/compras/${id}`, { method: 'PUT', body: data }),
+  setFase: (id, fase) => apiFetch(`/api/compras/${id}/fase?fase=${fase}`, { method: 'PATCH' }),
   remove: (id) => apiFetch(`/api/compras/${id}`, { method: 'DELETE' }),
 }
 

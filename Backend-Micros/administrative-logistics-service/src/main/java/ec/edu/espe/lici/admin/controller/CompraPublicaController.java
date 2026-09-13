@@ -1,6 +1,7 @@
 package ec.edu.espe.lici.admin.controller;
 
 import ec.edu.espe.lici.admin.domain.CompraPublica;
+import ec.edu.espe.lici.admin.domain.FaseCompra;
 import ec.edu.espe.lici.admin.repository.CompraPublicaRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,14 +41,23 @@ public class CompraPublicaController {
     @PutMapping("/{id}")
     public CompraPublica actualizar(@PathVariable Long id, @Valid @RequestBody CompraPublica request) {
         CompraPublica compra = buscar(id);
-        compra.setDescripcion(request.getDescripcion());
+        compra.setObjetoContratacion(request.getObjetoContratacion());
         compra.setNumeroProceso(request.getNumeroProceso());
         compra.setTipoContratacion(request.getTipoContratacion());
         compra.setMonto(request.getMonto());
-        compra.setEstado(request.getEstado());
+        compra.setFase(request.getFase());
+        compra.setAnio(request.getAnio());
+        compra.setResponsables(request.getResponsables());
         compra.setUsuarioSolicitanteId(request.getUsuarioSolicitanteId());
         compra.setFechaSolicitud(request.getFechaSolicitud());
         compra.setFechaAdjudicacion(request.getFechaAdjudicacion());
+        return compraPublicaRepository.save(compra);
+    }
+
+    @PatchMapping("/{id}/fase")
+    public CompraPublica cambiarFase(@PathVariable Long id, @RequestParam FaseCompra fase) {
+        CompraPublica compra = buscar(id);
+        compra.setFase(fase);
         return compraPublicaRepository.save(compra);
     }
 

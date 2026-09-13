@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, FilePlus, Upload, RefreshCw, Search, Lock, Shield, Loader2 } from 'lucide-react'
+import { FileText, FilePlus, Upload, RefreshCw, Search, Loader2 } from 'lucide-react'
 import BarChart from './BarChart'
 import { reportesApi, documentosApi } from '../api/services'
 import { useAuth } from '../context/AuthContext'
@@ -109,31 +109,6 @@ function ShortcutsRow({ onNavigate }) {
   )
 }
 
-// ── Banner ISO ────────────────────────────────────────────────────────────────
-function IsoBanner() {
-  return (
-    <div className="bg-[#f1f5f9] border border-gray-300 rounded-lg flex items-center justify-between px-6 py-4 gap-4">
-      <div className="flex items-center gap-4">
-        <div className="bg-brand-gold p-3 rounded-full">
-          <Lock className="w-7 h-7 text-[#052a18]" />
-        </div>
-        <p className="text-sm text-gray-700 font-medium max-w-xl">
-          Este sistema cumple con los estándares de seguridad{' '}
-          <span className="font-black text-[#052a18]">ISO/IEC 27001:2013</span>{' '}
-          para la gestión de la información.
-        </p>
-      </div>
-      <div className="flex items-center gap-1 border-2 border-[#052a18] rounded px-3 py-2 flex-shrink-0">
-        <Shield className="w-6 h-6 text-[#0e6b3c]" />
-        <div>
-          <div className="text-[10px] font-bold text-[#0e6b3c] leading-none">ISO</div>
-          <div className="text-base font-black text-[#052a18] leading-none">27001</div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Dashboard principal ───────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate }) {
   const { usuario, isAdmin } = useAuth()
@@ -210,11 +185,9 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
         <ShortcutsRow onNavigate={onNavigate} />
       </div>
-
-      <IsoBanner />
     </main>
   )
 }

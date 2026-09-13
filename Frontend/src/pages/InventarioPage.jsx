@@ -31,11 +31,11 @@ export default function InventarioPage() {
   const { data: prestamos, loading: loadingPrestamos, reload: reloadPrestamos } = useList(prestamosFetcher)
 
   const columnHeaders = isAdmin
-    ? ['Nombre', 'Codigo', 'Categoria', 'Cantidad', 'Estado', 'Ubicacion', 'Acciones']
-    : ['Nombre', 'Codigo', 'Categoria', 'Cantidad', 'Estado', 'Ubicacion', '']
+    ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Categoria', 'Cantidad', 'Estado', 'Ubicacion', 'Acciones']
+    : ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Categoria', 'Cantidad', 'Estado', 'Ubicacion', '']
 
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ nombre: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
+  const [form, setForm] = useState({ nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
 
@@ -53,7 +53,7 @@ export default function InventarioPage() {
     try {
       await inventarioApi.create({ ...form, cantidad: Number(form.cantidad) || 1 })
       setShowForm(false)
-      setForm({ nombre: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
+      setForm({ nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
       reload()
     } catch (err) {
       setError(err.message)
@@ -134,6 +134,7 @@ export default function InventarioPage() {
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <Package className="w-3.5 h-3.5 text-gray-400" /> {b.nombre}
             </td>
+            <td className="px-3 py-2 text-gray-600">{b.codigoIC || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{b.codigoInventario || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{b.categoria || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{b.cantidad}</td>
@@ -215,17 +216,20 @@ export default function InventarioPage() {
       {showForm && (
         <Modal title="Nuevo bien de inventario" onClose={() => setShowForm(false)}>
           <form onSubmit={handleCreate} className="space-y-3">
-            <Field label="Nombre">
+            <Field label="Nombre (equipo)">
               <input required className="input" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Codigo">
+              <Field label="Codigo IC">
+                <input className="input" value={form.codigoIC} onChange={(e) => setForm({ ...form, codigoIC: e.target.value })} />
+              </Field>
+              <Field label="Codigo interno">
                 <input className="input" value={form.codigoInventario} onChange={(e) => setForm({ ...form, codigoInventario: e.target.value })} />
               </Field>
-              <Field label="Cantidad">
-                <input type="number" className="input" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} />
-              </Field>
             </div>
+            <Field label="Cantidad">
+              <input type="number" className="input" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} />
+            </Field>
             <Field label="Categoria">
               <input className="input" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
             </Field>

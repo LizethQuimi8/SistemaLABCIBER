@@ -1,12 +1,10 @@
-import { Home, FolderOpen, FileText, Users, ShieldCheck, HelpCircle } from 'lucide-react'
+import { Home, FolderOpen, FileText, Users } from 'lucide-react'
 
 const tabs = [
   { label: 'Inicio', icon: Home, view: 'dashboard' },
   { label: 'Proyectos', icon: FolderOpen, view: 'proyectos' },
   { label: 'Documentos', icon: FileText, view: 'documentos' },
   { label: 'Personal', icon: Users, view: 'investigadores' },
-  { label: 'Normativas (ISO 27001)', icon: ShieldCheck, view: null },
-  { label: 'Ayuda', icon: HelpCircle, view: null },
 ]
 
 export default function SubNav({ currentView, onNavigate }) {

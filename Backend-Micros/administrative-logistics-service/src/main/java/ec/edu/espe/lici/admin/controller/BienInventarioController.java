@@ -44,6 +44,7 @@ public class BienInventarioController {
         BienInventario bien = buscar(id);
         bien.setNombre(request.getNombre());
         bien.setCodigoInventario(request.getCodigoInventario());
+        bien.setCodigoIC(request.getCodigoIC());
         bien.setCategoria(request.getCategoria());
         bien.setCantidad(request.getCantidad());
         bien.setEstado(request.getEstado());

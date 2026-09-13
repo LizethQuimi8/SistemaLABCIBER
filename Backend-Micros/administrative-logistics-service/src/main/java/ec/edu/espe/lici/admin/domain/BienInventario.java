@@ -25,8 +25,13 @@ public class BienInventario {
     @Column(nullable = false, length = 200)
     private String nombre;
 
+    /** Codigo interno asignado por el laboratorio (etiqueta propia del LICI). */
     @Column(unique = true, length = 50)
     private String codigoInventario;
+
+    /** Codigo IC: codigo oficial del sistema institucional de activos fijos/bienes. */
+    @Column(length = 50)
+    private String codigoIC;
 
     @Column(length = 100)
     private String categoria;

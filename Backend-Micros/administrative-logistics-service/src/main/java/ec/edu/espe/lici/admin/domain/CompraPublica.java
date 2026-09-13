@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/** Un objeto de contratacion del plan anual de compras publicas (PAC), cargado
+ * manualmente por el administrador y llevado a traves de las 5 fases del
+ * proceso de contratacion (semaforizacion). */
 @Entity
 @Table(name = "compras_publicas")
 @Getter
@@ -24,8 +27,9 @@ public class CompraPublica {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Objeto de contratacion, p. ej. "Adquisicion de rack". */
     @Column(nullable = false, length = 300)
-    private String descripcion;
+    private String objetoContratacion;
 
     @Column(length = 50)
     private String numeroProceso;
@@ -37,7 +41,15 @@ public class CompraPublica {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoCompra estado;
+    private FaseCompra fase;
+
+    /** Anio del plan anual de contrataciones, para clasificar el listado. */
+    @Column(nullable = false)
+    private Integer anio;
+
+    /** Nombres de los responsables del proceso, en texto libre (p. ej. "Ing. Gancino, Ing. Roman"). */
+    @Column(length = 300)
+    private String responsables;
 
     /** Id del Usuario (core-security-users-service) que solicito la compra. */
     private Long usuarioSolicitanteId;
@@ -52,8 +64,11 @@ public class CompraPublica {
     @PrePersist
     void prePersist() {
         this.fechaCreacion = LocalDateTime.now();
-        if (this.estado == null) {
-            this.estado = EstadoCompra.SOLICITADA;
+        if (this.fase == null) {
+            this.fase = FaseCompra.PREPARATORIA;
+        }
+        if (this.anio == null) {
+            this.anio = LocalDate.now().getYear();
         }
     }
 }
