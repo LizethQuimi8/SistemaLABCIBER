@@ -179,7 +179,6 @@ export default function ComprasPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Compras Públicas"
-        subtitle="administrative-logistics-service — modulo exclusivo del Administrador (Docente Investigador sin acceso)."
         action={
           <div className="flex items-center gap-2">
             <button
