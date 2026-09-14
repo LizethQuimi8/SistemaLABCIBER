@@ -61,4 +61,56 @@ export async function apiFetch(path, { method = 'GET', body, auth = true } = {})
   return data
 }
 
+/** Sube un archivo (multipart/form-data); el navegador fija el Content-Type con el boundary. */
+export async function apiUpload(path, file, fieldName = 'archivo') {
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const formData = new FormData()
+  formData.append(fieldName, file)
+
+  const response = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: formData })
+
+  const isJson = response.headers.get('content-type')?.includes('application/json')
+  const data = isJson ? await response.json().catch(() => null) : null
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearSession()
+      window.dispatchEvent(new CustomEvent('lici:unauthorized'))
+    }
+    const message = data?.message || data?.error || `Error ${response.status}`
+    throw new ApiError(response.status, message)
+  }
+
+  return data
+}
+
+/** Descarga un archivo binario protegido (requiere el Bearer token) como Blob, para previsualizarlo. */
+export async function apiFetchBlob(path) {
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(`${BASE_URL}${path}`, { method: 'GET', headers })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearSession()
+      window.dispatchEvent(new CustomEvent('lici:unauthorized'))
+    }
+    let message = `Error ${response.status}`
+    try {
+      const data = await response.json()
+      message = data?.message || data?.error || message
+    } catch {
+      // el cuerpo del error no era JSON (o no habia cuerpo); se usa el mensaje generico
+    }
+    throw new ApiError(response.status, message)
+  }
+
+  return response.blob()
+}
+
 export { ApiError }

@@ -1,6 +1,7 @@
 package ec.edu.espe.lici.security.controller;
 
 import ec.edu.espe.lici.security.domain.Usuario;
+import ec.edu.espe.lici.security.dto.UsuarioDirectorioDTO;
 import ec.edu.espe.lici.security.dto.UsuarioRequest;
 import ec.edu.espe.lici.security.dto.UsuarioResponse;
 import ec.edu.espe.lici.security.repository.UsuarioRepository;
@@ -32,6 +33,13 @@ public class UsuarioController {
     @GetMapping
     public List<UsuarioResponse> listar() {
         return usuarioRepository.findAll().stream().map(UsuarioResponse::from).toList();
+    }
+
+    /** Directorio minimo (id + nombre), accesible a cualquier usuario autenticado,
+     * para selectores de "responsable/firmante" en otros modulos (ver SecurityConfig). */
+    @GetMapping("/directorio")
+    public List<UsuarioDirectorioDTO> directorio() {
+        return usuarioRepository.findAll().stream().map(UsuarioDirectorioDTO::from).toList();
     }
 
     @GetMapping("/{id}")

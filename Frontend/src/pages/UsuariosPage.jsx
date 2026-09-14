@@ -72,7 +72,6 @@ export default function UsuariosPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Gestión de Usuarios"
-        subtitle="core-security-users-service — modulo exclusivo del Administrador."
         action={
           <PrimaryButton onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nuevo usuario

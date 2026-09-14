@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, User, Globe, Shield, LogOut } from 'lucide-react'
+import { Bell, User, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { notificacionesApi } from '../api/services'
 
@@ -46,20 +46,12 @@ export default function Navbar({ onNavigate }) {
               UNIVERSIDAD DE LAS FUERZAS ARMADAS ESPE
             </h1>
             <p className="text-[11px] text-gray-500 tracking-wider uppercase">
-              SISTEMA DE GESTIÓN DOCUMENTAL — LABORATORIO DE INVESTIGACIÓN DE CIBERSEGURIDAD (LICI)
+              SISTEMA DE GESTIÓN DOCUMENTAL — LABORATORIO DE INVESTIGACIÓN DE CIBERSEGURIDAD
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-5 flex-shrink-0">
-          <div className="flex items-center gap-1 border border-gray-400 rounded px-2 py-1">
-            <Shield className="w-5 h-5 text-[#0e6b3c]" />
-            <div className="text-left">
-              <div className="text-[10px] font-bold text-[#0e6b3c] leading-none">ISO</div>
-              <div className="text-[10px] font-black text-[#052a18] leading-none">27001</div>
-            </div>
-          </div>
-
           {/* Mi Cuenta */}
           <div className="relative">
             <button
@@ -127,14 +119,6 @@ export default function Navbar({ onNavigate }) {
               </div>
             )}
           </div>
-
-          <button className="flex items-center gap-1 text-gray-600 hover:text-[#052a18] transition-colors border border-gray-300 rounded px-2 py-1">
-            <Globe className="w-4 h-4" />
-            <span className="text-xs font-medium">ES</span>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
         </div>
       </div>
     </header>

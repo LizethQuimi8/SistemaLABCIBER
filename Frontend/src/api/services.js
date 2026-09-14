@@ -1,4 +1,4 @@
-import { apiFetch } from './client'
+import { apiFetch, apiUpload, apiFetchBlob } from './client'
 
 // --- Auth / Usuarios (core-security-users-service) ---
 export const login = (email, password) =>
@@ -6,6 +6,8 @@ export const login = (email, password) =>
 
 export const usuariosApi = {
   list: () => apiFetch('/api/usuarios'),
+  /** Id + nombre de todos los usuarios; accesible a cualquier rol autenticado (selectores de "responsable"). */
+  directorio: () => apiFetch('/api/usuarios/directorio'),
   create: (data) => apiFetch('/api/usuarios', { method: 'POST', body: data }),
   update: (id, data) => apiFetch(`/api/usuarios/${id}`, { method: 'PUT', body: data }),
   setEstado: (id, activo) => apiFetch(`/api/usuarios/${id}/estado?activo=${activo}`, { method: 'PATCH' }),
@@ -35,6 +37,8 @@ export const publicacionesApi = {
 export const documentosApi = {
   list: () => apiFetch('/api/documentos'),
   create: (data) => apiFetch('/api/documentos', { method: 'POST', body: data }),
+  subirArchivo: (id, file) => apiUpload(`/api/documentos/${id}/archivo`, file),
+  verArchivo: (id) => apiFetchBlob(`/api/documentos/${id}/archivo`),
   remove: (id) => apiFetch(`/api/documentos/${id}`, { method: 'DELETE' }),
 }
 
@@ -42,6 +46,8 @@ export const memosApi = {
   list: () => apiFetch('/api/memos'),
   create: (data) => apiFetch('/api/memos', { method: 'POST', body: data }),
   setEstado: (id, estado) => apiFetch(`/api/memos/${id}/estado?estado=${estado}`, { method: 'PATCH' }),
+  subirArchivo: (id, file) => apiUpload(`/api/memos/${id}/archivo`, file),
+  verArchivo: (id) => apiFetchBlob(`/api/memos/${id}/archivo`),
   remove: (id) => apiFetch(`/api/memos/${id}`, { method: 'DELETE' }),
 }
 

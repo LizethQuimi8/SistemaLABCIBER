@@ -29,9 +29,18 @@ public class Documento {
     @Column(nullable = false, length = 30)
     private TipoDocumento tipo;
 
-    /** Ruta o hash del archivo; el binario se guarda en un volumen, no en la BD. */
+    /** Nombre del archivo tal como quedo guardado en el volumen de almacenamiento
+     * (ver DocumentoController); el binario nunca se guarda en la BD. */
     @Column(length = 500)
     private String rutaArchivo;
+
+    /** Nombre original del archivo subido por el usuario, para mostrarlo/descargarlo. */
+    @Column(length = 255)
+    private String nombreArchivo;
+
+    /** Content-Type detectado al subir el archivo, usado para la previsualizacion. */
+    @Column(length = 100)
+    private String contentType;
 
     @Column(length = 128)
     private String hashArchivo;

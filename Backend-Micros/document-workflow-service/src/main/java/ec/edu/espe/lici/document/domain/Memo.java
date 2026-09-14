@@ -28,6 +28,19 @@ public class Memo {
     @Column(nullable = false, length = 4000)
     private String contenido;
 
+    /** Nombre del archivo adjunto tal como quedo guardado en el volumen de
+     * almacenamiento (ver MemoController); el binario nunca se guarda en la BD. */
+    @Column(length = 500)
+    private String rutaArchivo;
+
+    /** Nombre original del archivo adjunto, para mostrarlo/descargarlo. */
+    @Column(length = 255)
+    private String nombreArchivo;
+
+    /** Content-Type detectado al subir el adjunto, usado para la previsualizacion. */
+    @Column(length = 100)
+    private String contentType;
+
     @Column(nullable = false)
     private Long remitenteId;
 

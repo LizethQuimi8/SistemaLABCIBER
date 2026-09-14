@@ -6,12 +6,16 @@ import ec.edu.espe.lici.document.repository.MemoRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +31,13 @@ class MemoControllerTest {
     private MemoRepository memoRepository;
     private MemoController controller;
 
+    @TempDir
+    Path storageDir;
+
     @BeforeEach
     void setUp() {
         memoRepository = mock(MemoRepository.class);
-        controller = new MemoController(memoRepository);
+        controller = new MemoController(memoRepository, storageDir.toString());
     }
 
     @AfterEach
@@ -116,5 +123,46 @@ class MemoControllerTest {
 
         assertThat(controller.listar()).hasSize(1);
         verify(memoRepository, never()).findAll();
+    }
+
+    @Test
+    void subirArchivoGuardaElAdjuntoYActualizaLosMetadatos() throws IOException {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        Memo memo = memoDe(1L, 5L, 20L);
+        when(memoRepository.findById(1L)).thenReturn(Optional.of(memo));
+        when(memoRepository.save(any(Memo.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "soporte.pdf", "application/pdf", "contenido".getBytes());
+
+        Memo actualizado = controller.subirArchivo(1L, archivo);
+
+        assertThat(actualizado.getNombreArchivo()).isEqualTo("soporte.pdf");
+        assertThat(actualizado.getContentType()).isEqualTo("application/pdf");
+        assertThat(actualizado.getRutaArchivo()).endsWith(".pdf");
+        assertThat(storageDir.resolve(actualizado.getRutaArchivo())).exists();
+    }
+
+    @Test
+    void subirArchivoRechazaAQuienNoEsRemitenteNiDestinatario() {
+        authenticateAs(99L, "DOCENTE_INVESTIGADOR");
+        when(memoRepository.findById(1L)).thenReturn(Optional.of(memoDe(1L, 5L, 20L)));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "soporte.pdf", "application/pdf", "contenido".getBytes());
+
+        assertThatThrownBy(() -> controller.subirArchivo(1L, archivo))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(memoRepository, never()).save(any());
+    }
+
+    @Test
+    void descargarArchivoLanzaNotFoundSiNoHayAdjunto() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(memoRepository.findById(1L)).thenReturn(Optional.of(memoDe(1L, 5L, 20L)));
+
+        assertThatThrownBy(() -> controller.descargarArchivo(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 }

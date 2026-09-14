@@ -57,6 +57,18 @@ class UsuarioControllerTest {
     }
 
     @Test
+    void directorioExponeSoloIdYNombreSinDatosSensibles() {
+        when(usuarioRepository.findAll()).thenReturn(List.of(aUsuario()));
+
+        var result = controller.directorio();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(1L);
+        assertThat(result.get(0).nombres()).isEqualTo("Ada");
+        assertThat(result.get(0).apellidos()).isEqualTo("Lovelace");
+    }
+
+    @Test
     void obtenerThrowsNotFoundWhenUserDoesNotExist() {
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 

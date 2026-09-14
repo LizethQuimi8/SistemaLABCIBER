@@ -9,6 +9,7 @@ volumes:
   mysql_academic_data:
   mysql_document_data:
   mysql_admin_data:
+  documentos_files:
 
 x-mysql-common: &mysql-common
   image: mysql:8.0
@@ -151,6 +152,8 @@ services:
       DB_HOST: mysql-document
       DB_NAME: lici_document
       JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
+    volumes:
+      - documentos_files:/data/documentos
     expose:
       - "8083"
 

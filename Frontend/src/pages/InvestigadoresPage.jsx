@@ -53,7 +53,6 @@ export default function InvestigadoresPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Investigadores"
-        subtitle="core-academic-research-service — directorio publico; edicion solo por el dueno del perfil o un Administrador."
         action={
           <PrimaryButton onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4" /> Nuevo perfil

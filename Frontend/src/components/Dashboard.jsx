@@ -111,7 +111,7 @@ function ShortcutsRow({ onNavigate }) {
 
 // ── Dashboard principal ───────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate }) {
-  const { usuario, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const [resumen, setResumen] = useState(null)
   const [pendientes, setPendientes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -160,11 +160,6 @@ export default function Dashboard({ onNavigate }) {
           Dashboard de Gestión Documental — LICI
         </h2>
         <div className="h-0.5 bg-[#0e6b3c] mt-1 w-48" />
-        <p className="text-xs text-gray-500 mt-2">
-          {usuario?.rol === 'ADMINISTRADOR'
-            ? 'Vista global — reporting-service agrega datos de los 4 servicios de dominio.'
-            : 'Vista limitada a tu propia actividad (Docente Investigador).'}
-        </p>
       </div>
 
       {error && (

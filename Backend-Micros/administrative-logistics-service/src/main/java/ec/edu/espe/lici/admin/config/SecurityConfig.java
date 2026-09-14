@@ -23,7 +23,7 @@ import java.util.Collection;
  * Inventario -> Administrador CRUD completo, Docente solo lectura.
  * Prestamos -> Administrador y Docente (el Docente solo ve/gestiona los propios,
  * verificado en PrestamoController).
- * Compras Publicas -> Administrador CRUD completo, Docente sin acceso.
+ * Compras Publicas -> Administrador CRUD completo, Docente solo lectura.
  */
 @Configuration
 @EnableWebSecurity
@@ -58,6 +58,8 @@ public class SecurityConfig {
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
                         .requestMatchers("/api/inventario/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/prestamos/**")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
+                        .requestMatchers(HttpMethod.GET, "/api/compras/**")
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
                         .requestMatchers("/api/compras/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated())

@@ -22,7 +22,7 @@ const menuItems = [
   { id: 'memos', label: 'Memos y Correspondencia', icon: Mail },
   { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'inventario', label: 'Inventario', icon: Package },
-  { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart, adminOnly: true },
+  { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },
   { id: 'usuarios', label: 'Gestión de Usuarios', icon: Users, adminOnly: true },
   { id: 'reportes', label: 'Reportes', icon: BarChart2 },
 ]

@@ -10,13 +10,6 @@ export default function Footer() {
           | Dirección: Universidad de las Fuerzas Armadas ESPE, Av. General Rumiñahui s/n,
           Sangolquí, Ecuador
         </p>
-        <p className="flex items-center justify-center gap-3 flex-wrap">
-          <a href="#" className="hover:text-white transition-colors">Noticias y Novedades legales</a>
-          <span>|</span>
-          <a href="#" className="hover:text-white transition-colors">Políticas y términos</a>
-          <span>|</span>
-          <a href="#" className="hover:text-white transition-colors">Juan-Raticos</a>
-        </p>
         <p className="text-gray-500">
           Universidad de las Fuerzas Armadas ESPE — Todos los derechos reservados © {new Date().getFullYear()}
         </p>
