@@ -3,12 +3,16 @@ package ec.edu.espe.lici.admin.controller;
 import ec.edu.espe.lici.admin.domain.BienInventario;
 import ec.edu.espe.lici.admin.domain.EstadoBien;
 import ec.edu.espe.lici.admin.repository.BienInventarioRepository;
+import ec.edu.espe.lici.admin.service.InventarioImportService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.List;
 
 /** GET habilitado para ambos roles; escritura restringida a ADMINISTRADOR (ver SecurityConfig). */
@@ -18,9 +22,12 @@ import java.util.List;
 public class BienInventarioController {
 
     private final BienInventarioRepository bienInventarioRepository;
+    private final InventarioImportService inventarioImportService;
 
-    public BienInventarioController(BienInventarioRepository bienInventarioRepository) {
+    public BienInventarioController(BienInventarioRepository bienInventarioRepository,
+                                     InventarioImportService inventarioImportService) {
         this.bienInventarioRepository = bienInventarioRepository;
+        this.inventarioImportService = inventarioImportService;
     }
 
     @GetMapping
@@ -67,6 +74,19 @@ public class BienInventarioController {
 
         bien.setEstado(estado);
         return bienInventarioRepository.save(bien);
+    }
+
+    /** Importa/actualiza en bloque la matriz institucional de inventario (Excel .xlsx). */
+    @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public InventarioImportService.ImportResult importar(@RequestParam("archivo") MultipartFile archivo) throws IOException {
+        if (archivo.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo esta vacio");
+        }
+        try {
+            return inventarioImportService.importar(archivo);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

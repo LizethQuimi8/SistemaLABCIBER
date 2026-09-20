@@ -17,7 +17,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-white rounded-lg shadow-xl overflow-hidden">
         <div className="bg-[#0e6b3c] px-6 py-6 text-center">
           <img
-            src="/espe-logo.png"
+            src={`${import.meta.env.BASE_URL}espe-logo.png`}
             alt="Escudo ESPE"
             className="object-contain mx-auto mb-2"
             style={{ width: '110px', height: '50px' }}

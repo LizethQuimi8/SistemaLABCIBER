@@ -36,7 +36,7 @@ export default function Navbar({ onNavigate }) {
       <div className="flex items-center justify-between px-4 h-16 relative z-20">
         <div className="flex items-center gap-3">
           <img
-            src="/espe-logo.png"
+            src={`${import.meta.env.BASE_URL}espe-logo.png`}
             alt="Escudo ESPE"
             className="object-contain flex-shrink-0"
             style={{ width: '130px', height: '58px' }}

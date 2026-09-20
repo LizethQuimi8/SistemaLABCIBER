@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
-import { Plus, Trash2, Package, HandHelping, Undo2 } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye } from 'lucide-react'
 import { inventarioApi, prestamosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -31,13 +31,17 @@ export default function InventarioPage() {
   const { data: prestamos, loading: loadingPrestamos, reload: reloadPrestamos } = useList(prestamosFetcher)
 
   const columnHeaders = isAdmin
-    ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Categoria', 'Cantidad', 'Estado', 'Ubicacion', 'Acciones']
-    : ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Categoria', 'Cantidad', 'Estado', 'Ubicacion', '']
+    ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', 'Acciones']
+    : ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', '']
 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
+  const [detalle, setDetalle] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const importInputRef = useRef(null)
 
   const nombrePorBienId = useMemo(() => new Map(bienes.map((b) => [b.id, b.nombre])), [bienes])
 
@@ -99,6 +103,26 @@ export default function InventarioPage() {
     }
   }
 
+  const handleImportarClick = () => importInputRef.current?.click()
+
+  const handleImportarFile = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImporting(true)
+    setError(null)
+    setImportResult(null)
+    try {
+      const resultado = await inventarioApi.importar(file)
+      setImportResult(resultado)
+      reload()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const handleDevolver = async (prestamo) => {
     setBusyId(`p-${prestamo.id}`)
     setError(null)
@@ -117,13 +141,44 @@ export default function InventarioPage() {
       <PageHeader
         title="Inventario"
         action={isAdmin && (
-          <PrimaryButton onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4" /> Nuevo bien
-          </PrimaryButton>
+          <div className="flex items-center gap-2">
+            <input ref={importInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportarFile} />
+            <button
+              onClick={handleImportarClick}
+              disabled={importing}
+              className="flex items-center gap-2 bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
+            >
+              <Upload className="w-4 h-4" /> {importing ? 'Importando...' : 'Importar matriz Excel'}
+            </button>
+            <PrimaryButton onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4" /> Nuevo bien
+            </PrimaryButton>
+          </div>
         )}
       />
 
       <ErrorBanner message={error} />
+
+      {importResult && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 text-xs">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-gray-700">
+              Importación completa: <strong>{importResult.creados}</strong> bienes creados, <strong>{importResult.actualizados}</strong> actualizados.
+            </p>
+            <button onClick={() => setImportResult(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+          {importResult.estadosNoReconocidos?.length > 0 && (
+            <p className="text-amber-700 mt-2">
+              Estados no reconocidos (se dejaron como Disponible, revisar manualmente): {importResult.estadosNoReconocidos.join(', ')}
+            </p>
+          )}
+          {importResult.errores?.length > 0 && (
+            <ul className="text-red-700 mt-2 list-disc list-inside">
+              {importResult.errores.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
 
       <Table headers={columnHeaders}>
         {loading && <LoadingRow colSpan={columnHeaders.length} />}
@@ -135,14 +190,18 @@ export default function InventarioPage() {
             </td>
             <td className="px-3 py-2 text-gray-600">{b.codigoIC || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{b.codigoInventario || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{b.categoria || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{b.cantidad}</td>
+            <td className="px-3 py-2 text-gray-600">{b.marca || '—'}</td>
+            <td className="px-3 py-2 text-gray-600">{b.custodio || '—'}</td>
             <td className="px-3 py-2">
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${ESTADO_BADGE[b.estado]}`}>
                 {ESTADO_LABEL[b.estado] || b.estado}
               </span>
             </td>
-            <td className="px-3 py-2 text-gray-600">{b.ubicacion || '—'}</td>
+            <td className="px-3 py-2">
+              <button onClick={() => setDetalle(b)} className="text-gray-400 hover:text-[#0e6b3c]" title="Ver detalle">
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+            </td>
             {isAdmin ? (
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
@@ -248,7 +307,36 @@ export default function InventarioPage() {
           </form>
         </Modal>
       )}
+
+      {detalle && (
+        <Modal title={detalle.nombre} onClose={() => setDetalle(null)}>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <DetalleCampo label="Codigo IC" valor={detalle.codigoIC} />
+              <DetalleCampo label="Codigo interno" valor={detalle.codigoInventario} />
+              <DetalleCampo label="Marca" valor={detalle.marca} />
+              <DetalleCampo label="Numero de serie" valor={detalle.numeroSerie} />
+              <DetalleCampo label="Categoria" valor={detalle.categoria} />
+              <DetalleCampo label="Cantidad" valor={detalle.cantidad} />
+              <DetalleCampo label="Ubicacion" valor={detalle.ubicacion} />
+              <DetalleCampo label="Custodio" valor={detalle.custodio} />
+            </div>
+            <DetalleCampo label="Descripcion" valor={detalle.descripcion} bloque />
+            <DetalleCampo label="Detalles tecnicos" valor={detalle.detallesTecnicos} bloque />
+            <DetalleCampo label="Observaciones" valor={detalle.observaciones} bloque />
+          </div>
+        </Modal>
+      )}
     </main>
+  )
+}
+
+function DetalleCampo({ label, valor, bloque }) {
+  return (
+    <div className={bloque ? 'block' : ''}>
+      <span className="block text-xs font-semibold text-gray-500 mb-0.5">{label}</span>
+      <span className="text-gray-800">{valor || '—'}</span>
+    </div>
   )
 }
 

@@ -25,13 +25,36 @@ public class BienInventario {
     @Column(nullable = false, length = 200)
     private String nombre;
 
-    /** Codigo interno asignado por el laboratorio (etiqueta propia del LICI). */
-    @Column(unique = true, length = 50)
+    /** Codigo interno asignado por el laboratorio (etiqueta propia del LICI).
+     * NO es unico: la matriz institucional a veces reutiliza el mismo codigo
+     * de "posicion de trabajo" para varios bienes distintos (p. ej. monitor,
+     * teclado y mouse de un mismo puesto comparten codigo). */
+    @Column(length = 50)
     private String codigoInventario;
 
-    /** Codigo IC: codigo oficial del sistema institucional de activos fijos/bienes. */
+    /** Codigo IC: codigo oficial del sistema institucional de activos fijos/bienes
+     * (columna "Codigo de Bien ESPE" de la matriz). */
     @Column(length = 50)
     private String codigoIC;
+
+    @Column(length = 150)
+    private String marca;
+
+    @Column(columnDefinition = "TEXT")
+    private String descripcion;
+
+    @Column(length = 100)
+    private String numeroSerie;
+
+    @Column(columnDefinition = "TEXT")
+    private String detallesTecnicos;
+
+    /** Persona responsable del bien segun la matriz institucional (texto libre). */
+    @Column(length = 150)
+    private String custodio;
+
+    @Column(columnDefinition = "TEXT")
+    private String observaciones;
 
     @Column(length = 100)
     private String categoria;

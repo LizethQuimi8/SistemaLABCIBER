@@ -137,7 +137,7 @@ export default function UsuariosPage() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Cedula">
+              <Field label="ID">
                 <input className="input" value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} />
               </Field>
               <Field label="Rol">
