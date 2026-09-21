@@ -1,5 +1,9 @@
 name: Deploy frontend to GitHub Pages
 
+# Forzando un redeploy limpio: el primer deploy tras cambiar el Source de
+# Pages de "branch" a "GitHub Actions" quedo publicado segun la API (build y
+# deploy en success, artefacto no vacio) pero la URL publica seguia dando 404
+# horas despues; esto reintenta la publicacion desde cero.
 on:
   push:
     branches: [main]
