@@ -25,6 +25,10 @@ export const investigadoresApi = {
   list: () => apiFetch('/api/investigadores'),
   create: (data) => apiFetch('/api/investigadores', { method: 'POST', body: data }),
   update: (id, data) => apiFetch(`/api/investigadores/${id}`, { method: 'PUT', body: data }),
+  subirCurriculum: (id, file) => apiUpload(`/api/investigadores/${id}/curriculum`, file),
+  verCurriculum: (id) => apiFetchBlob(`/api/investigadores/${id}/curriculum`),
+  subirHorario: (id, file) => apiUpload(`/api/investigadores/${id}/horario`, file),
+  verHorario: (id) => apiFetchBlob(`/api/investigadores/${id}/horario`),
   remove: (id) => apiFetch(`/api/investigadores/${id}`, { method: 'DELETE' }),
 }
 

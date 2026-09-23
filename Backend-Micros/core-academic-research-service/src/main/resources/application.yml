@@ -23,6 +23,8 @@ spring:
 lici:
   security:
     jwk-set-uri: ${JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+  storage:
+    curriculums-dir: ${CURRICULUMS_STORAGE_DIR:/data/curriculums}
 
 management:
   endpoints:

@@ -35,4 +35,19 @@ public class Investigador {
 
     @Column(length = 2000)
     private String biografia;
+
+    /** Nombre del archivo tal como fue almacenado en disco (ver lici.storage.curriculums-dir). */
+    private String curriculumRuta;
+
+    /** Nombre original del archivo subido, usado para mostrarlo/descargarlo. */
+    private String curriculumNombreArchivo;
+
+    private String curriculumContentType;
+
+    /** Horario de clases que imparte el docente (mismo almacenamiento que el curriculum). */
+    private String horarioRuta;
+
+    private String horarioNombreArchivo;
+
+    private String horarioContentType;
 }

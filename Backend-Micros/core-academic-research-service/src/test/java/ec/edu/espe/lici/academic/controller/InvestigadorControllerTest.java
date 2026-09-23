@@ -5,12 +5,18 @@ import ec.edu.espe.lici.academic.repository.InvestigadorRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +32,13 @@ class InvestigadorControllerTest {
     private InvestigadorRepository investigadorRepository;
     private InvestigadorController controller;
 
+    @TempDir
+    Path storageDir;
+
     @BeforeEach
     void setUp() {
         investigadorRepository = mock(InvestigadorRepository.class);
-        controller = new InvestigadorController(investigadorRepository);
+        controller = new InvestigadorController(investigadorRepository, storageDir.toString());
     }
 
     @AfterEach
@@ -131,5 +140,93 @@ class InvestigadorControllerTest {
         controller.eliminar(1L);
 
         verify(investigadorRepository).delete(existente);
+    }
+
+    @Test
+    void subirCurriculumGuardaElBinarioYActualizaLosMetadatos() throws IOException {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        Investigador investigador = investigadorDe(1L, 5L);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigador));
+        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "hoja-de-vida.pdf", "application/pdf", "contenido".getBytes());
+
+        Investigador actualizado = controller.subirCurriculum(1L, archivo);
+
+        assertThat(actualizado.getCurriculumNombreArchivo()).isEqualTo("hoja-de-vida.pdf");
+        assertThat(actualizado.getCurriculumContentType()).isEqualTo("application/pdf");
+        assertThat(actualizado.getCurriculumRuta()).endsWith(".pdf");
+        assertThat(storageDir.resolve(actualizado.getCurriculumRuta())).exists();
+    }
+
+    @Test
+    void descargarCurriculumDevuelveElRecursoConElContentTypeOriginal() throws IOException {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        Investigador investigador = investigadorDe(1L, 5L);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigador));
+        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "hoja-de-vida.pdf", "application/pdf", "contenido".getBytes());
+        Investigador subido = controller.subirCurriculum(1L, archivo);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(subido));
+
+        ResponseEntity<Resource> respuesta = controller.descargarCurriculum(1L);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respuesta.getHeaders().getContentType().toString()).isEqualTo("application/pdf");
+        assertThat(respuesta.getBody().exists()).isTrue();
+    }
+
+    @Test
+    void descargarCurriculumLanzaNotFoundSiNoSeHaSubidoNada() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 5L)));
+
+        assertThatThrownBy(() -> controller.descargarCurriculum(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void subirHorarioGuardaElBinarioYActualizaLosMetadatos() throws IOException {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        Investigador investigador = investigadorDe(1L, 5L);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigador));
+        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "horario.pdf", "application/pdf", "contenido".getBytes());
+
+        Investigador actualizado = controller.subirHorario(1L, archivo);
+
+        assertThat(actualizado.getHorarioNombreArchivo()).isEqualTo("horario.pdf");
+        assertThat(actualizado.getHorarioContentType()).isEqualTo("application/pdf");
+        assertThat(actualizado.getHorarioRuta()).endsWith(".pdf");
+        assertThat(storageDir.resolve(actualizado.getHorarioRuta())).exists();
+    }
+
+    @Test
+    void descargarHorarioDevuelveElRecursoConElContentTypeOriginal() throws IOException {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        Investigador investigador = investigadorDe(1L, 5L);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigador));
+        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "horario.pdf", "application/pdf", "contenido".getBytes());
+        Investigador subido = controller.subirHorario(1L, archivo);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(subido));
+
+        ResponseEntity<Resource> respuesta = controller.descargarHorario(1L);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respuesta.getHeaders().getContentType().toString()).isEqualTo("application/pdf");
+        assertThat(respuesta.getBody().exists()).isTrue();
+    }
+
+    @Test
+    void descargarHorarioLanzaNotFoundSiNoSeHaSubidoNada() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 5L)));
+
+        assertThatThrownBy(() -> controller.descargarHorario(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 }

@@ -1,5 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye, Search, X,
+  Monitor, Cpu, Keyboard, Mouse, Printer, Armchair, Router, Camera,
+  Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
+} from 'lucide-react'
 import { inventarioApi, prestamosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -39,6 +43,36 @@ const PRESTAMO_ESTADO_BADGE = {
 
 const SOLICITUD_INICIAL = { fechaDesde: '', fechaHasta: '', motivo: '', observaciones: '' }
 
+const PAGE_SIZE = 12
+
+// Normaliza el nombre del equipo a una categoria legible (p. ej. "monitor dell " -> "Monitor").
+function categoriaDe(bien) {
+  const base = (bien.categoria || bien.nombre || '').trim()
+  if (!base) return 'Otros'
+  return base.charAt(0).toUpperCase() + base.slice(1).toLowerCase()
+}
+
+const ICONOS_CATEGORIA = [
+  [/monitor|pantalla/i, Monitor],
+  [/cpu|computad|desktop|torre/i, Cpu],
+  [/laptop|portatil|notebook/i, Laptop],
+  [/teclado/i, Keyboard],
+  [/mouse|raton/i, Mouse],
+  [/impresora/i, Printer],
+  [/silla|escritorio|mueble/i, Armchair],
+  [/router|switch|access point|red/i, Router],
+  [/camara/i, Camera],
+  [/proyector/i, Projector],
+  [/disco|almacenamiento/i, HardDrive],
+  [/servidor/i, Server],
+  [/audifono|diadema|parlante/i, Headphones],
+]
+
+function iconoPara(nombre) {
+  const match = ICONOS_CATEGORIA.find(([regex]) => regex.test(nombre || ''))
+  return match ? match[1] : Package
+}
+
 export default function InventarioPage() {
   const { isAdmin, canEditInventario } = useAuth()
   const bienesFetcher = useCallback(() => inventarioApi.list(), [])
@@ -61,8 +95,52 @@ export default function InventarioPage() {
   const [solicitudBien, setSolicitudBien] = useState(null)
   const [solicitudForm, setSolicitudForm] = useState(SOLICITUD_INICIAL)
   const [solicitando, setSolicitando] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
+  const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS')
+  const [estadoFiltro, setEstadoFiltro] = useState('TODOS')
+  const [pagina, setPagina] = useState(1)
 
   const nombrePorBienId = useMemo(() => new Map(bienes.map((b) => [b.id, b.nombre])), [bienes])
+
+  const categorias = useMemo(() => {
+    const conteo = new Map()
+    bienes.forEach((b) => {
+      const cat = categoriaDe(b)
+      conteo.set(cat, (conteo.get(cat) || 0) + 1)
+    })
+    return [...conteo.entries()].sort((a, b) => b[1] - a[1])
+  }, [bienes])
+
+  const stats = useMemo(() => ({
+    total: bienes.length,
+    disponible: bienes.filter((b) => b.estado === 'DISPONIBLE').length,
+    prestamo: bienes.filter((b) => b.estado === 'EN_USO').length,
+    mantenimiento: bienes.filter((b) => b.estado === 'MANTENIMIENTO').length,
+    deBaja: bienes.filter((b) => b.estado === 'DE_BAJA').length,
+  }), [bienes])
+
+  const bienesFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase()
+    return bienes.filter((b) => {
+      if (categoriaFiltro !== 'TODOS' && categoriaDe(b) !== categoriaFiltro) return false
+      if (estadoFiltro !== 'TODOS' && b.estado !== estadoFiltro) return false
+      if (!termino) return true
+      return [b.nombre, b.marca, b.custodio, b.codigoIC, b.codigoInventario, b.numeroSerie]
+        .some((campo) => (campo || '').toLowerCase().includes(termino))
+    })
+  }, [bienes, categoriaFiltro, estadoFiltro, busqueda])
+
+  useEffect(() => { setPagina(1) }, [categoriaFiltro, estadoFiltro, busqueda])
+
+  const totalPaginas = Math.max(1, Math.ceil(bienesFiltrados.length / PAGE_SIZE))
+  const paginaSegura = Math.min(pagina, totalPaginas)
+  const bienesPagina = bienesFiltrados.slice((paginaSegura - 1) * PAGE_SIZE, paginaSegura * PAGE_SIZE)
+
+  const limpiarFiltros = () => {
+    setBusqueda('')
+    setCategoriaFiltro('TODOS')
+    setEstadoFiltro('TODOS')
+  }
 
   const reloadTodo = () => {
     reload()
@@ -212,6 +290,59 @@ export default function InventarioPage() {
 
       <ErrorBanner message={error} />
 
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        <StatCard icon={Boxes} label="Total" value={stats.total} color="bg-[#0e6b3c]" />
+        <StatCard icon={CheckCircle2} label="Disponibles" value={stats.disponible} color="bg-green-600" />
+        <StatCard icon={HandHelping} label="En préstamo" value={stats.prestamo} color="bg-amber-500" />
+        <StatCard icon={Wrench} label="Mantenimiento" value={stats.mantenimiento} color="bg-slate-500" />
+        <StatCard icon={Ban} label="De baja" value={stats.deBaja} color="bg-red-500" />
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4">
+        <div className="relative mb-3">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre, marca, custodio o código..."
+            className="input pl-9 pr-8 w-full"
+          />
+          {busqueda && (
+            <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-2">
+          <FiltroChip active={categoriaFiltro === 'TODOS'} onClick={() => setCategoriaFiltro('TODOS')}>
+            Todos ({bienes.length})
+          </FiltroChip>
+          {categorias.map(([cat, count]) => {
+            const Icono = iconoPara(cat)
+            return (
+              <FiltroChip key={cat} active={categoriaFiltro === cat} onClick={() => setCategoriaFiltro(cat)}>
+                <Icono className="w-3.5 h-3.5" /> {cat} ({count})
+              </FiltroChip>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <FiltroChip small active={estadoFiltro === 'TODOS'} onClick={() => setEstadoFiltro('TODOS')}>Cualquier estado</FiltroChip>
+          {ESTADOS.map((s) => (
+            <FiltroChip key={s} small active={estadoFiltro === s} onClick={() => setEstadoFiltro(s)}>
+              {ESTADO_LABEL[s]}
+            </FiltroChip>
+          ))}
+          {(busqueda || categoriaFiltro !== 'TODOS' || estadoFiltro !== 'TODOS') && (
+            <button onClick={limpiarFiltros} className="text-xs text-gray-400 hover:text-red-600 ml-1 flex-shrink-0">
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
       {importResult && (
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 text-xs">
           <div className="flex items-start justify-between gap-4">
@@ -235,11 +366,18 @@ export default function InventarioPage() {
 
       <Table headers={columnHeaders}>
         {loading && <LoadingRow colSpan={columnHeaders.length} />}
-        {!loading && bienes.length === 0 && <EmptyRow colSpan={columnHeaders.length} />}
-        {!loading && bienes.map((b) => (
-          <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
+        {!loading && bienesFiltrados.length === 0 && (
+          <EmptyRow colSpan={columnHeaders.length} message={bienes.length === 0 ? 'Sin registros todavia' : 'Ningún bien coincide con los filtros aplicados'} />
+        )}
+        {!loading && bienesPagina.map((b) => {
+          const Icono = iconoPara(categoriaDe(b))
+          return (
+          <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50 even:bg-gray-50/40">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <Package className="w-3.5 h-3.5 text-gray-400" /> {b.nombre}
+              <span className="bg-[#f3faf6] text-[#0e6b3c] p-1.5 rounded flex-shrink-0">
+                <Icono className="w-3.5 h-3.5" />
+              </span>
+              {b.nombre}
             </td>
             <td className="px-3 py-2 text-gray-600">{b.codigoIC || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{b.codigoInventario || '—'}</td>
@@ -287,8 +425,36 @@ export default function InventarioPage() {
               </td>
             )}
           </tr>
-        ))}
+          )
+        })}
       </Table>
+
+      {!loading && bienesFiltrados.length > 0 && (
+        <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+          <span>
+            Mostrando {(paginaSegura - 1) * PAGE_SIZE + 1}–{Math.min(paginaSegura * PAGE_SIZE, bienesFiltrados.length)} de {bienesFiltrados.length}
+          </span>
+          {totalPaginas > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                disabled={paginaSegura === 1}
+                className="px-2.5 py-1 rounded border border-gray-300 bg-white disabled:opacity-40 hover:border-[#0e6b3c]"
+              >
+                ‹
+              </button>
+              <span className="px-2 font-semibold text-gray-700">{paginaSegura} / {totalPaginas}</span>
+              <button
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                disabled={paginaSegura === totalPaginas}
+                className="px-2.5 py-1 rounded border border-gray-300 bg-white disabled:opacity-40 hover:border-[#0e6b3c]"
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-6">
         <h2 className="text-sm font-bold text-gray-700 mb-2">
@@ -463,5 +629,32 @@ function Field({ label, children }) {
       <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+function StatCard({ icon: Icon, label, value, color }) {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-3 flex items-center gap-3">
+      <div className={`${color} text-white p-2 rounded-lg flex-shrink-0`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-lg font-black text-[#052a18] leading-none">{value}</p>
+        <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1 truncate">{label}</p>
+      </div>
+    </div>
+  )
+}
+
+function FiltroChip({ active, onClick, children, small }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 flex-shrink-0 rounded-full border font-semibold whitespace-nowrap transition-colors
+        ${small ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'}
+        ${active ? 'bg-[#0e6b3c] text-white border-[#0e6b3c]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0e6b3c]'}`}
+    >
+      {children}
+    </button>
   )
 }
