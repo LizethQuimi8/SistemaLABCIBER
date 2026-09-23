@@ -43,15 +43,14 @@ class ReporteControllerTest {
         when(aggregatorService.contarInvestigadores("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(2)));
         when(aggregatorService.contarPublicaciones("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(3)));
         when(aggregatorService.contarDocumentos("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(4)));
-        when(aggregatorService.contarMemos("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(5)));
-        when(aggregatorService.contarBienesInventario("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(6)));
-        when(aggregatorService.contarComprasPublicas("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(7)));
-        when(aggregatorService.contarUsuarios("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(8)));
+        when(aggregatorService.contarBienesInventario("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(5)));
+        when(aggregatorService.contarComprasPublicas("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(6)));
+        when(aggregatorService.contarUsuarios("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(7)));
 
         Mono<ReporteResumenDTO> result = controller.resumen(tokenFor("ada@espe.edu.ec", "ADMINISTRADOR"));
 
         StepVerifier.create(result)
-                .expectNext(new ReporteResumenDTO("ada@espe.edu.ec", "ADMINISTRADOR", 1, 2, 3, 4, 5, 6, 7, 8))
+                .expectNext(new ReporteResumenDTO("ada@espe.edu.ec", "ADMINISTRADOR", 1, 2, 3, 4, 5, 6, 7))
                 .verifyComplete();
     }
 
@@ -61,10 +60,9 @@ class ReporteControllerTest {
         when(aggregatorService.contarInvestigadores("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(2)));
         when(aggregatorService.contarPublicaciones("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(3)));
         when(aggregatorService.contarDocumentos("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(4)));
-        when(aggregatorService.contarMemos("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(5)));
-        when(aggregatorService.contarBienesInventario("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(6)));
-        when(aggregatorService.contarComprasPublicas("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(7)));
-        when(aggregatorService.contarUsuarios("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(8)));
+        when(aggregatorService.contarBienesInventario("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(5)));
+        when(aggregatorService.contarComprasPublicas("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(6)));
+        when(aggregatorService.contarUsuarios("Bearer raw-token-value")).thenReturn(Mono.just(Optional.of(7)));
 
         Mono<ReporteResumenDTO> result = controller.resumen(tokenFor("docente@espe.edu.ec", "DOCENTE_INVESTIGADOR"));
 

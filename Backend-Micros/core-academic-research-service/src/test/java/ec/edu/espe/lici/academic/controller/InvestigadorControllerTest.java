@@ -60,7 +60,7 @@ class InvestigadorControllerTest {
     }
 
     @Test
-    void crearAsignaAlDocenteComoDuenoDelPerfil() {
+    void crearUsaElUsuarioIdProvistoSinImportarQuienLoCrea() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         Investigador nuevo = Investigador.builder().nombreCompleto("Ada").usuarioId(999L).build();
         when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -68,21 +68,32 @@ class InvestigadorControllerTest {
         var response = controller.crear(nuevo);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody().getUsuarioId()).isEqualTo(5L);
+        assertThat(response.getBody().getUsuarioId()).isEqualTo(999L);
     }
 
     @Test
-    void unDocenteNoPuedeEditarElPerfilDeOtro() {
+    void crearRechazaSinUsuarioIdIndicado() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 42L)));
-        Investigador request = Investigador.builder().nombreCompleto("Otro nombre").build();
+        Investigador nuevo = Investigador.builder().nombreCompleto("Ada").build();
 
-        assertThatThrownBy(() -> controller.actualizar(1L, request))
+        assertThatThrownBy(() -> controller.crear(nuevo))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
-                        .isEqualTo(HttpStatus.FORBIDDEN));
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
 
         verify(investigadorRepository, never()).save(any());
+    }
+
+    @Test
+    void unDocentePuedeEditarElPerfilDeOtro() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 42L)));
+        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
+        Investigador request = Investigador.builder().nombreCompleto("Otro nombre").build();
+
+        Investigador actualizado = controller.actualizar(1L, request);
+
+        assertThat(actualizado.getNombreCompleto()).isEqualTo("Otro nombre");
     }
 
     @Test
@@ -99,12 +110,26 @@ class InvestigadorControllerTest {
     }
 
     @Test
-    void unDocenteNoPuedeEliminarElPerfilDeOtro() {
+    void unDocenteNoPuedeEliminarNiSuPropioPerfil() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 42L)));
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 5L)));
 
-        assertThatThrownBy(() -> controller.eliminar(1L)).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> controller.eliminar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
 
         verify(investigadorRepository, never()).delete(any());
+    }
+
+    @Test
+    void unAdministradorSiPuedeEliminarCualquierPerfil() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Investigador existente = investigadorDe(1L, 42L);
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(existente));
+
+        controller.eliminar(1L);
+
+        verify(investigadorRepository).delete(existente);
     }
 }

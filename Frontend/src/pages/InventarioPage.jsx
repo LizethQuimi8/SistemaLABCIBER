@@ -23,14 +23,30 @@ const ESTADO_BADGE = {
   DE_BAJA: 'bg-red-50 text-red-700',
 }
 
+const PRESTAMO_ESTADO_LABEL = {
+  PENDIENTE: 'Pendiente',
+  ACTIVO: 'Activo',
+  DEVUELTO: 'Devuelto',
+  RECHAZADO: 'Rechazado',
+}
+
+const PRESTAMO_ESTADO_BADGE = {
+  PENDIENTE: 'bg-amber-50 text-amber-700',
+  ACTIVO: 'bg-blue-50 text-blue-700',
+  DEVUELTO: 'bg-green-50 text-green-700',
+  RECHAZADO: 'bg-red-50 text-red-700',
+}
+
+const SOLICITUD_INICIAL = { fechaDesde: '', fechaHasta: '', motivo: '', observaciones: '' }
+
 export default function InventarioPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, canEditInventario } = useAuth()
   const bienesFetcher = useCallback(() => inventarioApi.list(), [])
   const { data: bienes, loading, error, reload, setError } = useList(bienesFetcher)
   const prestamosFetcher = useCallback(() => prestamosApi.list(), [])
   const { data: prestamos, loading: loadingPrestamos, reload: reloadPrestamos } = useList(prestamosFetcher)
 
-  const columnHeaders = isAdmin
+  const columnHeaders = canEditInventario
     ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', 'Acciones']
     : ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', '']
 
@@ -42,6 +58,9 @@ export default function InventarioPage() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const importInputRef = useRef(null)
+  const [solicitudBien, setSolicitudBien] = useState(null)
+  const [solicitudForm, setSolicitudForm] = useState(SOLICITUD_INICIAL)
+  const [solicitando, setSolicitando] = useState(false)
 
   const nombrePorBienId = useMemo(() => new Map(bienes.map((b) => [b.id, b.nombre])), [bienes])
 
@@ -90,11 +109,45 @@ export default function InventarioPage() {
     }
   }
 
-  const handleSolicitar = async (bien) => {
-    setBusyId(bien.id)
+  const abrirSolicitud = (bien) => {
+    setSolicitudBien(bien)
+    setSolicitudForm(SOLICITUD_INICIAL)
+  }
+
+  const handleSolicitarSubmit = async (e) => {
+    e.preventDefault()
+    setSolicitando(true)
     setError(null)
     try {
-      await prestamosApi.solicitar({ bienId: bien.id })
+      await prestamosApi.solicitar({ bienId: solicitudBien.id, ...solicitudForm })
+      setSolicitudBien(null)
+      reloadTodo()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSolicitando(false)
+    }
+  }
+
+  const handleAprobar = async (prestamo) => {
+    setBusyId(`p-${prestamo.id}`)
+    setError(null)
+    try {
+      await prestamosApi.aprobar(prestamo.id)
+      reloadTodo()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleRechazar = async (prestamo) => {
+    if (!confirm('¿Rechazar esta solicitud de préstamo?')) return
+    setBusyId(`p-${prestamo.id}`)
+    setError(null)
+    try {
+      await prestamosApi.rechazar(prestamo.id)
       reloadTodo()
     } catch (err) {
       setError(err.message)
@@ -140,7 +193,7 @@ export default function InventarioPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Inventario"
-        action={isAdmin && (
+        action={canEditInventario && (
           <div className="flex items-center gap-2">
             <input ref={importInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportarFile} />
             <button
@@ -202,7 +255,7 @@ export default function InventarioPage() {
                 <Eye className="w-3.5 h-3.5" />
               </button>
             </td>
-            {isAdmin ? (
+            {canEditInventario ? (
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <select
@@ -224,12 +277,12 @@ export default function InventarioPage() {
             ) : (
               <td className="px-3 py-2 text-right">
                 <button
-                  onClick={() => handleSolicitar(b)}
-                  disabled={b.estado !== 'DISPONIBLE' || busyId === b.id}
+                  onClick={() => abrirSolicitud(b)}
+                  disabled={b.estado !== 'DISPONIBLE'}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-[#052a18] disabled:text-gray-300 disabled:cursor-not-allowed hover:text-[#0e6b3c]"
                   title={b.estado !== 'DISPONIBLE' ? 'Este equipo no esta disponible' : 'Solicitar en prestamo'}
                 >
-                  <HandHelping className="w-3.5 h-3.5" /> {busyId === b.id ? 'Solicitando...' : 'Solicitar'}
+                  <HandHelping className="w-3.5 h-3.5" /> Solicitar
                 </button>
               </td>
             )}
@@ -239,32 +292,55 @@ export default function InventarioPage() {
 
       <div className="mt-6">
         <h2 className="text-sm font-bold text-gray-700 mb-2">
-          {isAdmin ? 'Prestamos' : 'Mis prestamos'}
+          {canEditInventario ? 'Prestamos' : 'Mis prestamos'}
         </h2>
-        <Table headers={isAdmin ? ['Bien', 'Usuario', 'Solicitado', 'Estado', 'Devuelto', ''] : ['Bien', 'Solicitado', 'Estado', 'Devuelto', '']}>
-          {loadingPrestamos && <LoadingRow colSpan={isAdmin ? 6 : 5} />}
-          {!loadingPrestamos && prestamos.length === 0 && <EmptyRow colSpan={isAdmin ? 6 : 5} />}
+        <Table headers={canEditInventario
+          ? ['Bien', 'Usuario', 'Periodo', 'Motivo', 'Estado', 'Devuelto', '']
+          : ['Bien', 'Periodo', 'Motivo', 'Estado', 'Devuelto', '']}>
+          {loadingPrestamos && <LoadingRow colSpan={canEditInventario ? 7 : 6} />}
+          {!loadingPrestamos && prestamos.length === 0 && <EmptyRow colSpan={canEditInventario ? 7 : 6} />}
           {!loadingPrestamos && prestamos.map((p) => (
             <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="px-3 py-2 font-medium text-gray-800">{nombrePorBienId.get(p.bienId) || `#${p.bienId}`}</td>
-              {isAdmin && <td className="px-3 py-2 text-gray-600">#{p.usuarioId}</td>}
-              <td className="px-3 py-2 text-gray-600">{p.fechaSolicitud ? new Date(p.fechaSolicitud).toLocaleString() : '—'}</td>
+              {canEditInventario && <td className="px-3 py-2 text-gray-600">#{p.usuarioId}</td>}
+              <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{p.fechaDesde || '—'} a {p.fechaHasta || '—'}</td>
+              <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={p.motivo}>{p.motivo || '—'}</td>
               <td className="px-3 py-2">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${p.estado === 'ACTIVO' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
-                  {p.estado === 'ACTIVO' ? 'Activo' : 'Devuelto'}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${PRESTAMO_ESTADO_BADGE[p.estado] || 'bg-gray-100 text-gray-600'}`}>
+                  {PRESTAMO_ESTADO_LABEL[p.estado] || p.estado}
                 </span>
               </td>
               <td className="px-3 py-2 text-gray-600">{p.fechaDevolucion ? new Date(p.fechaDevolucion).toLocaleString() : '—'}</td>
               <td className="px-3 py-2 text-right">
-                {p.estado === 'ACTIVO' && (
-                  <button
-                    onClick={() => handleDevolver(p)}
-                    disabled={busyId === `p-${p.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#052a18] hover:text-[#0e6b3c] disabled:text-gray-300"
-                  >
-                    <Undo2 className="w-3.5 h-3.5" /> Devolver
-                  </button>
-                )}
+                <div className="flex items-center justify-end gap-2">
+                  {canEditInventario && p.estado === 'PENDIENTE' && (
+                    <button
+                      onClick={() => handleAprobar(p)}
+                      disabled={busyId === `p-${p.id}`}
+                      className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                    >
+                      Aprobar
+                    </button>
+                  )}
+                  {isAdmin && p.estado === 'PENDIENTE' && (
+                    <button
+                      onClick={() => handleRechazar(p)}
+                      disabled={busyId === `p-${p.id}`}
+                      className="text-xs font-semibold text-red-600 hover:text-red-800 disabled:text-gray-300"
+                    >
+                      Rechazar
+                    </button>
+                  )}
+                  {p.estado === 'ACTIVO' && (
+                    <button
+                      onClick={() => handleDevolver(p)}
+                      disabled={busyId === `p-${p.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#052a18] hover:text-[#0e6b3c] disabled:text-gray-300"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" /> Devolver
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -303,6 +379,47 @@ export default function InventarioPage() {
             </div>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
               {saving ? 'Guardando...' : 'Registrar bien'}
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
+
+      {solicitudBien && (
+        <Modal title={`Solicitar prestamo: ${solicitudBien.nombre}`} onClose={() => setSolicitudBien(null)}>
+          <form onSubmit={handleSolicitarSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Desde">
+                <input
+                  required type="date" className="input"
+                  value={solicitudForm.fechaDesde}
+                  onChange={(e) => setSolicitudForm({ ...solicitudForm, fechaDesde: e.target.value })}
+                />
+              </Field>
+              <Field label="Hasta">
+                <input
+                  required type="date" className="input"
+                  min={solicitudForm.fechaDesde || undefined}
+                  value={solicitudForm.fechaHasta}
+                  onChange={(e) => setSolicitudForm({ ...solicitudForm, fechaHasta: e.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="Motivo (para que lo necesita)">
+              <textarea
+                required rows={2} className="input"
+                value={solicitudForm.motivo}
+                onChange={(e) => setSolicitudForm({ ...solicitudForm, motivo: e.target.value })}
+              />
+            </Field>
+            <Field label="Observaciones (opcional)">
+              <textarea
+                rows={2} className="input"
+                value={solicitudForm.observaciones}
+                onChange={(e) => setSolicitudForm({ ...solicitudForm, observaciones: e.target.value })}
+              />
+            </Field>
+            <PrimaryButton type="submit" disabled={solicitando} className="w-full justify-center">
+              {solicitando ? 'Enviando...' : 'Enviar solicitud'}
             </PrimaryButton>
           </form>
         </Modal>

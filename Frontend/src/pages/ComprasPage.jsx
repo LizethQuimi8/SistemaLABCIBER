@@ -39,7 +39,7 @@ const FORM_INICIAL = {
 }
 
 export default function ComprasPage() {
-  const { isAdmin } = useAuth()
+  const { canEditCompras } = useAuth()
   const fetcher = useCallback(() => comprasApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const [showForm, setShowForm] = useState(false)
@@ -189,7 +189,7 @@ export default function ComprasPage() {
             >
               <FileDown className="w-4 h-4" /> Generar reporte
             </button>
-            {isAdmin && (
+            {canEditCompras && (
               <PrimaryButton onClick={openCreate}>
                 <Plus className="w-4 h-4" /> Nuevo objeto de contratación
               </PrimaryButton>
@@ -232,9 +232,9 @@ export default function ComprasPage() {
         ))}
       </div>
 
-      <Table headers={isAdmin ? ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Fase', ''] : ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Fase']}>
-        {loading && <LoadingRow colSpan={isAdmin ? 7 : 6} />}
-        {!loading && filtradas.length === 0 && <EmptyRow colSpan={isAdmin ? 7 : 6} />}
+      <Table headers={canEditCompras ? ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Fase', ''] : ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Fase']}>
+        {loading && <LoadingRow colSpan={canEditCompras ? 7 : 6} />}
+        {!loading && filtradas.length === 0 && <EmptyRow colSpan={canEditCompras ? 7 : 6} />}
         {!loading && filtradas.map((c) => (
           <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
@@ -245,7 +245,7 @@ export default function ComprasPage() {
             <td className="px-3 py-2 text-gray-600">{c.monto ?? '—'}</td>
             <td className="px-3 py-2 text-gray-600">{c.responsables || '—'}</td>
             <td className="px-3 py-2">
-              {isAdmin ? (
+              {canEditCompras ? (
                 <select
                   className={`text-[10px] font-semibold rounded-full px-2 py-1 border-0 ${FASE_BADGE[c.fase]}`}
                   value={c.fase}
@@ -261,7 +261,7 @@ export default function ComprasPage() {
                 </span>
               )}
             </td>
-            {isAdmin && (
+            {canEditCompras && (
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <button onClick={() => openEdit(c)} className="text-gray-500 hover:text-[#052a18]" title="Editar">

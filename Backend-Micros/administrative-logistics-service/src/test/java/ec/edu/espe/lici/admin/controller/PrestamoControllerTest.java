@@ -6,6 +6,7 @@ import ec.edu.espe.lici.admin.domain.EstadoPrestamo;
 import ec.edu.espe.lici.admin.domain.Prestamo;
 import ec.edu.espe.lici.admin.repository.BienInventarioRepository;
 import ec.edu.espe.lici.admin.repository.PrestamoRepository;
+import ec.edu.espe.lici.admin.service.NotificacionClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,19 +25,22 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class PrestamoControllerTest {
 
     private PrestamoRepository prestamoRepository;
     private BienInventarioRepository bienInventarioRepository;
+    private NotificacionClient notificacionClient;
     private PrestamoController controller;
 
     @BeforeEach
     void setUp() {
         prestamoRepository = mock(PrestamoRepository.class);
         bienInventarioRepository = mock(BienInventarioRepository.class);
-        controller = new PrestamoController(prestamoRepository, bienInventarioRepository);
+        notificacionClient = mock(NotificacionClient.class);
+        controller = new PrestamoController(prestamoRepository, bienInventarioRepository, notificacionClient);
     }
 
     @AfterEach
@@ -58,9 +63,34 @@ class PrestamoControllerTest {
     }
 
     private PrestamoRequest requestDe(Long bienId) {
+        return requestDe(bienId, LocalDate.now(), LocalDate.now().plusDays(3));
+    }
+
+    private PrestamoRequest requestDe(Long bienId, LocalDate desde, LocalDate hasta) {
         PrestamoRequest request = new PrestamoRequest();
         request.setBienId(bienId);
+        request.setFechaDesde(desde);
+        request.setFechaHasta(hasta);
+        request.setMotivo("Practica de laboratorio");
         return request;
+    }
+
+    private Prestamo prestamoDe(Long id, Long bienId, Long usuarioId, EstadoPrestamo estado) {
+        return Prestamo.builder().id(id).bienId(bienId).usuarioId(usuarioId).estado(estado)
+                .fechaDesde(LocalDate.now()).fechaHasta(LocalDate.now().plusDays(3)).motivo("Practica").build();
+    }
+
+    @Test
+    void solicitarRechazaFechaHastaAnteriorADesde() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        PrestamoRequest request = requestDe(1L, LocalDate.now(), LocalDate.now().minusDays(1));
+
+        assertThatThrownBy(() -> controller.solicitar(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
+
+        verify(prestamoRepository, never()).save(any());
     }
 
     @Test
@@ -91,11 +121,10 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void solicitarMarcaElBienComoEnUsoYCreaElPrestamoDelDocenteActual() {
+    void solicitarCreaElPrestamoPendienteSinTocarElBienYAvisaAInfraestructura() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
         when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
-        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var response = controller.solicitar(requestDe(1L));
@@ -103,13 +132,129 @@ class PrestamoControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody().getUsuarioId()).isEqualTo(5L);
         assertThat(response.getBody().getBienId()).isEqualTo(1L);
+        assertThat(response.getBody().getMotivo()).isEqualTo("Practica de laboratorio");
+        assertThat(bien.getEstado()).isEqualTo(EstadoBien.DISPONIBLE);
+        verify(bienInventarioRepository, never()).save(any());
+        verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any());
+    }
+
+    @Test
+    void unDocenteNoPuedeAprobarPrestamos() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+
+        assertThatThrownBy(() -> controller.aprobar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void adminInfraestructuraApruebaYActivaElBienYAvisaAlSolicitante() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE);
+        BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo aprobado = controller.aprobar(1L);
+
+        assertThat(aprobado.getEstado()).isEqualTo(EstadoPrestamo.ACTIVO);
         assertThat(bien.getEstado()).isEqualTo(EstadoBien.EN_USO);
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any());
+        verify(notificacionClient).notificarPorRol(eq("ADMINISTRADOR"), any(), any());
+    }
+
+    @Test
+    void administradorApruebaSinAvisarseASiMismo() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE);
+        BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        controller.aprobar(1L);
+
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any());
+        verify(notificacionClient, never()).notificarPorRol(eq("ADMINISTRADOR"), any(), any());
+    }
+
+    @Test
+    void aprobarRechazaSiElPrestamoNoEstaPendiente() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO)));
+
+        assertThatThrownBy(() -> controller.aprobar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void aprobarRechazaSiElBienYaNoEstaDisponible() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE)));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.EN_USO)));
+
+        assertThatThrownBy(() -> controller.aprobar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+
+        verify(prestamoRepository, never()).save(any(Prestamo.class));
+    }
+
+    @Test
+    void soloElAdministradorPuedeRechazar() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+
+        assertThatThrownBy(() -> controller.rechazar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void administradorRechazaMarcaRechazadoSinTocarElBienYAvisaAlSolicitante() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.DISPONIBLE)));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo rechazado = controller.rechazar(1L);
+
+        assertThat(rechazado.getEstado()).isEqualTo(EstadoPrestamo.RECHAZADO);
+        verify(bienInventarioRepository, never()).save(any());
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any());
+    }
+
+    @Test
+    void rechazarRechazaSiElPrestamoNoEstaPendiente() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVUELTO)));
+
+        assertThatThrownBy(() -> controller.rechazar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+
+        verify(prestamoRepository, never()).save(any());
     }
 
     @Test
     void unDocenteNoPuedeDevolverElPrestamoDeOtro() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Prestamo prestamo = Prestamo.builder().id(1L).bienId(1L).usuarioId(42L).estado(EstadoPrestamo.ACTIVO).build();
+        Prestamo prestamo = prestamoDe(1L, 1L, 42L, EstadoPrestamo.ACTIVO);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
 
         assertThatThrownBy(() -> controller.devolver(1L))
@@ -123,7 +268,7 @@ class PrestamoControllerTest {
     @Test
     void devolverLiberaElBienYCierraElPrestamo() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Prestamo prestamo = Prestamo.builder().id(1L).bienId(1L).usuarioId(5L).estado(EstadoPrestamo.ACTIVO).build();
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO);
         BienInventario bien = bienDe(1L, EstadoBien.EN_USO);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -138,9 +283,9 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void devolverRechazaUnPrestamoYaDevuelto() {
+    void devolverRechazaUnPrestamoQueNoEstaActivo() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Prestamo prestamo = Prestamo.builder().id(1L).bienId(1L).usuarioId(5L).estado(EstadoPrestamo.DEVUELTO).build();
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVUELTO);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
 
         assertThatThrownBy(() -> controller.devolver(1L))
@@ -153,7 +298,7 @@ class PrestamoControllerTest {
     void listarFiltraPorUsuarioParaUnDocente() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(prestamoRepository.findByUsuarioId(5L)).thenReturn(List.of(
-                Prestamo.builder().id(1L).bienId(1L).usuarioId(5L).estado(EstadoPrestamo.ACTIVO).build()));
+                prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE)));
 
         assertThat(controller.listar()).hasSize(1);
         verify(prestamoRepository, never()).findAll();
@@ -163,9 +308,20 @@ class PrestamoControllerTest {
     void listarDevuelveTodoParaUnAdministrador() {
         authenticateAs(1L, "ADMINISTRADOR");
         when(prestamoRepository.findAll()).thenReturn(List.of(
-                Prestamo.builder().id(1L).bienId(1L).usuarioId(5L).estado(EstadoPrestamo.ACTIVO).build(),
-                Prestamo.builder().id(2L).bienId(2L).usuarioId(9L).estado(EstadoPrestamo.ACTIVO).build()));
+                prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE),
+                prestamoDe(2L, 2L, 9L, EstadoPrestamo.ACTIVO)));
 
         assertThat(controller.listar()).hasSize(2);
+    }
+
+    @Test
+    void listarDevuelveTodoParaAdminInfraestructura() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        when(prestamoRepository.findAll()).thenReturn(List.of(
+                prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE),
+                prestamoDe(2L, 2L, 9L, EstadoPrestamo.ACTIVO)));
+
+        assertThat(controller.listar()).hasSize(2);
+        verify(prestamoRepository, never()).findByUsuarioId(any());
     }
 }

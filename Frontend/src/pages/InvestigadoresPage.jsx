@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Plus, Trash2, UserCheck } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Plus, Pencil, Trash2, UserCheck } from 'lucide-react'
 import { investigadoresApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { useAuth } from '../context/AuthContext'
@@ -12,24 +12,48 @@ export default function InvestigadoresPage() {
   const { isAdmin } = useAuth()
   const fetcher = useCallback(() => investigadoresApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
+  const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
+  const { data: directorio } = useList(directorioFetcher)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
-  const [usuarios, setUsuarios] = useState([])
 
-  useEffect(() => {
-    if (!isAdmin || !showForm) return
-    usuariosApi.list().then(setUsuarios).catch((err) => setError(err.message))
-  }, [isAdmin, showForm, setError])
+  const nombrePorUsuarioId = useMemo(
+    () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
+    [directorio]
+  )
 
-  const handleCreate = async (e) => {
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(FORM_INICIAL)
+    setShowForm(true)
+  }
+
+  const openEdit = (inv) => {
+    setEditingId(inv.id)
+    setForm({
+      nombreCompleto: inv.nombreCompleto || '',
+      tituloAcademico: inv.tituloAcademico || '',
+      areaInvestigacion: inv.areaInvestigacion || '',
+      biografia: inv.biografia || '',
+      usuarioId: String(inv.usuarioId ?? ''),
+    })
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
-      const payload = isAdmin ? { ...form, usuarioId: Number(form.usuarioId) } : form
-      await investigadoresApi.create(payload)
+      if (editingId) {
+        await investigadoresApi.update(editingId, form)
+      } else {
+        await investigadoresApi.create({ ...form, usuarioId: Number(form.usuarioId) })
+      }
       setShowForm(false)
+      setEditingId(null)
       setForm(FORM_INICIAL)
       reload()
     } catch (err) {
@@ -54,7 +78,7 @@ export default function InvestigadoresPage() {
       <PageHeader
         title="Investigadores"
         action={
-          <PrimaryButton onClick={() => setShowForm(true)}>
+          <PrimaryButton onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nuevo perfil
           </PrimaryButton>
         }
@@ -72,20 +96,27 @@ export default function InvestigadoresPage() {
             </td>
             <td className="px-3 py-2 text-gray-600">{inv.tituloAcademico || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{inv.areaInvestigacion || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">#{inv.usuarioId}</td>
+            <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(inv.usuarioId) || `#${inv.usuarioId}`}</td>
             <td className="px-3 py-2 text-right">
-              <button onClick={() => handleDelete(inv.id)} className="text-red-500 hover:text-red-700">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center justify-end gap-2">
+                <button onClick={() => openEdit(inv)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                {isAdmin && (
+                  <button onClick={() => handleDelete(inv.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </td>
           </tr>
         ))}
       </Table>
 
       {showForm && (
-        <Modal title="Nuevo perfil de investigador" onClose={() => setShowForm(false)}>
-          <form onSubmit={handleCreate} className="space-y-3">
-            {isAdmin && (
+        <Modal title={editingId ? 'Editar perfil de investigador' : 'Nuevo perfil de investigador'} onClose={() => setShowForm(false)}>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {!editingId && (
               <Field label="Usuario">
                 <select
                   required
@@ -94,8 +125,8 @@ export default function InvestigadoresPage() {
                   onChange={(e) => setForm({ ...form, usuarioId: e.target.value })}
                 >
                   <option value="" disabled>Seleccionar usuario...</option>
-                  {usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>{u.nombres} {u.apellidos} ({u.email})</option>
+                  {directorio.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
                   ))}
                 </select>
               </Field>
@@ -113,7 +144,7 @@ export default function InvestigadoresPage() {
               <textarea className="input" rows={3} value={form.biografia} onChange={(e) => setForm({ ...form, biografia: e.target.value })} />
             </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
-              {saving ? 'Guardando...' : 'Crear perfil'}
+              {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear perfil'}
             </PrimaryButton>
           </form>
         </Modal>

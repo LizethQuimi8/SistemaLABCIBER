@@ -20,10 +20,13 @@ import java.util.Collection;
 
 /**
  * Reglas de rol de la seccion 8 de la documentacion:
- * Inventario -> Administrador CRUD completo, Docente solo lectura.
- * Prestamos -> Administrador y Docente (el Docente solo ve/gestiona los propios,
- * verificado en PrestamoController).
- * Compras Publicas -> Administrador CRUD completo, Docente solo lectura.
+ * Inventario -> Administrador y Admin. Infraestructura CRUD completo, el resto
+ * (Docente, Responsable Compras) solo lectura.
+ * Prestamos -> los 4 roles pueden solicitar/ver; aprobar es de Administrador y
+ * Admin. Infraestructura, rechazar es exclusivo de Administrador (verificado
+ * en PrestamoController).
+ * Compras Publicas -> Administrador y Responsable Compras CRUD completo, el
+ * resto (Docente, Admin. Infraestructura) solo lectura.
  */
 @Configuration
 @EnableWebSecurity
@@ -55,13 +58,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/inventario/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
-                        .requestMatchers("/api/inventario/**").hasRole("ADMINISTRADOR")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                        .requestMatchers("/api/inventario/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers("/api/prestamos/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers(HttpMethod.GET, "/api/compras/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
-                        .requestMatchers("/api/compras/**").hasRole("ADMINISTRADOR")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                        .requestMatchers("/api/compras/**").hasAnyRole("ADMINISTRADOR", "RESPONSABLE_COMPRAS")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

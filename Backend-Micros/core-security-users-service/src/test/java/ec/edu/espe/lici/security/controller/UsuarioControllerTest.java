@@ -57,7 +57,7 @@ class UsuarioControllerTest {
     }
 
     @Test
-    void directorioExponeSoloIdYNombreSinDatosSensibles() {
+    void directorioExponeIdNombreYRolSinDatosSensibles() {
         when(usuarioRepository.findAll()).thenReturn(List.of(aUsuario()));
 
         var result = controller.directorio();
@@ -66,6 +66,7 @@ class UsuarioControllerTest {
         assertThat(result.get(0).id()).isEqualTo(1L);
         assertThat(result.get(0).nombres()).isEqualTo("Ada");
         assertThat(result.get(0).apellidos()).isEqualTo("Lovelace");
+        assertThat(result.get(0).rol()).isEqualTo(Rol.DOCENTE_INVESTIGADOR);
     }
 
     @Test

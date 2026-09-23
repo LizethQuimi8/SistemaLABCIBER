@@ -27,6 +27,12 @@ spring:
 lici:
   security:
     jwk-set-uri: ${JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+  services:
+    # Usados por NotificacionClient para avisar del resultado de un prestamo:
+    # al solicitante (document-service) y, para ubicar a los ADMINISTRADOR
+    # cuando aprueba Admin. Infraestructura, el directorio (security-service).
+    security-service-url: ${SECURITY_SERVICE_URL:http://localhost:8081}
+    document-service-url: ${DOCUMENT_SERVICE_URL:http://localhost:8083}
 
 management:
   endpoints:

@@ -27,8 +27,10 @@ import java.util.HexFormat;
 import java.util.List;
 
 /**
- * ADMINISTRADOR: acceso total, puede firmar y archivar cualquier documento.
- * DOCENTE_INVESTIGADOR: solo documentos propios o donde figura como firmante.
+ * Repositorio compartido de documentos y correspondencia (memorandos,
+ * informes, otros): cualquier usuario autenticado puede ver, cargar, subir
+ * el archivo y editar los metadatos de cualquier documento. Eliminar es
+ * exclusivo de ADMINISTRADOR.
  */
 @RestController
 @RequestMapping("/api/documentos")
@@ -45,33 +47,24 @@ public class DocumentoController {
 
     @GetMapping
     public List<Documento> listar() {
-        if (CurrentUser.isAdministrador()) {
-            return documentoRepository.findAll();
-        }
-        Long userId = CurrentUser.id();
-        return documentoRepository.findByUsuarioIdOrFirmanteId(userId, userId);
+        return documentoRepository.findAll();
     }
 
     @GetMapping("/{id}")
     public Documento obtener(@PathVariable Long id) {
-        Documento documento = buscar(id);
-        verificarPropiedad(documento);
-        return documento;
+        return buscar(id);
     }
 
     @PostMapping
     public ResponseEntity<Documento> crear(@Valid @RequestBody Documento documento) {
-        if (!CurrentUser.isAdministrador()) {
-            documento.setUsuarioId(CurrentUser.id());
-        }
         documento.setId(null);
+        documento.setUsuarioId(CurrentUser.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(documentoRepository.save(documento));
     }
 
     @PutMapping("/{id}")
     public Documento actualizar(@PathVariable Long id, @Valid @RequestBody Documento request) {
         Documento documento = buscar(id);
-        verificarPropiedad(documento);
 
         documento.setTitulo(request.getTitulo());
         documento.setTipo(request.getTipo());
@@ -84,7 +77,6 @@ public class DocumentoController {
     @PostMapping(value = "/{id}/archivo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Documento subirArchivo(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) throws IOException {
         Documento documento = buscar(id);
-        verificarPropiedad(documento);
 
         if (archivo.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo esta vacio");
@@ -109,7 +101,6 @@ public class DocumentoController {
     @GetMapping("/{id}/archivo")
     public ResponseEntity<Resource> descargarArchivo(@PathVariable Long id) throws MalformedURLException {
         Documento documento = buscar(id);
-        verificarPropiedad(documento);
 
         if (documento.getRutaArchivo() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El documento no tiene un archivo cargado");
@@ -132,10 +123,10 @@ public class DocumentoController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        Documento documento = buscar(id);
-        if (!CurrentUser.isAdministrador() && !documento.getUsuarioId().equals(CurrentUser.id())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este documento");
+        if (!CurrentUser.isAdministrador()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo un administrador puede eliminar documentos");
         }
+        Documento documento = buscar(id);
         documentoRepository.delete(documento);
         return ResponseEntity.noContent().build();
     }
@@ -143,15 +134,6 @@ public class DocumentoController {
     private Documento buscar(Long id) {
         return documentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado"));
-    }
-
-    private void verificarPropiedad(Documento documento) {
-        Long userId = CurrentUser.id();
-        boolean esPropio = documento.getUsuarioId().equals(userId)
-                || userId.equals(documento.getFirmanteId());
-        if (!CurrentUser.isAdministrador() && !esPropio) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este documento");
-        }
     }
 
     private String nombreAlmacenadoFallback(Documento documento) {

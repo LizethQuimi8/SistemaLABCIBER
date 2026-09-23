@@ -57,10 +57,6 @@ public class ReporteAggregatorService {
         return contarLista(documentServiceUrl + "/api/documentos", bearerToken);
     }
 
-    public Mono<Optional<Integer>> contarMemos(String bearerToken) {
-        return contarLista(documentServiceUrl + "/api/memos", bearerToken);
-    }
-
     public Mono<Optional<Integer>> contarBienesInventario(String bearerToken) {
         return contarLista(adminServiceUrl + "/api/inventario", bearerToken);
     }

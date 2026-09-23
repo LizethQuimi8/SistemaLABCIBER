@@ -9,7 +9,6 @@ import ProyectosPage from './pages/ProyectosPage'
 import InvestigadoresPage from './pages/InvestigadoresPage'
 import PublicacionesPage from './pages/PublicacionesPage'
 import DocumentosPage from './pages/DocumentosPage'
-import MemosPage from './pages/MemosPage'
 import NotificacionesPage from './pages/NotificacionesPage'
 import InventarioPage from './pages/InventarioPage'
 import ComprasPage from './pages/ComprasPage'
@@ -23,7 +22,6 @@ const VIEWS = {
   investigadores: InvestigadoresPage,
   publicaciones: PublicacionesPage,
   documentos: DocumentosPage,
-  memos: MemosPage,
   notificaciones: NotificacionesPage,
   inventario: InventarioPage,
   compras: ComprasPage,

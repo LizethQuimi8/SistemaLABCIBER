@@ -7,7 +7,6 @@ public record ReporteResumenDTO(
         Integer totalInvestigadores,
         Integer totalPublicaciones,
         Integer totalDocumentos,
-        Integer totalMemos,
         Integer totalBienesInventario,
         Integer totalComprasPublicas,
         Integer totalUsuarios

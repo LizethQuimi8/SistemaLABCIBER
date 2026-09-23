@@ -1,40 +1,82 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Trash2, FileText, Eye, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText, Eye, Upload } from 'lucide-react'
 import { documentosApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
+import { useAuth } from '../context/AuthContext'
 
-const TIPOS = ['MEMORANDO', 'OFICIO', 'INFORME', 'OTRO']
+const TIPOS = ['MEMORANDO', 'INFORME', 'OTRO']
 const ESTADOS = ['BORRADOR', 'PENDIENTE_FIRMA', 'FIRMADO', 'ARCHIVADO']
 const FORM_INICIAL = { titulo: '', tipo: 'MEMORANDO', firmanteId: '', estado: 'BORRADOR' }
 
+const FILTROS = [
+  { id: 'TODOS', label: 'Todos' },
+  { id: 'MEMORANDO', label: 'Documentos' },
+  { id: 'INFORME', label: 'Informes' },
+]
+
 export default function DocumentosPage() {
+  const { isAdmin } = useAuth()
   const fetcher = useCallback(() => documentosApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
   const { data: directorio } = useList(directorioFetcher)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [archivo, setArchivo] = useState(null)
   const [saving, setSaving] = useState(false)
   const [viewingId, setViewingId] = useState(null)
+  const [filtro, setFiltro] = useState('TODOS')
 
   const nombrePorUsuarioId = useMemo(
     () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
     [directorio]
   )
 
-  const handleCreate = async (e) => {
+  const filtrados = useMemo(
+    () => (filtro === 'TODOS' ? data : data.filter((d) => d.tipo === filtro)),
+    [data, filtro]
+  )
+
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(FORM_INICIAL)
+    setArchivo(null)
+    setShowForm(true)
+  }
+
+  const openEdit = (d) => {
+    setEditingId(d.id)
+    setForm({
+      titulo: d.titulo || '',
+      tipo: d.tipo || 'MEMORANDO',
+      firmanteId: d.firmanteId ? String(d.firmanteId) : '',
+      estado: d.estado || 'BORRADOR',
+    })
+    setArchivo(null)
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
-      const documento = await documentosApi.create({ ...form, firmanteId: form.firmanteId ? Number(form.firmanteId) : null })
+      const payload = { ...form, firmanteId: form.firmanteId ? Number(form.firmanteId) : null }
+      let documentoId = editingId
+      if (editingId) {
+        await documentosApi.update(editingId, payload)
+      } else {
+        const documento = await documentosApi.create(payload)
+        documentoId = documento.id
+      }
       if (archivo) {
-        await documentosApi.subirArchivo(documento.id, archivo)
+        await documentosApi.subirArchivo(documentoId, archivo)
       }
       setShowForm(false)
+      setEditingId(null)
       setForm(FORM_INICIAL)
       setArchivo(null)
       reload()
@@ -75,7 +117,7 @@ export default function DocumentosPage() {
       <PageHeader
         title="Documentos y Correspondencia"
         action={
-          <PrimaryButton onClick={() => setShowForm(true)}>
+          <PrimaryButton onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nuevo documento
           </PrimaryButton>
         }
@@ -83,10 +125,22 @@ export default function DocumentosPage() {
 
       <ErrorBanner message={error} />
 
+      <div className="flex items-center gap-2 mb-3">
+        {FILTROS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFiltro(f.id)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold border ${filtro === f.id ? 'bg-[#0e6b3c] text-white border-[#0e6b3c]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0e6b3c]'}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <Table headers={['Titulo', 'Tipo', 'Estado', 'Responsable', 'Propietario', 'Archivo', '']}>
         {loading && <LoadingRow colSpan={7} />}
-        {!loading && data.length === 0 && <EmptyRow colSpan={7} />}
-        {!loading && data.map((d) => (
+        {!loading && filtrados.length === 0 && <EmptyRow colSpan={7} />}
+        {!loading && filtrados.map((d) => (
           <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <FileText className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
@@ -112,17 +166,24 @@ export default function DocumentosPage() {
               )}
             </td>
             <td className="px-3 py-2 text-right">
-              <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center justify-end gap-2">
+                <button onClick={() => openEdit(d)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                {isAdmin && (
+                  <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </td>
           </tr>
         ))}
       </Table>
 
       {showForm && (
-        <Modal title="Nuevo documento" onClose={() => setShowForm(false)}>
-          <form onSubmit={handleCreate} className="space-y-3">
+        <Modal title={editingId ? 'Editar documento' : 'Nuevo documento'} onClose={() => setShowForm(false)}>
+          <form onSubmit={handleSubmit} className="space-y-3">
             <Field label="Titulo">
               <input required className="input" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
             </Field>
@@ -138,7 +199,7 @@ export default function DocumentosPage() {
                 </select>
               </Field>
             </div>
-            <Field label="Archivo">
+            <Field label={editingId ? 'Reemplazar archivo (opcional)' : 'Archivo'}>
               <input
                 type="file"
                 className="input"
@@ -156,7 +217,7 @@ export default function DocumentosPage() {
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
               {saving ? (archivo ? 'Subiendo...' : 'Guardando...') : (
                 <>
-                  {archivo && <Upload className="w-4 h-4" />} Crear documento
+                  {archivo && <Upload className="w-4 h-4" />} {editingId ? 'Guardar cambios' : 'Crear documento'}
                 </>
               )}
             </PrimaryButton>

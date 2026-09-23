@@ -24,6 +24,7 @@ export const proyectosApi = {
 export const investigadoresApi = {
   list: () => apiFetch('/api/investigadores'),
   create: (data) => apiFetch('/api/investigadores', { method: 'POST', body: data }),
+  update: (id, data) => apiFetch(`/api/investigadores/${id}`, { method: 'PUT', body: data }),
   remove: (id) => apiFetch(`/api/investigadores/${id}`, { method: 'DELETE' }),
 }
 
@@ -37,18 +38,10 @@ export const publicacionesApi = {
 export const documentosApi = {
   list: () => apiFetch('/api/documentos'),
   create: (data) => apiFetch('/api/documentos', { method: 'POST', body: data }),
+  update: (id, data) => apiFetch(`/api/documentos/${id}`, { method: 'PUT', body: data }),
   subirArchivo: (id, file) => apiUpload(`/api/documentos/${id}/archivo`, file),
   verArchivo: (id) => apiFetchBlob(`/api/documentos/${id}/archivo`),
   remove: (id) => apiFetch(`/api/documentos/${id}`, { method: 'DELETE' }),
-}
-
-export const memosApi = {
-  list: () => apiFetch('/api/memos'),
-  create: (data) => apiFetch('/api/memos', { method: 'POST', body: data }),
-  setEstado: (id, estado) => apiFetch(`/api/memos/${id}/estado?estado=${estado}`, { method: 'PATCH' }),
-  subirArchivo: (id, file) => apiUpload(`/api/memos/${id}/archivo`, file),
-  verArchivo: (id) => apiFetchBlob(`/api/memos/${id}/archivo`),
-  remove: (id) => apiFetch(`/api/memos/${id}`, { method: 'DELETE' }),
 }
 
 export const notificacionesApi = {
@@ -69,6 +62,8 @@ export const inventarioApi = {
 export const prestamosApi = {
   list: () => apiFetch('/api/prestamos'),
   solicitar: (data) => apiFetch('/api/prestamos', { method: 'POST', body: data }),
+  aprobar: (id) => apiFetch(`/api/prestamos/${id}/aprobar`, { method: 'PATCH' }),
+  rechazar: (id) => apiFetch(`/api/prestamos/${id}/rechazar`, { method: 'PATCH' }),
   devolver: (id) => apiFetch(`/api/prestamos/${id}/devolver`, { method: 'PATCH' }),
 }
 

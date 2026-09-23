@@ -78,7 +78,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/oauth2/jwks", "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/directorio")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/usuarios/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

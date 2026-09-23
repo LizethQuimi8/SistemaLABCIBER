@@ -5,7 +5,7 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 
-const ROLES = ['ADMINISTRADOR', 'DOCENTE_INVESTIGADOR']
+const ROLES = ['ADMINISTRADOR', 'DOCENTE_INVESTIGADOR', 'ADMIN_INFRAESTRUCTURA', 'RESPONSABLE_COMPRAS']
 const FORM_INICIAL = { nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' }
 
 export default function UsuariosPage() {

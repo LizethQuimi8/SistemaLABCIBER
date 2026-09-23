@@ -6,10 +6,9 @@ import { useAuth } from '../context/AuthContext'
 
 // ── Tarjeta de resumen de documentos (datos reales del reporting-service) ─────
 function DocSummaryCard({ resumen }) {
-  const total = (resumen?.totalDocumentos ?? 0) + (resumen?.totalMemos ?? 0)
+  const total = resumen?.totalDocumentos ?? 0
   const items = [
     { label: 'Documentos', count: resumen?.totalDocumentos ?? 0, color: 'bg-green-500' },
-    { label: 'Memos y Correspondencia', count: resumen?.totalMemos ?? 0, color: 'bg-red-500' },
     { label: 'Portafolio de Proyectos', count: resumen?.totalProyectos ?? 0, color: 'bg-yellow-500' },
     { label: 'Publicaciones', count: resumen?.totalPublicaciones ?? 0, color: 'bg-blue-400' },
     { label: 'Investigadores', count: resumen?.totalInvestigadores ?? 0, color: 'bg-purple-400' },
@@ -22,7 +21,7 @@ function DocSummaryCard({ resumen }) {
           <div className="bg-[#0e6b3c] text-white p-2 rounded">
             <FileText className="w-6 h-6" />
           </div>
-          <span className="text-sm font-semibold text-gray-600">Documentos + Memos</span>
+          <span className="text-sm font-semibold text-gray-600">Documentos y Correspondencia</span>
         </div>
         <span className="text-3xl font-black text-[#052a18]">{total}</span>
       </div>
@@ -85,7 +84,7 @@ function PendingSignatureTable({ pendientes, loading }) {
 function ShortcutsRow({ onNavigate }) {
   const shortcuts = [
     { label: 'Registrar Nuevo Proyecto', icon: FilePlus, view: 'proyectos' },
-    { label: 'Subir Memorando', icon: Upload, view: 'memos' },
+    { label: 'Subir Memorando', icon: Upload, view: 'documentos' },
     { label: 'Actualizar Inventario', icon: RefreshCw, view: 'inventario' },
     { label: 'Consultar Publicaciones', icon: Search, view: 'publicaciones' },
   ]
@@ -145,7 +144,6 @@ export default function Dashboard({ onNavigate }) {
     { label: 'Investigadores', value: resumen.totalInvestigadores ?? 0, color: 'bg-green-500' },
     { label: 'Publicaciones', value: resumen.totalPublicaciones ?? 0, color: 'bg-blue-500' },
     { label: 'Documentos', value: resumen.totalDocumentos ?? 0, color: 'bg-yellow-500' },
-    { label: 'Memos', value: resumen.totalMemos ?? 0, color: 'bg-yellow-500' },
     { label: 'Inventario', value: resumen.totalBienesInventario ?? 0, color: 'bg-red-500' },
     ...(isAdmin ? [
       { label: 'Compras', value: resumen.totalComprasPublicas ?? 0, color: 'bg-red-500' },

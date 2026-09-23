@@ -12,9 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Los perfiles de investigador son de lectura publica entre usuarios
- * autenticados (directorio del laboratorio); la edicion queda restringida
- * al propio dueno del perfil o a un ADMINISTRADOR.
+ * Los perfiles de investigador son de lectura y edicion publica entre
+ * usuarios autenticados (directorio del laboratorio): cualquiera puede crear
+ * un perfil (para si mismo o para otro usuario) y editar cualquier perfil
+ * existente. Eliminar queda restringido a ADMINISTRADOR.
  */
 @RestController
 @RequestMapping("/api/investigadores")
@@ -38,8 +39,8 @@ public class InvestigadorController {
 
     @PostMapping
     public ResponseEntity<Investigador> crear(@Valid @RequestBody Investigador investigador) {
-        if (!CurrentUser.isAdministrador()) {
-            investigador.setUsuarioId(CurrentUser.id());
+        if (investigador.getUsuarioId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar el usuario dueno del perfil");
         }
         investigador.setId(null);
         return ResponseEntity.status(HttpStatus.CREATED).body(investigadorRepository.save(investigador));
@@ -48,7 +49,6 @@ public class InvestigadorController {
     @PutMapping("/{id}")
     public Investigador actualizar(@PathVariable Long id, @Valid @RequestBody Investigador request) {
         Investigador investigador = buscar(id);
-        verificarPropiedad(investigador);
 
         investigador.setNombreCompleto(request.getNombreCompleto());
         investigador.setTituloAcademico(request.getTituloAcademico());
@@ -59,8 +59,10 @@ public class InvestigadorController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        if (!CurrentUser.isAdministrador()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo un administrador puede eliminar perfiles de investigador");
+        }
         Investigador investigador = buscar(id);
-        verificarPropiedad(investigador);
         investigadorRepository.delete(investigador);
         return ResponseEntity.noContent().build();
     }
@@ -68,11 +70,5 @@ public class InvestigadorController {
     private Investigador buscar(Long id) {
         return investigadorRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigador no encontrado"));
-    }
-
-    private void verificarPropiedad(Investigador investigador) {
-        if (!CurrentUser.isAdministrador() && !investigador.getUsuarioId().equals(CurrentUser.id())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene acceso a este perfil");
-        }
     }
 }

@@ -58,70 +58,31 @@ class DocumentoControllerTest {
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
     }
 
-    private Documento documentoDe(Long id, Long usuarioId, Long firmanteId) {
-        return Documento.builder().id(id).titulo("Doc").tipo(TipoDocumento.OFICIO)
-                .estado(EstadoDocumento.BORRADOR).usuarioId(usuarioId).firmanteId(firmanteId).build();
+    private Documento documentoDe(Long id, Long usuarioId) {
+        return Documento.builder().id(id).titulo("Doc").tipo(TipoDocumento.INFORME)
+                .estado(EstadoDocumento.BORRADOR).usuarioId(usuarioId).build();
     }
 
     @Test
-    void elFirmantePuedeVerElDocumentoAunqueNoSeaElDueno() {
+    void listarDevuelveTodosLosDocumentosACualquierUsuario() {
         authenticateAs(20L, "DOCENTE_INVESTIGADOR");
-        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L, 20L)));
+        when(documentoRepository.findAll()).thenReturn(List.of(documentoDe(1L, 5L), documentoDe(2L, 9L)));
 
-        Documento resultado = controller.obtener(1L);
-
-        assertThat(resultado.getId()).isEqualTo(1L);
+        assertThat(controller.listar()).hasSize(2);
     }
 
     @Test
-    void unTerceroSinRelacionNoPuedeVerElDocumento() {
+    void cualquierUsuarioPuedeVerUnDocumentoQueNoLePertenece() {
         authenticateAs(99L, "DOCENTE_INVESTIGADOR");
-        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L, 20L)));
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
 
-        assertThatThrownBy(() -> controller.obtener(1L))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
-                        .isEqualTo(HttpStatus.FORBIDDEN));
+        assertThat(controller.obtener(1L).getId()).isEqualTo(1L);
     }
 
     @Test
-    void elFirmanteNoPuedeEliminarUnDocumentoQueNoLePertenece() {
-        authenticateAs(20L, "DOCENTE_INVESTIGADOR");
-        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L, 20L)));
-
-        assertThatThrownBy(() -> controller.eliminar(1L))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
-                        .isEqualTo(HttpStatus.FORBIDDEN));
-
-        verify(documentoRepository, never()).delete(any());
-    }
-
-    @Test
-    void elPropietarioSiPuedeEliminarSuDocumento() {
+    void crearAsignaComoPropietarioAQuienLoSube() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Documento documento = documentoDe(1L, 5L, 20L);
-        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documento));
-
-        controller.eliminar(1L);
-
-        verify(documentoRepository).delete(documento);
-    }
-
-    @Test
-    void listarCombinaDocumentosPropiosYDondeEsFirmante() {
-        authenticateAs(20L, "DOCENTE_INVESTIGADOR");
-        when(documentoRepository.findByUsuarioIdOrFirmanteId(20L, 20L))
-                .thenReturn(List.of(documentoDe(1L, 5L, 20L)));
-
-        assertThat(controller.listar()).hasSize(1);
-        verify(documentoRepository, never()).findAll();
-    }
-
-    @Test
-    void crearAsignaAlDocenteComoPropietario() {
-        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Documento nuevo = Documento.builder().titulo("Nuevo").tipo(TipoDocumento.INFORME).usuarioId(999L).build();
+        Documento nuevo = Documento.builder().titulo("Nuevo").tipo(TipoDocumento.MEMORANDO).build();
         when(documentoRepository.save(any(Documento.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var response = controller.crear(nuevo);
@@ -130,9 +91,22 @@ class DocumentoControllerTest {
     }
 
     @Test
+    void cualquierUsuarioPuedeEditarUnDocumentoQueNoLePertenece() {
+        authenticateAs(99L, "DOCENTE_INVESTIGADOR");
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
+        when(documentoRepository.save(any(Documento.class))).thenAnswer(inv -> inv.getArgument(0));
+        Documento request = Documento.builder().titulo("Editado").tipo(TipoDocumento.OTRO)
+                .estado(EstadoDocumento.ARCHIVADO).build();
+
+        Documento actualizado = controller.actualizar(1L, request);
+
+        assertThat(actualizado.getTitulo()).isEqualTo("Editado");
+    }
+
+    @Test
     void subirArchivoGuardaElBinarioYActualizaLosMetadatos() throws IOException {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Documento documento = documentoDe(1L, 5L, 20L);
+        Documento documento = documentoDe(1L, 5L);
         when(documentoRepository.findById(1L)).thenReturn(Optional.of(documento));
         when(documentoRepository.save(any(Documento.class))).thenAnswer(inv -> inv.getArgument(0));
         MockMultipartFile archivo = new MockMultipartFile("archivo", "informe.pdf", "application/pdf", "contenido".getBytes());
@@ -147,23 +121,9 @@ class DocumentoControllerTest {
     }
 
     @Test
-    void subirArchivoRechazaAQuienNoEsDuenoNiFirmante() {
-        authenticateAs(99L, "DOCENTE_INVESTIGADOR");
-        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L, 20L)));
-        MockMultipartFile archivo = new MockMultipartFile("archivo", "informe.pdf", "application/pdf", "contenido".getBytes());
-
-        assertThatThrownBy(() -> controller.subirArchivo(1L, archivo))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
-                        .isEqualTo(HttpStatus.FORBIDDEN));
-
-        verify(documentoRepository, never()).save(any());
-    }
-
-    @Test
     void descargarArchivoDevuelveElRecursoConElContentTypeOriginal() throws IOException {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        Documento documento = documentoDe(1L, 5L, 20L);
+        Documento documento = documentoDe(1L, 5L);
         when(documentoRepository.findById(1L)).thenReturn(Optional.of(documento));
         when(documentoRepository.save(any(Documento.class))).thenAnswer(inv -> inv.getArgument(0));
         MockMultipartFile archivo = new MockMultipartFile("archivo", "informe.pdf", "application/pdf", "contenido".getBytes());
@@ -180,11 +140,34 @@ class DocumentoControllerTest {
     @Test
     void descargarArchivoLanzaNotFoundSiNoSeHaSubidoNada() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L, 20L)));
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
 
         assertThatThrownBy(() -> controller.descargarArchivo(1L))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void unDocenteNoPuedeEliminarNiSuPropioDocumento() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+
+        assertThatThrownBy(() -> controller.eliminar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(documentoRepository, never()).delete(any());
+    }
+
+    @Test
+    void unAdministradorSiPuedeEliminarCualquierDocumento() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Documento documento = documentoDe(1L, 5L);
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documento));
+
+        controller.eliminar(1L);
+
+        verify(documentoRepository).delete(documento);
     }
 }

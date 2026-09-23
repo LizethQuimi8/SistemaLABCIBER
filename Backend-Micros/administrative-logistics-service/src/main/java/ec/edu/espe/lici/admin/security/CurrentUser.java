@@ -23,6 +23,16 @@ public final class CurrentUser {
         return jwt().getClaimAsStringList("roles").contains("ADMINISTRADOR");
     }
 
+    public static boolean isAdminInfraestructura() {
+        return jwt().getClaimAsStringList("roles").contains("ADMIN_INFRAESTRUCTURA");
+    }
+
+    /** Token crudo del usuario actual, para reenviarlo (propagar la sesion) en
+     * llamadas salientes a otros microservicios. */
+    public static String rawToken() {
+        return jwt().getTokenValue();
+    }
+
     private static Jwt jwt() {
         JwtAuthenticationToken token = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         return token.getToken();

@@ -22,7 +22,7 @@ public class ReporteController {
     /**
      * Dashboard consolidado. El alcance de los datos (global vs. propio) lo
      * decide cada servicio de dominio segun el rol embebido en el JWT
-     * propagado, no este servicio. Las 8 consultas se disparan en paralelo y
+     * propagado, no este servicio. Las 7 consultas se disparan en paralelo y
      * de forma no bloqueante con Mono.zip.
      */
     @GetMapping("/resumen")
@@ -36,7 +36,6 @@ public class ReporteController {
                 aggregatorService.contarInvestigadores(bearerToken),
                 aggregatorService.contarPublicaciones(bearerToken),
                 aggregatorService.contarDocumentos(bearerToken),
-                aggregatorService.contarMemos(bearerToken),
                 aggregatorService.contarBienesInventario(bearerToken),
                 aggregatorService.contarComprasPublicas(bearerToken),
                 aggregatorService.contarUsuarios(bearerToken)
@@ -49,7 +48,6 @@ public class ReporteController {
                 counts.getT4().orElse(null),
                 counts.getT5().orElse(null),
                 counts.getT6().orElse(null),
-                counts.getT7().orElse(null),
-                counts.getT8().orElse(null)));
+                counts.getT7().orElse(null)));
     }
 }
