@@ -31,8 +31,13 @@ class ApiError extends Error {
   }
 }
 
+// Evita la pagina de advertencia que ngrok (plan gratuito) muestra ante
+// peticiones con pinta de navegador; se ignora sin problema en backends que
+// no pasan por ngrok (p. ej. un VPS propio).
+const NGROK_SKIP_HEADER = { 'ngrok-skip-browser-warning': 'true' }
+
 export async function apiFetch(path, { method = 'GET', body, auth = true } = {}) {
-  const headers = { 'Content-Type': 'application/json' }
+  const headers = { 'Content-Type': 'application/json', ...NGROK_SKIP_HEADER }
   if (auth) {
     const token = getToken()
     if (token) headers.Authorization = `Bearer ${token}`
@@ -63,7 +68,7 @@ export async function apiFetch(path, { method = 'GET', body, auth = true } = {})
 
 /** Sube un archivo (multipart/form-data); el navegador fija el Content-Type con el boundary. */
 export async function apiUpload(path, file, fieldName = 'archivo') {
-  const headers = {}
+  const headers = { ...NGROK_SKIP_HEADER }
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
@@ -89,7 +94,7 @@ export async function apiUpload(path, file, fieldName = 'archivo') {
 
 /** Descarga un archivo binario protegido (requiere el Bearer token) como Blob, para previsualizarlo. */
 export async function apiFetchBlob(path) {
-  const headers = {}
+  const headers = { ...NGROK_SKIP_HEADER }
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
