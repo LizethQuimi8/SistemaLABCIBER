@@ -12,6 +12,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,9 +47,18 @@ public class NotificacionClient {
     }
 
     public void notificarUsuario(Long usuarioId, String mensaje, String bearerToken) {
+        notificarUsuario(usuarioId, mensaje, null, bearerToken);
+    }
+
+    /** Igual que notificarUsuario, pero adjunta el id del prestamo relacionado para poder mostrar su detalle. */
+    public void notificarUsuario(Long usuarioId, String mensaje, Long referenciaId, String bearerToken) {
         try {
-            String json = objectMapper.writeValueAsString(Map.of(
-                    "usuarioId", usuarioId, "mensaje", mensaje, "tipo", "PRESTAMO"));
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("usuarioId", usuarioId);
+            payload.put("mensaje", mensaje);
+            payload.put("tipo", "PRESTAMO");
+            payload.put("referenciaId", referenciaId);
+            String json = objectMapper.writeValueAsString(payload);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(documentServiceUrl + "/api/notificaciones"))
                     .header("Content-Type", "application/json")
@@ -64,6 +74,11 @@ public class NotificacionClient {
 
     /** Notifica a todos los usuarios que tengan el rol indicado (consulta el directorio con el token actual). */
     public void notificarPorRol(String rol, String mensaje, String bearerToken) {
+        notificarPorRol(rol, mensaje, null, bearerToken);
+    }
+
+    /** Igual que notificarPorRol, pero adjunta el id del prestamo relacionado. */
+    public void notificarPorRol(String rol, String mensaje, Long referenciaId, String bearerToken) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(securityServiceUrl + "/api/usuarios/directorio"))
@@ -81,7 +96,7 @@ public class NotificacionClient {
             for (Map<String, Object> usuario : directorio) {
                 if (rol.equals(usuario.get("rol"))) {
                     Long usuarioId = Long.valueOf(String.valueOf(usuario.get("id")));
-                    notificarUsuario(usuarioId, mensaje, bearerToken);
+                    notificarUsuario(usuarioId, mensaje, referenciaId, bearerToken);
                 }
             }
         } catch (Exception ex) {

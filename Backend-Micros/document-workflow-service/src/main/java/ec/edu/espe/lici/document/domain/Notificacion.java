@@ -31,6 +31,9 @@ public class Notificacion {
     @Column(length = 50)
     private String tipo;
 
+    /** Id del recurso relacionado (p. ej. el prestamo), para poder mostrar su detalle completo. */
+    private Long referenciaId;
+
     @Builder.Default
     private boolean leida = false;
 

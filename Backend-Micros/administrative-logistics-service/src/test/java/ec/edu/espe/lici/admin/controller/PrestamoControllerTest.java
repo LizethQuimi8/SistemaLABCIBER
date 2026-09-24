@@ -135,12 +135,13 @@ class PrestamoControllerTest {
         assertThat(response.getBody().getMotivo()).isEqualTo("Practica de laboratorio");
         assertThat(bien.getEstado()).isEqualTo(EstadoBien.DISPONIBLE);
         verify(bienInventarioRepository, never()).save(any());
-        verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any());
+        verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any(), any());
     }
 
     @Test
     void unDocenteNoPuedeAprobarPrestamos() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE)));
 
         assertThatThrownBy(() -> controller.aprobar(1L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -151,9 +152,27 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void adminInfraestructuraApruebaYActivaElBienYAvisaAlSolicitante() {
+    void adminInfraestructuraApruebaPendienteQuedaEnEsperaDeConfirmacionYAvisaAlAdministrador() {
         authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE);
+        BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo aprobado = controller.aprobar(1L);
+
+        assertThat(aprobado.getEstado()).isEqualTo(EstadoPrestamo.APROBADO_INFRAESTRUCTURA);
+        assertThat(bien.getEstado()).isEqualTo(EstadoBien.DISPONIBLE);
+        verify(bienInventarioRepository, never()).save(any());
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+        verify(notificacionClient).notificarPorRol(eq("ADMINISTRADOR"), any(), any(), any());
+    }
+
+    @Test
+    void administradorConfirmaUnPrestamoAprobadoPorInfraestructuraYActivaElBien() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.APROBADO_INFRAESTRUCTURA);
         BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
         when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
@@ -164,8 +183,20 @@ class PrestamoControllerTest {
 
         assertThat(aprobado.getEstado()).isEqualTo(EstadoPrestamo.ACTIVO);
         assertThat(bien.getEstado()).isEqualTo(EstadoBien.EN_USO);
-        verify(notificacionClient).notificarUsuario(eq(5L), any(), any());
-        verify(notificacionClient).notificarPorRol(eq("ADMINISTRADOR"), any(), any());
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+    }
+
+    @Test
+    void adminInfraestructuraNoPuedeDarLaConfirmacionFinal() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.APROBADO_INFRAESTRUCTURA)));
+
+        assertThatThrownBy(() -> controller.aprobar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
     }
 
     @Test
@@ -180,8 +211,8 @@ class PrestamoControllerTest {
 
         controller.aprobar(1L);
 
-        verify(notificacionClient).notificarUsuario(eq(5L), any(), any());
-        verify(notificacionClient, never()).notificarPorRol(eq("ADMINISTRADOR"), any(), any());
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+        verify(notificacionClient, never()).notificarPorRol(eq("ADMINISTRADOR"), any(), any(), any());
     }
 
     @Test
@@ -212,8 +243,35 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void soloElAdministradorPuedeRechazar() {
+    void unDocenteNoPuedeRechazarPrestamos() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE)));
+
+        assertThatThrownBy(() -> controller.rechazar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void adminInfraestructuraPuedeRechazarUnaSolicitudPendiente() {
         authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE)));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.DISPONIBLE)));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo rechazado = controller.rechazar(1L);
+
+        assertThat(rechazado.getEstado()).isEqualTo(EstadoPrestamo.RECHAZADO);
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+    }
+
+    @Test
+    void soloElAdministradorPuedeRechazarLaConfirmacionFinal() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.APROBADO_INFRAESTRUCTURA)));
 
         assertThatThrownBy(() -> controller.rechazar(1L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -235,7 +293,7 @@ class PrestamoControllerTest {
 
         assertThat(rechazado.getEstado()).isEqualTo(EstadoPrestamo.RECHAZADO);
         verify(bienInventarioRepository, never()).save(any());
-        verify(notificacionClient).notificarUsuario(eq(5L), any(), any());
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
     }
 
     @Test

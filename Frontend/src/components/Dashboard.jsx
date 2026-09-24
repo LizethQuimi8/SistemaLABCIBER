@@ -82,12 +82,13 @@ function PendingSignatureTable({ pendientes, loading }) {
 
 // ── Accesos directos ───────────────────────────────────────────────────────────
 function ShortcutsRow({ onNavigate }) {
+  const { canEditInventario } = useAuth()
   const shortcuts = [
     { label: 'Registrar Nuevo Proyecto', icon: FilePlus, view: 'proyectos' },
     { label: 'Subir Memorando', icon: Upload, view: 'documentos' },
-    { label: 'Actualizar Inventario', icon: RefreshCw, view: 'inventario' },
+    canEditInventario && { label: 'Actualizar Inventario', icon: RefreshCw, view: 'inventario' },
     { label: 'Consultar Publicaciones', icon: Search, view: 'publicaciones' },
-  ]
+  ].filter(Boolean)
   return (
     <div>
       <h3 className="text-sm font-bold text-[#052a18] mb-3">Accesos Directos Destacados</h3>
@@ -155,7 +156,7 @@ export default function Dashboard({ onNavigate }) {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <div className="mb-4">
         <h2 className="text-base font-black text-[#052a18] uppercase tracking-wide">
-          Dashboard de Gestión Documental — LICI
+          Dashboard de Gestión Documental
         </h2>
         <div className="h-0.5 bg-[#0e6b3c] mt-1 w-48" />
       </div>

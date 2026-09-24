@@ -5,9 +5,15 @@ import ec.edu.espe.lici.admin.domain.FaseCompra;
 import ec.edu.espe.lici.admin.repository.CompraPublicaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,10 +27,13 @@ class CompraPublicaControllerTest {
     private CompraPublicaRepository repository;
     private CompraPublicaController controller;
 
+    @TempDir
+    Path storageDir;
+
     @BeforeEach
     void setUp() {
         repository = mock(CompraPublicaRepository.class);
-        controller = new CompraPublicaController(repository);
+        controller = new CompraPublicaController(repository, storageDir.toString());
     }
 
     private CompraPublica compraDe(Long id) {
@@ -97,5 +106,46 @@ class CompraPublicaControllerTest {
         assertThatThrownBy(() -> controller.eliminar(5L)).isInstanceOf(ResponseStatusException.class);
 
         verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void subirArchivoGuardaElBinarioYActualizaLosMetadatos() throws IOException {
+        CompraPublica compra = compraDe(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(compra));
+        when(repository.save(any(CompraPublica.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "resolucion.pdf", "application/pdf", "contenido".getBytes());
+
+        CompraPublica actualizado = controller.subirArchivo(1L, archivo);
+
+        assertThat(actualizado.getArchivoNombreArchivo()).isEqualTo("resolucion.pdf");
+        assertThat(actualizado.getArchivoContentType()).isEqualTo("application/pdf");
+        assertThat(actualizado.getArchivoRuta()).endsWith(".pdf");
+        assertThat(storageDir.resolve(actualizado.getArchivoRuta())).exists();
+    }
+
+    @Test
+    void descargarArchivoDevuelveElRecursoConElContentTypeOriginal() throws IOException {
+        CompraPublica compra = compraDe(1L);
+        when(repository.findById(1L)).thenReturn(Optional.of(compra));
+        when(repository.save(any(CompraPublica.class))).thenAnswer(inv -> inv.getArgument(0));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "resolucion.pdf", "application/pdf", "contenido".getBytes());
+        CompraPublica subido = controller.subirArchivo(1L, archivo);
+        when(repository.findById(1L)).thenReturn(Optional.of(subido));
+
+        ResponseEntity<Resource> respuesta = controller.descargarArchivo(1L);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respuesta.getHeaders().getContentType().toString()).isEqualTo("application/pdf");
+        assertThat(respuesta.getBody().exists()).isTrue();
+    }
+
+    @Test
+    void descargarArchivoLanzaNotFoundSiNoSeHaSubidoNada() {
+        when(repository.findById(1L)).thenReturn(Optional.of(compraDe(1L)));
+
+        assertThatThrownBy(() -> controller.descargarArchivo(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 }

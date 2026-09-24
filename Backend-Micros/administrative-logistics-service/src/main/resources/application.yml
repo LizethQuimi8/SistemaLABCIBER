@@ -27,6 +27,8 @@ spring:
 lici:
   security:
     jwk-set-uri: ${JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+  storage:
+    compras-dir: ${COMPRAS_STORAGE_DIR:/data/compras}
   services:
     # Usados por NotificacionClient para avisar del resultado de un prestamo:
     # al solicitante (document-service) y, para ubicar a los ADMINISTRADOR

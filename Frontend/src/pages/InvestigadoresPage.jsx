@@ -192,11 +192,8 @@ export default function InvestigadoresPage() {
                     ))}
                   </select>
                 </Field>
-                <ArchivoInput label="Curriculum (opcional)" file={curriculum} onChange={setCurriculum} />
-                <ArchivoInput label="Horario de clases (opcional)" file={horario} onChange={setHorario} icon={CalendarDays} />
-                <p className="text-[11px] text-gray-400">
-                  El titulo academico, area de investigacion y biografia se pueden completar despues editando el perfil.
-                </p>
+                <ArchivoInput label="Curriculum" file={curriculum} onChange={setCurriculum} />
+                <ArchivoInput label="Horario de clases" file={horario} onChange={setHorario} icon={CalendarDays} />
               </>
             ) : (
               <>
@@ -213,13 +210,13 @@ export default function InvestigadoresPage() {
                   <textarea className="input" rows={3} value={form.biografia} onChange={(e) => setForm({ ...form, biografia: e.target.value })} />
                 </Field>
                 <ArchivoInput
-                  label={editingInv?.curriculumRuta ? 'Reemplazar curriculum (opcional)' : 'Curriculum (opcional)'}
+                  label={editingInv?.curriculumRuta ? 'Reemplazar curriculum' : 'Curriculum'}
                   file={curriculum}
                   onChange={setCurriculum}
                   placeholder={editingInv?.curriculumNombreArchivo}
                 />
                 <ArchivoInput
-                  label={editingInv?.horarioRuta ? 'Reemplazar horario de clases (opcional)' : 'Horario de clases (opcional)'}
+                  label={editingInv?.horarioRuta ? 'Reemplazar horario de clases' : 'Horario de clases'}
                   file={horario}
                   onChange={setHorario}
                   placeholder={editingInv?.horarioNombreArchivo}

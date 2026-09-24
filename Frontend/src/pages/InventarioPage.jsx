@@ -4,7 +4,7 @@ import {
   Monitor, Cpu, Keyboard, Mouse, Printer, Armchair, Router, Camera,
   Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
 } from 'lucide-react'
-import { inventarioApi, prestamosApi } from '../api/services'
+import { inventarioApi, prestamosApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
@@ -29,6 +29,7 @@ const ESTADO_BADGE = {
 
 const PRESTAMO_ESTADO_LABEL = {
   PENDIENTE: 'Pendiente',
+  APROBADO_INFRAESTRUCTURA: 'Esperando confirmación',
   ACTIVO: 'Activo',
   DEVUELTO: 'Devuelto',
   RECHAZADO: 'Rechazado',
@@ -36,6 +37,7 @@ const PRESTAMO_ESTADO_LABEL = {
 
 const PRESTAMO_ESTADO_BADGE = {
   PENDIENTE: 'bg-amber-50 text-amber-700',
+  APROBADO_INFRAESTRUCTURA: 'bg-sky-50 text-sky-700',
   ACTIVO: 'bg-blue-50 text-blue-700',
   DEVUELTO: 'bg-green-50 text-green-700',
   RECHAZADO: 'bg-red-50 text-red-700',
@@ -79,6 +81,8 @@ export default function InventarioPage() {
   const { data: bienes, loading, error, reload, setError } = useList(bienesFetcher)
   const prestamosFetcher = useCallback(() => prestamosApi.list(), [])
   const { data: prestamos, loading: loadingPrestamos, reload: reloadPrestamos } = useList(prestamosFetcher)
+  const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
+  const { data: directorio } = useList(directorioFetcher)
 
   const columnHeaders = canEditInventario
     ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', 'Acciones']
@@ -101,6 +105,15 @@ export default function InventarioPage() {
   const [pagina, setPagina] = useState(1)
 
   const nombrePorBienId = useMemo(() => new Map(bienes.map((b) => [b.id, b.nombre])), [bienes])
+  const nombrePorUsuarioId = useMemo(
+    () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
+    [directorio]
+  )
+
+  // PENDIENTE: puede aprobar/rechazar Admin. Infraestructura o el Administrador.
+  // APROBADO_INFRAESTRUCTURA: solo el Administrador da la confirmacion final (o la rechaza).
+  const puedeAprobarORechazar = (p) =>
+    (canEditInventario && p.estado === 'PENDIENTE') || (isAdmin && p.estado === 'APROBADO_INFRAESTRUCTURA')
 
   const categorias = useMemo(() => {
     const conteo = new Map()
@@ -468,7 +481,9 @@ export default function InventarioPage() {
           {!loadingPrestamos && prestamos.map((p) => (
             <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="px-3 py-2 font-medium text-gray-800">{nombrePorBienId.get(p.bienId) || `#${p.bienId}`}</td>
-              {canEditInventario && <td className="px-3 py-2 text-gray-600">#{p.usuarioId}</td>}
+              {canEditInventario && (
+                <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioId) || `#${p.usuarioId}`}</td>
+              )}
               <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{p.fechaDesde || '—'} a {p.fechaHasta || '—'}</td>
               <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={p.motivo}>{p.motivo || '—'}</td>
               <td className="px-3 py-2">
@@ -479,16 +494,17 @@ export default function InventarioPage() {
               <td className="px-3 py-2 text-gray-600">{p.fechaDevolucion ? new Date(p.fechaDevolucion).toLocaleString() : '—'}</td>
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  {canEditInventario && p.estado === 'PENDIENTE' && (
+                  {puedeAprobarORechazar(p) && (
                     <button
                       onClick={() => handleAprobar(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                      title={p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Confirmar y activar el prestamo' : 'Aprobar (pasa a espera de confirmacion del administrador)'}
                     >
-                      Aprobar
+                      {p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Confirmar' : 'Aprobar'}
                     </button>
                   )}
-                  {isAdmin && p.estado === 'PENDIENTE' && (
+                  {puedeAprobarORechazar(p) && (
                     <button
                       onClick={() => handleRechazar(p)}
                       disabled={busyId === `p-${p.id}`}

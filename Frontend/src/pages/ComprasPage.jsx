@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, ShoppingCart, FileDown } from 'lucide-react'
-import { comprasApi } from '../api/services'
+import { Plus, Pencil, Trash2, ShoppingCart, FileDown, FileUp, Eye } from 'lucide-react'
+import { comprasApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
+
+const TIPOS_CONTRATACION = ['Ínfima Cuantía', 'Subasta Inversa']
 
 const FASES = ['PREPARATORIA', 'PRECONTRACTUAL', 'CONTRACTUAL', 'ENTREGA_BIENES', 'PAGO_PROVEEDOR']
 
@@ -42,14 +44,31 @@ export default function ComprasPage() {
   const { canEditCompras } = useAuth()
   const fetcher = useCallback(() => comprasApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
+  const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
+  const { data: directorio } = useList(directorioFetcher)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
+  const [responsablesIds, setResponsablesIds] = useState([])
+  const [archivo, setArchivo] = useState(null)
+  const [archivoActualNombre, setArchivoActualNombre] = useState(null)
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
+  const [viewingId, setViewingId] = useState(null)
   const [anioFiltro, setAnioFiltro] = useState('TODOS')
   const [showReportForm, setShowReportForm] = useState(false)
   const [reporteAnio, setReporteAnio] = useState('TODOS')
+
+  const nombrePorUsuarioId = useMemo(
+    () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
+    [directorio]
+  )
+
+  const toggleResponsable = (usuarioId) => {
+    setResponsablesIds((prev) => (
+      prev.includes(usuarioId) ? prev.filter((id) => id !== usuarioId) : [...prev, usuarioId]
+    ))
+  }
 
   const anios = useMemo(
     () => [...new Set(data.map((c) => c.anio).filter(Boolean))].sort((a, b) => b - a),
@@ -70,6 +89,9 @@ export default function ComprasPage() {
   const openCreate = () => {
     setEditingId(null)
     setForm({ ...FORM_INICIAL, anio: anioFiltro === 'TODOS' ? String(anioActual) : anioFiltro })
+    setResponsablesIds([])
+    setArchivo(null)
+    setArchivoActualNombre(null)
     setShowForm(true)
   }
 
@@ -84,6 +106,10 @@ export default function ComprasPage() {
       responsables: c.responsables || '',
       fase: c.fase || 'PREPARATORIA',
     })
+    const nombresGuardados = (c.responsables || '').split(',').map((s) => s.trim()).filter(Boolean)
+    setResponsablesIds(directorio.filter((u) => nombresGuardados.includes(`${u.nombres} ${u.apellidos}`)).map((u) => u.id))
+    setArchivo(null)
+    setArchivoActualNombre(c.archivoNombreArchivo || null)
     setShowForm(true)
   }
 
@@ -92,20 +118,43 @@ export default function ComprasPage() {
     setSaving(true)
     setError(null)
     try {
-      const payload = { ...form, monto: form.monto ? Number(form.monto) : null, anio: Number(form.anio) }
+      const responsables = responsablesIds.map((id) => nombrePorUsuarioId.get(id)).filter(Boolean).join(', ')
+      const payload = { ...form, responsables, monto: form.monto ? Number(form.monto) : null, anio: Number(form.anio) }
+      let id = editingId
       if (editingId) {
         await comprasApi.update(editingId, payload)
       } else {
-        await comprasApi.create(payload)
+        const creada = await comprasApi.create(payload)
+        id = creada.id
+      }
+      if (archivo) {
+        await comprasApi.subirArchivo(id, archivo)
       }
       setShowForm(false)
       setEditingId(null)
       setForm(FORM_INICIAL)
+      setResponsablesIds([])
+      setArchivo(null)
       reload()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleVerArchivo = async (compra) => {
+    setViewingId(compra.id)
+    setError(null)
+    try {
+      const blob = await comprasApi.verArchivo(compra.id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setViewingId(null)
     }
   }
 
@@ -232,9 +281,9 @@ export default function ComprasPage() {
         ))}
       </div>
 
-      <Table headers={canEditCompras ? ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Fase', ''] : ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Fase']}>
-        {loading && <LoadingRow colSpan={canEditCompras ? 7 : 6} />}
-        {!loading && filtradas.length === 0 && <EmptyRow colSpan={canEditCompras ? 7 : 6} />}
+      <Table headers={canEditCompras ? ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Archivo', 'Fase', ''] : ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Archivo', 'Fase']}>
+        {loading && <LoadingRow colSpan={canEditCompras ? 8 : 7} />}
+        {!loading && filtradas.length === 0 && <EmptyRow colSpan={canEditCompras ? 8 : 7} />}
         {!loading && filtradas.map((c) => (
           <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
@@ -244,6 +293,20 @@ export default function ComprasPage() {
             <td className="px-3 py-2 text-gray-600">{c.tipoContratacion || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{c.monto ?? '—'}</td>
             <td className="px-3 py-2 text-gray-600">{c.responsables || '—'}</td>
+            <td className="px-3 py-2">
+              {c.archivoRuta ? (
+                <button
+                  onClick={() => handleVerArchivo(c)}
+                  disabled={viewingId === c.id}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                  title={c.archivoNombreArchivo || 'Ver archivo'}
+                >
+                  <Eye className="w-3.5 h-3.5" /> {viewingId === c.id ? 'Abriendo...' : 'Ver'}
+                </button>
+              ) : (
+                <span className="text-gray-400 text-xs">Sin archivo</span>
+              )}
+            </td>
             <td className="px-3 py-2">
               {canEditCompras ? (
                 <select
@@ -288,7 +351,10 @@ export default function ComprasPage() {
                 <input className="input" value={form.numeroProceso} onChange={(e) => setForm({ ...form, numeroProceso: e.target.value })} />
               </Field>
               <Field label="Tipo de contratación">
-                <input className="input" value={form.tipoContratacion} onChange={(e) => setForm({ ...form, tipoContratacion: e.target.value })} />
+                <select required className="input" value={form.tipoContratacion} onChange={(e) => setForm({ ...form, tipoContratacion: e.target.value })}>
+                  <option value="" disabled>Seleccionar...</option>
+                  {TIPOS_CONTRATACION.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -300,12 +366,33 @@ export default function ComprasPage() {
               </Field>
             </div>
             <Field label="Responsables">
-              <input className="input" value={form.responsables} onChange={(e) => setForm({ ...form, responsables: e.target.value })} placeholder="Ej. Ing. Gancino, Ing. Roman" />
+              <div className="border border-gray-300 rounded max-h-32 overflow-y-auto divide-y divide-gray-100">
+                {directorio.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-gray-400">Cargando usuarios...</p>
+                )}
+                {directorio.map((u) => (
+                  <label key={u.id} className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={responsablesIds.includes(u.id)}
+                      onChange={() => toggleResponsable(u.id)}
+                    />
+                    {u.nombres} {u.apellidos}
+                  </label>
+                ))}
+              </div>
             </Field>
             <Field label="Fase">
               <select className="input" value={form.fase} onChange={(e) => setForm({ ...form, fase: e.target.value })}>
                 {FASES.map((f) => <option key={f} value={f}>{FASE_LABEL[f]}</option>)}
               </select>
+            </Field>
+            <Field label={archivoActualNombre ? 'Reemplazar archivo' : 'Archivo'}>
+              <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
+                <FileUp className="w-4 h-4 flex-shrink-0" />
+                {archivo ? archivo.name : (archivoActualNombre || 'Subir archivo (PDF, Word, etc.)')}
+                <input type="file" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] || null)} />
+              </label>
             </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
               {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Registrar'}

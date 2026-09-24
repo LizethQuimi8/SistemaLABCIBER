@@ -65,6 +65,7 @@ export const inventarioApi = {
 
 export const prestamosApi = {
   list: () => apiFetch('/api/prestamos'),
+  obtener: (id) => apiFetch(`/api/prestamos/${id}`),
   solicitar: (data) => apiFetch('/api/prestamos', { method: 'POST', body: data }),
   aprobar: (id) => apiFetch(`/api/prestamos/${id}/aprobar`, { method: 'PATCH' }),
   rechazar: (id) => apiFetch(`/api/prestamos/${id}/rechazar`, { method: 'PATCH' }),
@@ -76,6 +77,8 @@ export const comprasApi = {
   create: (data) => apiFetch('/api/compras', { method: 'POST', body: data }),
   update: (id, data) => apiFetch(`/api/compras/${id}`, { method: 'PUT', body: data }),
   setFase: (id, fase) => apiFetch(`/api/compras/${id}/fase?fase=${fase}`, { method: 'PATCH' }),
+  subirArchivo: (id, file) => apiUpload(`/api/compras/${id}/archivo`, file),
+  verArchivo: (id) => apiFetchBlob(`/api/compras/${id}/archivo`),
   remove: (id) => apiFetch(`/api/compras/${id}`, { method: 'DELETE' }),
 }
 

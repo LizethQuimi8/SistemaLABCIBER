@@ -61,6 +61,14 @@ public class CompraPublica {
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    /** Nombre del archivo tal como fue almacenado en disco (ver lici.storage.compras-dir). */
+    private String archivoRuta;
+
+    /** Nombre original del archivo subido, usado para mostrarlo/descargarlo. */
+    private String archivoNombreArchivo;
+
+    private String archivoContentType;
+
     @PrePersist
     void prePersist() {
         this.fechaCreacion = LocalDateTime.now();
