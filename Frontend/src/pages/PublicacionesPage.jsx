@@ -17,21 +17,39 @@ export default function PublicacionesPage() {
     [directorio]
   )
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', investigadorId: '' })
+  const [form, setForm] = useState({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', usuarioAutorId: '' })
   const [saving, setSaving] = useState(false)
+
+  const investigadorIdPorUsuarioId = useMemo(
+    () => new Map(investigadores.map((inv) => [inv.usuarioId, inv.id])),
+    [investigadores]
+  )
 
   const handleCreate = async (e) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
+      let investigadorId = null
+      if (form.usuarioAutorId) {
+        const usuarioId = Number(form.usuarioAutorId)
+        investigadorId = investigadorIdPorUsuarioId.get(usuarioId)
+        if (!investigadorId) {
+          // Este usuario aun no tiene perfil en Docentes Investigadores: se crea uno minimo al vuelo.
+          const nuevo = await investigadoresApi.create({ usuarioId, nombreCompleto: nombrePorUsuarioId.get(usuarioId) || '' })
+          investigadorId = nuevo.id
+        }
+      }
       await publicacionesApi.create({
-        ...form,
+        titulo: form.titulo,
+        revista: form.revista,
+        doi: form.doi,
+        resumen: form.resumen,
         anioPublicacion: Number(form.anioPublicacion) || null,
-        investigadorId: form.investigadorId ? Number(form.investigadorId) : null,
+        investigadorId,
       })
       setShowForm(false)
-      setForm({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', investigadorId: '' })
+      setForm({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', usuarioAutorId: '' })
       reload()
     } catch (err) {
       setError(err.message)
@@ -101,11 +119,11 @@ export default function PublicacionesPage() {
             <Field label="DOI">
               <input className="input" value={form.doi} onChange={(e) => setForm({ ...form, doi: e.target.value })} />
             </Field>
-            <Field label="Investigador (opcional)">
-              <select className="input" value={form.investigadorId} onChange={(e) => setForm({ ...form, investigadorId: e.target.value })}>
+            <Field label="Investigador">
+              <select className="input" value={form.usuarioAutorId} onChange={(e) => setForm({ ...form, usuarioAutorId: e.target.value })}>
                 <option value="">Sin asignar</option>
-                {investigadores.map((inv) => (
-                  <option key={inv.id} value={inv.id}>{inv.nombreCompleto}</option>
+                {directorio.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
                 ))}
               </select>
             </Field>
