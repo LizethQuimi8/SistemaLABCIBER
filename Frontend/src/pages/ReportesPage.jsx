@@ -5,6 +5,8 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner } from '../components/ui/PageShell'
 import { useAuth } from '../context/AuthContext'
 
+const FASES = ['PREPARATORIA', 'PRECONTRACTUAL', 'CONTRACTUAL', 'ENTREGA_BIENES', 'PAGO_PROVEEDOR']
+
 const FASE_LABEL = {
   PREPARATORIA: 'Preparatoria',
   PRECONTRACTUAL: 'Precontractual',
@@ -25,16 +27,30 @@ function ReporteComprasPublicas() {
   const fetcher = useCallback(() => comprasApi.list(), [])
   const { data: compras, loading } = useList(fetcher)
   const [anio, setAnio] = useState('TODOS')
+  const [responsable, setResponsable] = useState('TODOS')
+  const [fasesSeleccionadas, setFasesSeleccionadas] = useState([])
 
   const anios = useMemo(
     () => [...new Set(compras.map((c) => c.anio).filter(Boolean))].sort((a, b) => b - a),
     [compras]
   )
 
-  const filtradas = useMemo(
-    () => (anio === 'TODOS' ? compras : compras.filter((c) => c.anio === Number(anio))),
-    [compras, anio]
-  )
+  const responsables = useMemo(() => {
+    const set = new Set()
+    compras.forEach((c) => (c.responsables || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => set.add(n)))
+    return [...set].sort()
+  }, [compras])
+
+  const toggleFase = (fase) => {
+    setFasesSeleccionadas((prev) => (prev.includes(fase) ? prev.filter((f) => f !== fase) : [...prev, fase]))
+  }
+
+  const filtradas = useMemo(() => compras.filter((c) => {
+    if (anio !== 'TODOS' && c.anio !== Number(anio)) return false
+    if (responsable !== 'TODOS' && !(c.responsables || '').includes(responsable)) return false
+    if (fasesSeleccionadas.length > 0 && !fasesSeleccionadas.includes(c.fase)) return false
+    return true
+  }), [compras, anio, responsable, fasesSeleccionadas])
 
   const totalMonto = useMemo(
     () => filtradas.reduce((suma, c) => suma + Number(c.monto || 0), 0),
@@ -43,14 +59,27 @@ function ReporteComprasPublicas() {
 
   const pagadas = filtradas.filter((c) => c.fase === 'PAGO_PROVEEDOR')
 
+  const limpiarFiltros = () => {
+    setAnio('TODOS')
+    setResponsable('TODOS')
+    setFasesSeleccionadas([])
+  }
+
   const generarReporte = () => {
     const filas = filtradas.map((c) => `
       <tr>
         <td>${escapeHtml(c.objetoContratacion)}</td>
+        <td>${c.anio ?? '—'}</td>
         <td>${FASE_LABEL[c.fase] || c.fase}</td>
         <td>${escapeHtml(c.responsables || '—')}</td>
         <td>${c.monto != null ? formatoMonto(c.monto) : '—'}</td>
       </tr>`).join('')
+
+    const criterios = [
+      `Año: ${anio === 'TODOS' ? 'Todos' : anio}`,
+      `Responsable: ${responsable === 'TODOS' ? 'Todos' : responsable}`,
+      `Etapa(s): ${fasesSeleccionadas.length ? fasesSeleccionadas.map((f) => FASE_LABEL[f]).join(', ') : 'Todas'}`,
+    ].join(' — ')
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Compras Publicas</title>
       <style>
@@ -62,11 +91,11 @@ function ReporteComprasPublicas() {
         th{background:#0e6b3c;color:#fff}
       </style></head><body>
       <h1>Reporte de Compras Públicas — LICI</h1>
-      <p>Año: ${anio === 'TODOS' ? 'Todos' : anio} — Generado: ${new Date().toLocaleString()}</p>
-      <p><strong>${filtradas.length}</strong> compras públicas registradas, de las cuales <strong>${pagadas.length}</strong> ya llegaron a fase de pago al proveedor, por un monto total de <strong>${formatoMonto(totalMonto)}</strong>.</p>
+      <p>${criterios} — Generado: ${new Date().toLocaleString()}</p>
+      <p><strong>${filtradas.length}</strong> compras públicas encontradas, de las cuales <strong>${pagadas.length}</strong> ya llegaron a fase de pago al proveedor, por un monto total de <strong>${formatoMonto(totalMonto)}</strong>.</p>
       <table>
-        <thead><tr><th>Objeto de contratación</th><th>Fase</th><th>Responsables</th><th>Monto</th></tr></thead>
-        <tbody>${filas || '<tr><td colspan="4">Sin registros</td></tr>'}</tbody>
+        <thead><tr><th>Objeto de contratación</th><th>Año</th><th>Etapa</th><th>Responsables</th><th>Monto</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody>
       </table>
       </body></html>`
 
@@ -96,7 +125,8 @@ function ReporteComprasPublicas() {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Año</p>
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <button
           onClick={() => setAnio('TODOS')}
           className={`px-3 py-1 rounded-full text-xs font-semibold border ${anio === 'TODOS' ? 'bg-[#0e6b3c] text-white border-[#0e6b3c]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0e6b3c]'}`}
@@ -114,6 +144,36 @@ function ReporteComprasPublicas() {
         ))}
       </div>
 
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Etapa (puedes elegir varias)</p>
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {FASES.map((f) => (
+          <button
+            key={f}
+            onClick={() => toggleFase(f)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold border ${fasesSeleccionadas.includes(f) ? 'bg-[#0e6b3c] text-white border-[#0e6b3c]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0e6b3c]'}`}
+          >
+            {FASE_LABEL[f]}
+          </button>
+        ))}
+      </div>
+
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Responsable</p>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <select
+          className="input py-1.5 text-xs w-56"
+          value={responsable}
+          onChange={(e) => setResponsable(e.target.value)}
+        >
+          <option value="TODOS">Todos</option>
+          {responsables.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+        {(anio !== 'TODOS' || responsable !== 'TODOS' || fasesSeleccionadas.length > 0) && (
+          <button onClick={limpiarFiltros} className="text-xs text-gray-400 hover:text-red-600">
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center text-gray-400 text-sm py-6">
           <Loader2 className="w-4 h-4 animate-spin mr-2" /> Cargando...
@@ -122,7 +182,7 @@ function ReporteComprasPublicas() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="border border-gray-100 rounded-lg p-3 text-center bg-gray-50">
             <p className="text-2xl font-black text-[#052a18]">{filtradas.length}</p>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Compras públicas {anio === 'TODOS' ? '' : `en ${anio}`}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Compras públicas encontradas</p>
           </div>
           <div className="border border-gray-100 rounded-lg p-3 text-center bg-gray-50">
             <p className="text-2xl font-black text-[#052a18]">{pagadas.length}</p>
