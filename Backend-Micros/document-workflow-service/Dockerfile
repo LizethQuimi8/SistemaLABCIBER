@@ -19,6 +19,11 @@ FROM eclipse-temurin:17-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
 COPY --from=build /app/document-workflow-service/target/document-workflow-service.jar app.jar
+# Pre-crear el directorio de almacenamiento con el dueno correcto: al montar
+# un volumen nombrado vacio aqui, Docker copia este contenido (y permisos)
+# como semilla, evitando que quede en manos de root y bloquee la escritura
+# del proceso (que corre como spring, no root).
+RUN mkdir -p /data/documentos && chown -R spring:spring /data
 USER spring:spring
 EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
