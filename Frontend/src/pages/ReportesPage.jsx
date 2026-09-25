@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BarChart2, Loader2, ShoppingCart, FileDown } from 'lucide-react'
-import { reportesApi, comprasApi } from '../api/services'
+import { reportesApi, comprasApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner } from '../components/ui/PageShell'
 import { useAuth } from '../context/AuthContext'
@@ -26,6 +26,8 @@ function escapeHtml(value) {
 function ReporteComprasPublicas() {
   const fetcher = useCallback(() => comprasApi.list(), [])
   const { data: compras, loading } = useList(fetcher)
+  const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
+  const { data: directorio } = useList(directorioFetcher)
   const [anio, setAnio] = useState('TODOS')
   const [responsable, setResponsable] = useState('TODOS')
   const [fasesSeleccionadas, setFasesSeleccionadas] = useState([])
@@ -35,11 +37,10 @@ function ReporteComprasPublicas() {
     [compras]
   )
 
-  const responsables = useMemo(() => {
-    const set = new Set()
-    compras.forEach((c) => (c.responsables || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => set.add(n)))
-    return [...set].sort()
-  }, [compras])
+  const responsables = useMemo(
+    () => [...directorio].map((u) => `${u.nombres} ${u.apellidos}`).sort(),
+    [directorio]
+  )
 
   const toggleFase = (fase) => {
     setFasesSeleccionadas((prev) => (prev.includes(fase) ? prev.filter((f) => f !== fase) : [...prev, fase]))
