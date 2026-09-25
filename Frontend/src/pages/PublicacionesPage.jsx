@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Plus, Trash2, BookOpen } from 'lucide-react'
-import { publicacionesApi } from '../api/services'
+import { publicacionesApi, investigadoresApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
@@ -8,6 +8,14 @@ import Modal from '../components/ui/Modal'
 export default function PublicacionesPage() {
   const fetcher = useCallback(() => publicacionesApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
+  const investigadoresFetcher = useCallback(() => investigadoresApi.list(), [])
+  const { data: investigadores } = useList(investigadoresFetcher)
+  const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
+  const { data: directorio } = useList(directorioFetcher)
+  const nombrePorUsuarioId = useMemo(
+    () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
+    [directorio]
+  )
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', investigadorId: '' })
   const [saving, setSaving] = useState(false)
@@ -66,7 +74,7 @@ export default function PublicacionesPage() {
             <td className="px-3 py-2 text-gray-600">{p.revista || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{p.anioPublicacion || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{p.doi || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">#{p.usuarioId}</td>
+            <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioId) || `#${p.usuarioId}`}</td>
             <td className="px-3 py-2 text-right">
               <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700">
                 <Trash2 className="w-3.5 h-3.5" />
@@ -93,8 +101,13 @@ export default function PublicacionesPage() {
             <Field label="DOI">
               <input className="input" value={form.doi} onChange={(e) => setForm({ ...form, doi: e.target.value })} />
             </Field>
-            <Field label="Id del investigador (opcional)">
-              <input type="number" className="input" value={form.investigadorId} onChange={(e) => setForm({ ...form, investigadorId: e.target.value })} />
+            <Field label="Investigador (opcional)">
+              <select className="input" value={form.investigadorId} onChange={(e) => setForm({ ...form, investigadorId: e.target.value })}>
+                <option value="">Sin asignar</option>
+                {investigadores.map((inv) => (
+                  <option key={inv.id} value={inv.id}>{inv.nombreCompleto}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Resumen">
               <textarea className="input" rows={2} value={form.resumen} onChange={(e) => setForm({ ...form, resumen: e.target.value })} />
