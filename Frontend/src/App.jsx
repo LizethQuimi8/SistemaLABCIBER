@@ -31,20 +31,28 @@ const VIEWS = {
 
 function AuthenticatedApp() {
   const [currentView, setCurrentView] = useState('dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isAdmin } = useAuth()
 
   // Si el rol pierde acceso a un modulo (p. ej. tras cambiar de usuario), volver al dashboard.
   const view = currentView === 'usuarios' && !isAdmin ? 'dashboard' : currentView
   const ActiveView = VIEWS[view] || Dashboard
 
+  const navigate = (nextView) => {
+    setCurrentView(nextView)
+    setSidebarOpen(false)
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f3faf6]">
-      <Navbar onNavigate={setCurrentView} />
-      <SubNav currentView={view} onNavigate={setCurrentView} />
+      <Navbar onNavigate={navigate} />
+      <SubNav currentView={view} onNavigate={navigate} onToggleMenu={() => setSidebarOpen((v) => !v)} />
 
-      <div className="flex flex-1">
-        <Sidebar currentView={view} onNavigate={setCurrentView} />
-        <ActiveView onNavigate={setCurrentView} />
+      <div className="flex flex-1 min-w-0">
+        <Sidebar currentView={view} onNavigate={navigate} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex-1 min-w-0">
+          <ActiveView onNavigate={navigate} />
+        </div>
       </div>
 
       <Footer />
