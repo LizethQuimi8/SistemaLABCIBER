@@ -151,16 +151,18 @@ export default function ProyectosPage() {
                 <input type="number" min="0" max="100" className="input" value={form.avancePorcentaje} onChange={(e) => setForm({ ...form, avancePorcentaje: e.target.value })} />
               </Field>
             </div>
-            {isAdmin && editingId && (
-              <Field label="Responsable">
+            <Field label="Usuario responsable">
+              {isAdmin ? (
                 <select className="input" value={form.usuarioResponsableId} onChange={(e) => setForm({ ...form, usuarioResponsableId: e.target.value })}>
                   <option value="">Sin asignar</option>
                   {directorio.map((u) => (
                     <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
                   ))}
                 </select>
-              </Field>
-            )}
+              ) : (
+                <input className="input bg-gray-50 text-gray-500" value={`${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()} disabled />
+              )}
+            </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
               {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear proyecto'}
             </PrimaryButton>
