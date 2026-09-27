@@ -12,6 +12,7 @@ volumes:
   documentos_files:
   curriculums_files:
   compras_files:
+  manuales_files:
 
 x-mysql-common: &mysql-common
   image: mysql:8.0
@@ -158,6 +159,7 @@ services:
       JWK_SET_URI: http://core-security-users-service:8081/oauth2/jwks
     volumes:
       - documentos_files:/data/documentos
+      - manuales_files:/data/manuales
     expose:
       - "8083"
 

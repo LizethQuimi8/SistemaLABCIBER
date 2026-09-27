@@ -49,6 +49,14 @@ export const documentosApi = {
   remove: (id) => apiFetch(`/api/documentos/${id}`, { method: 'DELETE' }),
 }
 
+export const manualesApi = {
+  list: () => apiFetch('/api/manuales'),
+  crear: (titulo, descripcion, archivo) => apiUpload('/api/manuales', archivo, { fields: { titulo, descripcion } }),
+  actualizar: (id, titulo, descripcion, archivo) => apiUpload(`/api/manuales/${id}`, archivo, { method: 'PUT', fields: { titulo, descripcion } }),
+  verArchivo: (id) => apiFetchBlob(`/api/manuales/${id}/archivo`),
+  remove: (id) => apiFetch(`/api/manuales/${id}`, { method: 'DELETE' }),
+}
+
 export const notificacionesApi = {
   list: () => apiFetch('/api/notificaciones'),
   marcarLeida: (id) => apiFetch(`/api/notificaciones/${id}/leer`, { method: 'PATCH' }),

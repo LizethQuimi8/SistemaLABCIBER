@@ -66,16 +66,27 @@ export async function apiFetch(path, { method = 'GET', body, auth = true } = {})
   return data
 }
 
-/** Sube un archivo (multipart/form-data); el navegador fija el Content-Type con el boundary. */
-export async function apiUpload(path, file, fieldName = 'archivo') {
+/**
+ * Sube un archivo (multipart/form-data); el navegador fija el Content-Type con el boundary.
+ * `opciones` acepta { fieldName, method, fields } para los casos (como Manuales) que ademas
+ * mandan campos de texto (titulo, descripcion) junto con el archivo en la misma peticion.
+ */
+export async function apiUpload(path, file, opciones = {}) {
+  const { fieldName = 'archivo', method = 'POST', fields = {} } = typeof opciones === 'string'
+    ? { fieldName: opciones }
+    : opciones
+
   const headers = { ...NGROK_SKIP_HEADER }
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
   const formData = new FormData()
-  formData.append(fieldName, file)
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) formData.append(key, value)
+  })
+  if (file) formData.append(fieldName, file)
 
-  const response = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: formData })
+  const response = await fetch(`${BASE_URL}${path}`, { method, headers, body: formData })
 
   const isJson = response.headers.get('content-type')?.includes('application/json')
   const data = isJson ? await response.json().catch(() => null) : null

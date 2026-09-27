@@ -9,6 +9,7 @@ import {
   FileText,
   Users,
   BarChart2,
+  BookMarked,
   X,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -19,6 +20,7 @@ const menuItems = [
   { id: 'investigadores', label: 'Docentes Investigadores', icon: UserCheck },
   { id: 'publicaciones', label: 'Artículos y Publicaciones', icon: BookOpen },
   { id: 'documentos', label: 'Documentos y Correspondencia', icon: FileText },
+  { id: 'manuales', label: 'Manuales y Procesos', icon: BookMarked },
   { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'inventario', label: 'Inventario', icon: Package },
   { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },

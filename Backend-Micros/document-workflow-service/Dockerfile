@@ -23,7 +23,7 @@ COPY --from=build /app/document-workflow-service/target/document-workflow-servic
 # un volumen nombrado vacio aqui, Docker copia este contenido (y permisos)
 # como semilla, evitando que quede en manos de root y bloquee la escritura
 # del proceso (que corre como spring, no root).
-RUN mkdir -p /data/documentos && chown -R spring:spring /data
+RUN mkdir -p /data/documentos /data/manuales && chown -R spring:spring /data
 USER spring:spring
 EXPOSE 8083
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

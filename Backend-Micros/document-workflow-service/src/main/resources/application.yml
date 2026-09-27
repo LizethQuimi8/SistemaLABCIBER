@@ -29,6 +29,7 @@ lici:
     jwk-set-uri: ${JWK_SET_URI:http://localhost:8081/oauth2/jwks}
   storage:
     documentos-dir: ${DOCUMENTOS_STORAGE_DIR:/data/documentos}
+    manuales-dir: ${MANUALES_STORAGE_DIR:/data/manuales}
 
 management:
   endpoints:
