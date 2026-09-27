@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, FileText, Eye, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText, Eye, Upload, Search } from 'lucide-react'
 import { documentosApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['MEMORANDO', 'INFORME', 'OTRO']
 const ESTADOS = ['BORRADOR', 'PENDIENTE_FIRMA', 'FIRMADO', 'ARCHIVADO']
-const FORM_INICIAL = { titulo: '', tipo: 'MEMORANDO', firmanteId: '', estado: 'BORRADOR' }
+const FORM_INICIAL = { titulo: '', asunto: '', tipo: 'MEMORANDO', firmanteId: '', estado: 'BORRADOR' }
 
 const FILTROS = [
   { id: 'TODOS', label: 'Todos' },
@@ -29,16 +29,21 @@ export default function DocumentosPage() {
   const [saving, setSaving] = useState(false)
   const [viewingId, setViewingId] = useState(null)
   const [filtro, setFiltro] = useState('TODOS')
+  const [busquedaAsunto, setBusquedaAsunto] = useState('')
 
   const nombrePorUsuarioId = useMemo(
     () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
     [directorio]
   )
 
-  const filtrados = useMemo(
-    () => (filtro === 'TODOS' ? data : data.filter((d) => d.tipo === filtro)),
-    [data, filtro]
-  )
+  const filtrados = useMemo(() => {
+    const termino = busquedaAsunto.trim().toLowerCase()
+    return data.filter((d) => {
+      if (filtro !== 'TODOS' && d.tipo !== filtro) return false
+      if (termino && !(d.asunto || '').toLowerCase().includes(termino)) return false
+      return true
+    })
+  }, [data, filtro, busquedaAsunto])
 
   const openCreate = () => {
     setEditingId(null)
@@ -51,6 +56,7 @@ export default function DocumentosPage() {
     setEditingId(d.id)
     setForm({
       titulo: d.titulo || '',
+      asunto: d.asunto || '',
       tipo: d.tipo || 'MEMORANDO',
       firmanteId: d.firmanteId ? String(d.firmanteId) : '',
       estado: d.estado || 'BORRADOR',
@@ -125,7 +131,7 @@ export default function DocumentosPage() {
 
       <ErrorBanner message={error} />
 
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         {FILTROS.map((f) => (
           <button
             key={f.id}
@@ -135,16 +141,26 @@ export default function DocumentosPage() {
             {f.label}
           </button>
         ))}
+        <div className="relative ml-auto w-full max-w-xs">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            value={busquedaAsunto}
+            onChange={(e) => setBusquedaAsunto(e.target.value)}
+            placeholder="Buscar por asunto..."
+            className="input pl-8 text-xs py-1.5 w-full"
+          />
+        </div>
       </div>
 
-      <Table headers={['Titulo', 'Tipo', 'Estado', 'Responsable', 'Propietario', 'Archivo', '']}>
-        {loading && <LoadingRow colSpan={7} />}
-        {!loading && filtrados.length === 0 && <EmptyRow colSpan={7} />}
+      <Table headers={['Titulo', 'Asunto', 'Tipo', 'Estado', 'Responsable', 'Propietario', 'Archivo', '']}>
+        {loading && <LoadingRow colSpan={8} />}
+        {!loading && filtrados.length === 0 && <EmptyRow colSpan={8} />}
         {!loading && filtrados.map((d) => (
           <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <FileText className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
             </td>
+            <td className="px-3 py-2 text-gray-600 max-w-[220px] truncate" title={d.asunto}>{d.asunto || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{d.tipo}</td>
             <td className="px-3 py-2">
               <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold">{d.estado}</span>
@@ -186,6 +202,9 @@ export default function DocumentosPage() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <Field label="Titulo">
               <input required className="input" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
+            </Field>
+            <Field label="Asunto">
+              <input required className="input" value={form.asunto} onChange={(e) => setForm({ ...form, asunto: e.target.value })} placeholder="Ej. Solicitud de permiso para..." />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo">

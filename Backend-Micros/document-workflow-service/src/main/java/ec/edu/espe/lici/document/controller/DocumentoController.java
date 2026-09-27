@@ -67,6 +67,7 @@ public class DocumentoController {
         Documento documento = buscar(id);
 
         documento.setTitulo(request.getTitulo());
+        documento.setAsunto(request.getAsunto());
         documento.setTipo(request.getTipo());
         documento.setFirmanteId(request.getFirmanteId());
         documento.setEstado(request.getEstado());

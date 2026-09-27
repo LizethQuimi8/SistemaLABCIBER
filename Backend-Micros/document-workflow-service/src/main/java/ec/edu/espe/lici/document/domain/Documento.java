@@ -25,6 +25,10 @@ public class Documento {
     @Column(nullable = false, length = 250)
     private String titulo;
 
+    /** Asunto/motivo del documento, para busqueda y filtrado rapido en el listado. */
+    @Column(length = 500)
+    private String asunto;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private TipoDocumento tipo;
