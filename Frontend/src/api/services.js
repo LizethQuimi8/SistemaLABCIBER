@@ -40,6 +40,7 @@ export const investigadoresApi = {
 export const publicacionesApi = {
   list: () => apiFetch('/api/publicaciones'),
   create: (data) => apiFetch('/api/publicaciones', { method: 'POST', body: data }),
+  update: (id, data) => apiFetch(`/api/publicaciones/${id}`, { method: 'PUT', body: data }),
   remove: (id) => apiFetch(`/api/publicaciones/${id}`, { method: 'DELETE' }),
 }
 

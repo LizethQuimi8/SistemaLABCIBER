@@ -52,21 +52,11 @@ class PublicacionControllerTest {
     }
 
     @Test
-    void administradorVeTodasLasPublicaciones() {
-        authenticateAs(1L, "ADMINISTRADOR");
+    void cualquierUsuarioVeTodasLasPublicaciones() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(publicacionRepository.findAll()).thenReturn(List.of(publicacionDe(1L, 5L), publicacionDe(2L, 9L)));
 
         assertThat(controller.listar()).hasSize(2);
-        verify(publicacionRepository, never()).findByUsuarioId(any());
-    }
-
-    @Test
-    void docenteSoloVeSusPropiasPublicaciones() {
-        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
-        when(publicacionRepository.findByUsuarioId(5L)).thenReturn(List.of(publicacionDe(1L, 5L)));
-
-        assertThat(controller.listar()).hasSize(1);
-        verify(publicacionRepository, never()).findAll();
     }
 
     @Test
@@ -81,14 +71,25 @@ class PublicacionControllerTest {
     }
 
     @Test
-    void unDocenteNoPuedeVerLaPublicacionDeOtro() {
+    void unDocentePuedeVerLaPublicacionDeOtro() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(publicacionRepository.findById(1L)).thenReturn(Optional.of(publicacionDe(1L, 42L)));
 
-        assertThatThrownBy(() -> controller.obtener(1L))
+        assertThat(controller.obtener(1L).getId()).isEqualTo(1L);
+    }
+
+    @Test
+    void unDocenteNoPuedeEditarLaPublicacionDeOtro() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(publicacionRepository.findById(1L)).thenReturn(Optional.of(publicacionDe(1L, 42L)));
+        Publicacion request = Publicacion.builder().titulo("Editado").build();
+
+        assertThatThrownBy(() -> controller.actualizar(1L, request))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(publicacionRepository, never()).save(any());
     }
 
     @Test

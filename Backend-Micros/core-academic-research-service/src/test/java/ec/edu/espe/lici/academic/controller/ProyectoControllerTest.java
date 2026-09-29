@@ -54,36 +54,21 @@ class ProyectoControllerTest {
     }
 
     @Test
-    void administradorVeTodosLosProyectos() {
-        authenticateAs(1L, "ADMINISTRADOR");
+    void cualquierUsuarioVeTodosLosProyectos() {
+        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
         when(proyectoRepository.findAll()).thenReturn(List.of(proyectoDe(1L, 5L), proyectoDe(2L, 9L)));
 
         List<Proyecto> resultado = controller.listar();
 
         assertThat(resultado).hasSize(2);
-        verify(proyectoRepository, never()).findByUsuarioResponsableId(any());
     }
 
     @Test
-    void docenteSoloVeSusPropiosProyectos() {
-        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
-        when(proyectoRepository.findByUsuarioResponsableId(7L)).thenReturn(List.of(proyectoDe(3L, 7L)));
-
-        List<Proyecto> resultado = controller.listar();
-
-        assertThat(resultado).hasSize(1);
-        verify(proyectoRepository, never()).findAll();
-    }
-
-    @Test
-    void docenteNoPuedeVerElProyectoDeOtroUsuario() {
+    void unDocentePuedeVerElProyectoDeOtroUsuario() {
         authenticateAs(7L, "DOCENTE_INVESTIGADOR");
         when(proyectoRepository.findById(1L)).thenReturn(Optional.of(proyectoDe(1L, 99L)));
 
-        assertThatThrownBy(() -> controller.obtener(1L))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
-                        .isEqualTo(HttpStatus.FORBIDDEN));
+        assertThat(controller.obtener(1L).getId()).isEqualTo(1L);
     }
 
     @Test
@@ -95,6 +80,20 @@ class ProyectoControllerTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void unDocenteNoPuedeEditarElProyectoDeOtroUsuario() {
+        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
+        when(proyectoRepository.findById(1L)).thenReturn(Optional.of(proyectoDe(1L, 99L)));
+        Proyecto request = Proyecto.builder().nombre("Actualizado").estado(EstadoProyecto.EN_EJECUCION).build();
+
+        assertThatThrownBy(() -> controller.actualizar(1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(proyectoRepository, never()).save(any());
     }
 
     @Test

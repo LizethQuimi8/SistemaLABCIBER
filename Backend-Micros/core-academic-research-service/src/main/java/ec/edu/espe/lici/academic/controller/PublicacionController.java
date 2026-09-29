@@ -12,8 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * CRUD solo sobre las publicaciones propias para DOCENTE_INVESTIGADOR;
- * ADMINISTRADOR administra todas.
+ * Todas las publicaciones son visibles para cualquier usuario autenticado
+ * (repositorio compartido del laboratorio); editar o eliminar una publicacion
+ * concreta solo lo puede hacer quien la registro (usuarioId == id del
+ * usuario autenticado en el JWT) o el ADMINISTRADOR.
  */
 @RestController
 @RequestMapping("/api/publicaciones")
@@ -27,17 +29,12 @@ public class PublicacionController {
 
     @GetMapping
     public List<Publicacion> listar() {
-        if (CurrentUser.isAdministrador()) {
-            return publicacionRepository.findAll();
-        }
-        return publicacionRepository.findByUsuarioId(CurrentUser.id());
+        return publicacionRepository.findAll();
     }
 
     @GetMapping("/{id}")
     public Publicacion obtener(@PathVariable Long id) {
-        Publicacion publicacion = buscar(id);
-        verificarPropiedad(publicacion);
-        return publicacion;
+        return buscar(id);
     }
 
     @PostMapping

@@ -91,8 +91,23 @@ class DocumentoControllerTest {
     }
 
     @Test
-    void cualquierUsuarioPuedeEditarUnDocumentoQueNoLePertenece() {
+    void unDocenteNoPuedeEditarUnDocumentoQueNoLePertenece() {
         authenticateAs(99L, "DOCENTE_INVESTIGADOR");
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
+        Documento request = Documento.builder().titulo("Editado").tipo(TipoDocumento.OTRO)
+                .estado(EstadoDocumento.ARCHIVADO).build();
+
+        assertThatThrownBy(() -> controller.actualizar(1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(documentoRepository, never()).save(any());
+    }
+
+    @Test
+    void unDocenteSiPuedeEditarSuPropioDocumento() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
         when(documentoRepository.save(any(Documento.class))).thenAnswer(inv -> inv.getArgument(0));
         Documento request = Documento.builder().titulo("Editado").tipo(TipoDocumento.OTRO)
@@ -101,6 +116,33 @@ class DocumentoControllerTest {
         Documento actualizado = controller.actualizar(1L, request);
 
         assertThat(actualizado.getTitulo()).isEqualTo("Editado");
+    }
+
+    @Test
+    void unAdministradorPuedeEditarCualquierDocumento() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
+        when(documentoRepository.save(any(Documento.class))).thenAnswer(inv -> inv.getArgument(0));
+        Documento request = Documento.builder().titulo("Editado por admin").tipo(TipoDocumento.OTRO)
+                .estado(EstadoDocumento.ARCHIVADO).build();
+
+        Documento actualizado = controller.actualizar(1L, request);
+
+        assertThat(actualizado.getTitulo()).isEqualTo("Editado por admin");
+    }
+
+    @Test
+    void unDocenteNoPuedeSubirElArchivoDeUnDocumentoQueNoLePertenece() {
+        authenticateAs(99L, "DOCENTE_INVESTIGADOR");
+        when(documentoRepository.findById(1L)).thenReturn(Optional.of(documentoDe(1L, 5L)));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "informe.pdf", "application/pdf", "contenido".getBytes());
+
+        assertThatThrownBy(() -> controller.subirArchivo(1L, archivo))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(documentoRepository, never()).save(any());
     }
 
     @Test

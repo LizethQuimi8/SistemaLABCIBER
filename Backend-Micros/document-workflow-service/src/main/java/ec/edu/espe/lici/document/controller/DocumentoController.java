@@ -28,9 +28,10 @@ import java.util.List;
 
 /**
  * Repositorio compartido de documentos y correspondencia (memorandos,
- * informes, otros): cualquier usuario autenticado puede ver, cargar, subir
- * el archivo y editar los metadatos de cualquier documento. Eliminar es
- * exclusivo de ADMINISTRADOR.
+ * informes, otros): cualquier usuario autenticado puede ver y cargar uno
+ * nuevo, pero editar los metadatos o reemplazar el archivo de un documento
+ * existente solo lo puede hacer quien lo cargo (usuarioId == id del usuario
+ * autenticado) o el ADMINISTRADOR. Eliminar es exclusivo de ADMINISTRADOR.
  */
 @RestController
 @RequestMapping("/api/documentos")
@@ -65,6 +66,7 @@ public class DocumentoController {
     @PutMapping("/{id}")
     public Documento actualizar(@PathVariable Long id, @Valid @RequestBody Documento request) {
         Documento documento = buscar(id);
+        verificarPropiedad(documento);
 
         documento.setTitulo(request.getTitulo());
         documento.setAsunto(request.getAsunto());
@@ -78,6 +80,7 @@ public class DocumentoController {
     @PostMapping(value = "/{id}/archivo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Documento subirArchivo(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) throws IOException {
         Documento documento = buscar(id);
+        verificarPropiedad(documento);
 
         if (archivo.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo esta vacio");
@@ -135,6 +138,12 @@ public class DocumentoController {
     private Documento buscar(Long id) {
         return documentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado"));
+    }
+
+    private void verificarPropiedad(Documento documento) {
+        if (!CurrentUser.isAdministrador() && !documento.getUsuarioId().equals(CurrentUser.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puedes editar los documentos que tu cargaste");
+        }
     }
 
     private String nombreAlmacenadoFallback(Documento documento) {

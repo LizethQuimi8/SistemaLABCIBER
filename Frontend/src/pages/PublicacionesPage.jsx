@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
 import { publicacionesApi, investigadoresApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -21,6 +21,7 @@ export default function PublicacionesPage() {
     [directorio]
   )
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
 
@@ -28,13 +29,31 @@ export default function PublicacionesPage() {
     () => new Map(investigadores.map((inv) => [inv.usuarioId, inv.id])),
     [investigadores]
   )
+  const usuarioIdPorInvestigadorId = useMemo(
+    () => new Map(investigadores.map((inv) => [inv.id, inv.usuarioId])),
+    [investigadores]
+  )
 
-  const abrirFormulario = () => {
+  const abrirCrear = () => {
+    setEditingId(null)
     setForm({ ...FORM_INICIAL, usuarioAutorId: isAdmin ? '' : String(usuario?.id ?? '') })
     setShowForm(true)
   }
 
-  const handleCreate = async (e) => {
+  const abrirEditar = (p) => {
+    setEditingId(p.id)
+    setForm({
+      titulo: p.titulo || '',
+      revista: p.revista || '',
+      anioPublicacion: p.anioPublicacion || new Date().getFullYear(),
+      doi: p.doi || '',
+      resumen: p.resumen || '',
+      usuarioAutorId: p.investigadorId ? String(usuarioIdPorInvestigadorId.get(p.investigadorId) ?? '') : '',
+    })
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
@@ -49,15 +68,21 @@ export default function PublicacionesPage() {
           investigadorId = nuevo.id
         }
       }
-      await publicacionesApi.create({
+      const payload = {
         titulo: form.titulo,
         revista: form.revista,
         doi: form.doi,
         resumen: form.resumen,
         anioPublicacion: Number(form.anioPublicacion) || null,
         investigadorId,
-      })
+      }
+      if (editingId) {
+        await publicacionesApi.update(editingId, payload)
+      } else {
+        await publicacionesApi.create(payload)
+      }
       setShowForm(false)
+      setEditingId(null)
       setForm(FORM_INICIAL)
       reload()
     } catch (err) {
@@ -77,12 +102,14 @@ export default function PublicacionesPage() {
     }
   }
 
+  const puedeEditar = (p) => isAdmin || p.usuarioId === usuario?.id
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Artículos Científicos y Publicaciones"
         action={
-          <PrimaryButton onClick={abrirFormulario}>
+          <PrimaryButton onClick={abrirCrear}>
             <Plus className="w-4 h-4" /> Nueva publicacion
           </PrimaryButton>
         }
@@ -103,17 +130,26 @@ export default function PublicacionesPage() {
             <td className="px-3 py-2 text-gray-600">{p.doi || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioId) || `#${p.usuarioId}`}</td>
             <td className="px-3 py-2 text-right">
-              <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center justify-end gap-2">
+                {puedeEditar(p) && (
+                  <button onClick={() => abrirEditar(p)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {puedeEditar(p) && (
+                  <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </td>
           </tr>
         ))}
       </Table>
 
       {showForm && (
-        <Modal title="Nueva publicacion" onClose={() => setShowForm(false)}>
-          <form onSubmit={handleCreate} className="space-y-3">
+        <Modal title={editingId ? 'Editar publicacion' : 'Nueva publicacion'} onClose={() => setShowForm(false)}>
+          <form onSubmit={handleSubmit} className="space-y-3">
             <Field label="Titulo">
               <input required className="input" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
             </Field>
@@ -144,7 +180,7 @@ export default function PublicacionesPage() {
               <textarea className="input" rows={2} value={form.resumen} onChange={(e) => setForm({ ...form, resumen: e.target.value })} />
             </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
-              {saving ? 'Guardando...' : 'Crear publicacion'}
+              {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear publicacion'}
             </PrimaryButton>
           </form>
         </Modal>

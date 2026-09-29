@@ -12,9 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Autorizacion a nivel de registro: un ADMINISTRADOR ve y administra todos los
- * proyectos; un DOCENTE_INVESTIGADOR solo los proyectos donde es responsable
- * (usuarioResponsableId == id del usuario autenticado en el JWT).
+ * Todos los proyectos son visibles para cualquier usuario autenticado
+ * (repositorio compartido del laboratorio); editar o eliminar un proyecto
+ * concreto solo lo puede hacer su responsable (usuarioResponsableId == id del
+ * usuario autenticado en el JWT) o el ADMINISTRADOR.
  */
 @RestController
 @RequestMapping("/api/proyectos")
@@ -28,17 +29,12 @@ public class ProyectoController {
 
     @GetMapping
     public List<Proyecto> listar() {
-        if (CurrentUser.isAdministrador()) {
-            return proyectoRepository.findAll();
-        }
-        return proyectoRepository.findByUsuarioResponsableId(CurrentUser.id());
+        return proyectoRepository.findAll();
     }
 
     @GetMapping("/{id}")
     public Proyecto obtener(@PathVariable Long id) {
-        Proyecto proyecto = buscar(id);
-        verificarPropiedad(proyecto);
-        return proyecto;
+        return buscar(id);
     }
 
     @PostMapping
