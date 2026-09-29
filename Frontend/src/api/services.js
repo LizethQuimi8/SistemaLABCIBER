@@ -4,6 +4,10 @@ import { apiFetch, apiUpload, apiFetchBlob } from './client'
 export const login = (email, password) =>
   apiFetch('/api/auth/login', { method: 'POST', body: { email, password }, auth: false })
 
+/** Autoservicio del flujo de primer ingreso: cambia la contraseña temporal por una propia. */
+export const completarPrimerIngreso = (nuevaPassword) =>
+  apiFetch('/api/auth/primer-ingreso', { method: 'PATCH', body: { nuevaPassword } })
+
 export const usuariosApi = {
   list: () => apiFetch('/api/usuarios'),
   /** Id + nombre de todos los usuarios; accesible a cualquier rol autenticado (selectores de "responsable"). */

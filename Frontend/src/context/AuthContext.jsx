@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { getStoredUser, setSession, clearSession } from '../api/client'
-import { login as loginRequest } from '../api/services'
+import { getStoredUser, getToken, setSession, clearSession } from '../api/client'
+import { login as loginRequest, completarPrimerIngreso as completarPrimerIngresoRequest } from '../api/services'
 
 const AuthContext = createContext(null)
 
@@ -33,6 +33,13 @@ export function AuthProvider({ children }) {
     setUsuario(null)
   }, [])
 
+  /** Cierra el flujo de primer ingreso: guarda la nueva contraseña y refresca la sesion local. */
+  const completarPrimerIngreso = useCallback(async (nuevaPassword) => {
+    const usuarioActualizado = await completarPrimerIngresoRequest(nuevaPassword)
+    setSession(getToken(), usuarioActualizado)
+    setUsuario(usuarioActualizado)
+  }, [])
+
   useEffect(() => {
     const onUnauthorized = () => setUsuario(null)
     window.addEventListener('lici:unauthorized', onUnauthorized)
@@ -51,7 +58,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       usuario, isAdmin, isAdminInfraestructura, isResponsableCompras,
-      canEditInventario, canEditCompras, login, logout, loading, error,
+      canEditInventario, canEditCompras, login, logout, completarPrimerIngreso, loading, error,
     }}>
       {children}
     </AuthContext.Provider>

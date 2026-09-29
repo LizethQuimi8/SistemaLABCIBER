@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Plus, Pencil, Trash2, Users, Power } from 'lucide-react'
+import { Plus, Pencil, Trash2, Users, Power, Wand2 } from 'lucide-react'
 import { usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -8,6 +8,16 @@ import Modal from '../components/ui/Modal'
 const ROLES = ['ADMINISTRADOR', 'DOCENTE_INVESTIGADOR', 'ADMIN_INFRAESTRUCTURA', 'RESPONSABLE_COMPRAS']
 const FORM_INICIAL = { nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' }
 
+/** Contraseña temporal aleatoria: la persona la cambia en su primer ingreso. */
+function generarPasswordPredeterminada() {
+  const caracteres = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+  let clave = ''
+  for (let i = 0; i < 10; i++) {
+    clave += caracteres[Math.floor(Math.random() * caracteres.length)]
+  }
+  return clave
+}
+
 export default function UsuariosPage() {
   const fetcher = useCallback(() => usuariosApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
@@ -15,16 +25,24 @@ export default function UsuariosPage() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
+  const [mostrarPassword, setMostrarPassword] = useState(false)
+
+  const handleGenerarPassword = () => {
+    setForm((f) => ({ ...f, password: generarPasswordPredeterminada() }))
+    setMostrarPassword(true)
+  }
 
   const openCreate = () => {
     setEditingId(null)
     setForm(FORM_INICIAL)
+    setMostrarPassword(false)
     setShowForm(true)
   }
 
   const openEdit = (u) => {
     setEditingId(u.id)
     setForm({ nombres: u.nombres, apellidos: u.apellidos, email: u.email, password: '', cedula: u.cedula || '', rol: u.rol })
+    setMostrarPassword(false)
     setShowForm(true)
   }
 
@@ -127,14 +145,31 @@ export default function UsuariosPage() {
             <Field label="Correo institucional">
               <input required type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </Field>
-            <Field label={editingId ? 'Contraseña (dejar en blanco para no cambiarla)' : 'Contraseña'}>
-              <input
-                required={!editingId}
-                type="password"
-                className="input"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
+            <Field label={editingId ? 'Contraseña (dejar en blanco para no cambiarla)' : 'Contraseña temporal'}>
+              <div className="flex items-center gap-2">
+                <input
+                  required={!editingId}
+                  type={mostrarPassword ? 'text' : 'password'}
+                  className="input"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                {!editingId && (
+                  <button
+                    type="button"
+                    onClick={handleGenerarPassword}
+                    title="Generar contraseña predeterminada"
+                    className="flex-shrink-0 flex items-center gap-1 border border-gray-300 hover:border-[#0e6b3c] hover:text-[#0e6b3c] text-gray-500 text-xs font-semibold px-3 py-2 rounded"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" /> Generar
+                  </button>
+                )}
+              </div>
+              {!editingId && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Cópiala y compártela con la persona: en su primer ingreso se le pedirá crear su propia contraseña.
+                </p>
+              )}
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="ID">

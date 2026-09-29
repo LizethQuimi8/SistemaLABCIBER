@@ -10,10 +10,11 @@ public record UsuarioResponse(
         String email,
         String cedula,
         Rol rol,
-        boolean activo
+        boolean activo,
+        boolean primerIngresoPendiente
 ) {
     public static UsuarioResponse from(Usuario u) {
         return new UsuarioResponse(u.getId(), u.getNombres(), u.getApellidos(), u.getEmail(),
-                u.getCedula(), u.getRol(), u.isActivo());
+                u.getCedula(), u.getRol(), u.isActivo(), u.isPrimerIngresoPendiente());
     }
 }

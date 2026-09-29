@@ -65,6 +65,7 @@ public class UsuarioController {
                 .cedula(request.cedula())
                 .rol(request.rol())
                 .activo(true)
+                .primerIngresoPendiente(true)
                 .build();
         usuario = usuarioRepository.save(usuario);
         return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.from(usuario));

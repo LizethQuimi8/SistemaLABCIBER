@@ -5,6 +5,7 @@ import Sidebar   from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Footer    from './components/Footer'
 import LoginPage from './pages/LoginPage'
+import PrimerIngresoPage from './pages/PrimerIngresoPage'
 import ProyectosPage from './pages/ProyectosPage'
 import InvestigadoresPage from './pages/InvestigadoresPage'
 import PublicacionesPage from './pages/PublicacionesPage'
@@ -64,7 +65,9 @@ function AuthenticatedApp() {
 
 function Gate() {
   const { usuario } = useAuth()
-  return usuario ? <AuthenticatedApp /> : <LoginPage />
+  if (!usuario) return <LoginPage />
+  if (usuario.primerIngresoPendiente) return <PrimerIngresoPage />
+  return <AuthenticatedApp />
 }
 
 export default function App() {

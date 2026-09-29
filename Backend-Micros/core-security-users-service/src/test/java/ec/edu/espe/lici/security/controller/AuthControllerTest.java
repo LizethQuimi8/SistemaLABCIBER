@@ -2,8 +2,10 @@ package ec.edu.espe.lici.security.controller;
 
 import ec.edu.espe.lici.security.domain.Rol;
 import ec.edu.espe.lici.security.domain.Usuario;
+import ec.edu.espe.lici.security.dto.CambiarPasswordRequest;
 import ec.edu.espe.lici.security.dto.LoginRequest;
 import ec.edu.espe.lici.security.dto.LoginResponse;
+import ec.edu.espe.lici.security.dto.UsuarioResponse;
 import ec.edu.espe.lici.security.repository.UsuarioRepository;
 import ec.edu.espe.lici.security.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +33,7 @@ class AuthControllerTest {
     private AuthenticationManager authenticationManager;
     private UsuarioRepository usuarioRepository;
     private JwtService jwtService;
+    private PasswordEncoder passwordEncoder;
     private AuthController authController;
 
     @BeforeEach
@@ -33,7 +41,17 @@ class AuthControllerTest {
         authenticationManager = mock(AuthenticationManager.class);
         usuarioRepository = mock(UsuarioRepository.class);
         jwtService = mock(JwtService.class);
-        authController = new AuthController(authenticationManager, usuarioRepository, jwtService);
+        passwordEncoder = mock(PasswordEncoder.class);
+        authController = new AuthController(authenticationManager, usuarioRepository, jwtService, passwordEncoder);
+    }
+
+    private Jwt jwtDe(long userId) {
+        return new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(60),
+                Map.of("alg", "RS256"),
+                Map.of("sub", String.valueOf(userId), "roles", java.util.List.of("DOCENTE_INVESTIGADOR")));
     }
 
     @Test
@@ -82,5 +100,36 @@ class AuthControllerTest {
                 .isInstanceOf(BadCredentialsException.class);
 
         verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void completarPrimerIngresoActualizaLaPasswordYLimpiaElIndicador() {
+        Usuario usuario = Usuario.builder()
+                .id(5L).nombres("Ada").apellidos("Lovelace").email("ada@espe.edu.ec")
+                .rol(Rol.DOCENTE_INVESTIGADOR).activo(true).primerIngresoPendiente(true)
+                .build();
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.encode("nuevaClave123")).thenReturn("hash-nuevo");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ResponseEntity<UsuarioResponse> response = authController.completarPrimerIngreso(
+                jwtDe(5L), new CambiarPasswordRequest("nuevaClave123"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().primerIngresoPendiente()).isFalse();
+        assertThat(usuario.getPasswordHash()).isEqualTo("hash-nuevo");
+        assertThat(usuario.isPrimerIngresoPendiente()).isFalse();
+    }
+
+    @Test
+    void completarPrimerIngresoLanzaNotFoundSiElUsuarioYaNoExiste() {
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authController.completarPrimerIngreso(jwtDe(99L), new CambiarPasswordRequest("nuevaClave123")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
+
+        verify(usuarioRepository, never()).save(any());
     }
 }

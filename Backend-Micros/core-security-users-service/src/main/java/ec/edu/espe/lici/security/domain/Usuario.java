@@ -45,6 +45,12 @@ public class Usuario {
     @Builder.Default
     private boolean activo = true;
 
+    /** true para cuentas nuevas: obliga a cambiar la contraseña y aceptar las
+     * politicas del laboratorio antes de poder usar el sistema (ver AuthController). */
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean primerIngresoPendiente = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
