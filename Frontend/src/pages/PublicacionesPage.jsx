@@ -4,8 +4,12 @@ import { publicacionesApi, investigadoresApi, usuariosApi } from '../api/service
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
+import { useAuth } from '../context/AuthContext'
+
+const FORM_INICIAL = { titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', usuarioAutorId: '' }
 
 export default function PublicacionesPage() {
+  const { isAdmin, usuario } = useAuth()
   const fetcher = useCallback(() => publicacionesApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const investigadoresFetcher = useCallback(() => investigadoresApi.list(), [])
@@ -17,13 +21,18 @@ export default function PublicacionesPage() {
     [directorio]
   )
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', usuarioAutorId: '' })
+  const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
 
   const investigadorIdPorUsuarioId = useMemo(
     () => new Map(investigadores.map((inv) => [inv.usuarioId, inv.id])),
     [investigadores]
   )
+
+  const abrirFormulario = () => {
+    setForm({ ...FORM_INICIAL, usuarioAutorId: isAdmin ? '' : String(usuario?.id ?? '') })
+    setShowForm(true)
+  }
 
   const handleCreate = async (e) => {
     e.preventDefault()
@@ -49,7 +58,7 @@ export default function PublicacionesPage() {
         investigadorId,
       })
       setShowForm(false)
-      setForm({ titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', usuarioAutorId: '' })
+      setForm(FORM_INICIAL)
       reload()
     } catch (err) {
       setError(err.message)
@@ -73,7 +82,7 @@ export default function PublicacionesPage() {
       <PageHeader
         title="Artículos Científicos y Publicaciones"
         action={
-          <PrimaryButton onClick={() => setShowForm(true)}>
+          <PrimaryButton onClick={abrirFormulario}>
             <Plus className="w-4 h-4" /> Nueva publicacion
           </PrimaryButton>
         }
@@ -120,12 +129,16 @@ export default function PublicacionesPage() {
               <input className="input" value={form.doi} onChange={(e) => setForm({ ...form, doi: e.target.value })} />
             </Field>
             <Field label="Investigador">
-              <select className="input" value={form.usuarioAutorId} onChange={(e) => setForm({ ...form, usuarioAutorId: e.target.value })}>
-                <option value="">Sin asignar</option>
-                {directorio.map((u) => (
-                  <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
-                ))}
-              </select>
+              {isAdmin ? (
+                <select className="input" value={form.usuarioAutorId} onChange={(e) => setForm({ ...form, usuarioAutorId: e.target.value })}>
+                  <option value="">Sin asignar</option>
+                  {directorio.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
+                  ))}
+                </select>
+              ) : (
+                <input className="input bg-gray-50 text-gray-500" value={`${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()} disabled />
+              )}
             </Field>
             <Field label="Resumen">
               <textarea className="input" rows={2} value={form.resumen} onChange={(e) => setForm({ ...form, resumen: e.target.value })} />
