@@ -195,10 +195,14 @@ public class PrestamoController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El bien no esta inventariado"));
     }
 
+    /** La devolucion es exclusiva del usuario que solicito el prestamo: ni el
+     * ADMINISTRADOR ni Admin. Infraestructura pueden devolverlo en su lugar. */
     @PatchMapping("/{id}/devolver")
     public Prestamo devolver(@PathVariable Long id) {
         Prestamo prestamo = buscar(id);
-        verificarPropiedad(prestamo);
+        if (!prestamo.getUsuarioId().equals(CurrentUser.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo quien solicito el prestamo puede registrar la devolucion");
+        }
 
         if (prestamo.getEstado() != EstadoPrestamo.ACTIVO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El prestamo no esta activo");

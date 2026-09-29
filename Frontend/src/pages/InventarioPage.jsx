@@ -76,7 +76,7 @@ function iconoPara(nombre) {
 }
 
 export default function InventarioPage() {
-  const { isAdmin, canEditInventario } = useAuth()
+  const { isAdmin, canEditInventario, usuario } = useAuth()
   const bienesFetcher = useCallback(() => inventarioApi.list(), [])
   const { data: bienes, loading, error, reload, setError } = useList(bienesFetcher)
   const prestamosFetcher = useCallback(() => prestamosApi.list(), [])
@@ -513,7 +513,7 @@ export default function InventarioPage() {
                       Rechazar
                     </button>
                   )}
-                  {p.estado === 'ACTIVO' && (
+                  {p.estado === 'ACTIVO' && p.usuarioId === usuario?.id && (
                     <button
                       onClick={() => handleDevolver(p)}
                       disabled={busyId === `p-${p.id}`}

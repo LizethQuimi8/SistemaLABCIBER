@@ -341,6 +341,34 @@ class PrestamoControllerTest {
     }
 
     @Test
+    void unAdministradorNoPuedeDevolverElPrestamoDeOtroUsuario() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+
+        assertThatThrownBy(() -> controller.devolver(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void unAdminInfraestructuraNoPuedeDevolverElPrestamoDeOtroUsuario() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+
+        assertThatThrownBy(() -> controller.devolver(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
     void devolverRechazaUnPrestamoQueNoEstaActivo() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVUELTO);
