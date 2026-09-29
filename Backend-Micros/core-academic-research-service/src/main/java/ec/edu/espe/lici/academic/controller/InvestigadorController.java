@@ -24,10 +24,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 /**
- * Los perfiles de investigador son de lectura y edicion publica entre
- * usuarios autenticados (directorio del laboratorio): cualquiera puede crear
- * un perfil (para si mismo o para otro usuario) y editar cualquier perfil
- * existente. Eliminar queda restringido a ADMINISTRADOR.
+ * Los perfiles de investigador son de lectura publica entre usuarios
+ * autenticados (directorio del laboratorio): cualquiera puede crearlos, pero
+ * solo puede editar (datos, curriculum, horario) su propio perfil o el
+ * ADMINISTRADOR cualquiera. Eliminar tambien queda restringido a ADMINISTRADOR.
  */
 @RestController
 @RequestMapping("/api/investigadores")
@@ -64,6 +64,7 @@ public class InvestigadorController {
     @PutMapping("/{id}")
     public Investigador actualizar(@PathVariable Long id, @Valid @RequestBody Investigador request) {
         Investigador investigador = buscar(id);
+        verificarPropiedad(investigador);
 
         investigador.setNombreCompleto(request.getNombreCompleto());
         investigador.setTituloAcademico(request.getTituloAcademico());
@@ -76,6 +77,7 @@ public class InvestigadorController {
     @PostMapping(value = "/{id}/curriculum", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Investigador subirCurriculum(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) throws IOException {
         Investigador investigador = buscar(id);
+        verificarPropiedad(investigador);
         String nombreAlmacenado = guardarArchivo("cv", id, archivo);
         investigador.setCurriculumRuta(nombreAlmacenado);
         investigador.setCurriculumNombreArchivo(archivo.getOriginalFilename());
@@ -94,6 +96,7 @@ public class InvestigadorController {
     @PostMapping(value = "/{id}/horario", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Investigador subirHorario(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) throws IOException {
         Investigador investigador = buscar(id);
+        verificarPropiedad(investigador);
         String nombreAlmacenado = guardarArchivo("horario", id, archivo);
         investigador.setHorarioRuta(nombreAlmacenado);
         investigador.setHorarioNombreArchivo(archivo.getOriginalFilename());
@@ -159,5 +162,11 @@ public class InvestigadorController {
     private Investigador buscar(Long id) {
         return investigadorRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigador no encontrado"));
+    }
+
+    private void verificarPropiedad(Investigador investigador) {
+        if (!CurrentUser.isAdministrador() && !investigador.getUsuarioId().equals(CurrentUser.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puedes editar tu propio perfil de investigador");
+        }
     }
 }

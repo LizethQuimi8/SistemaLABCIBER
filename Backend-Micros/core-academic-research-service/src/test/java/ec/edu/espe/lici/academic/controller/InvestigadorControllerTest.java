@@ -94,15 +94,29 @@ class InvestigadorControllerTest {
     }
 
     @Test
-    void unDocentePuedeEditarElPerfilDeOtro() {
+    void unDocenteNoPuedeEditarElPerfilDeOtro() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 42L)));
-        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
         Investigador request = Investigador.builder().nombreCompleto("Otro nombre").build();
+
+        assertThatThrownBy(() -> controller.actualizar(1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(investigadorRepository, never()).save(any());
+    }
+
+    @Test
+    void unDocenteSiPuedeEditarSuPropioPerfil() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 5L)));
+        when(investigadorRepository.save(any(Investigador.class))).thenAnswer(inv -> inv.getArgument(0));
+        Investigador request = Investigador.builder().nombreCompleto("Nombre actualizado").build();
 
         Investigador actualizado = controller.actualizar(1L, request);
 
-        assertThat(actualizado.getNombreCompleto()).isEqualTo("Otro nombre");
+        assertThat(actualizado.getNombreCompleto()).isEqualTo("Nombre actualizado");
     }
 
     @Test
@@ -140,6 +154,20 @@ class InvestigadorControllerTest {
         controller.eliminar(1L);
 
         verify(investigadorRepository).delete(existente);
+    }
+
+    @Test
+    void unDocenteNoPuedeSubirElCurriculumDeOtro() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(investigadorRepository.findById(1L)).thenReturn(Optional.of(investigadorDe(1L, 42L)));
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "hoja-de-vida.pdf", "application/pdf", "contenido".getBytes());
+
+        assertThatThrownBy(() -> controller.subirCurriculum(1L, archivo))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(investigadorRepository, never()).save(any());
     }
 
     @Test

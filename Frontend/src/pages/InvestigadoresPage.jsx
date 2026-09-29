@@ -9,7 +9,7 @@ import Modal from '../components/ui/Modal'
 const FORM_INICIAL = { nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '', usuarioId: '' }
 
 export default function InvestigadoresPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, usuario } = useAuth()
   const fetcher = useCallback(() => investigadoresApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
@@ -160,9 +160,11 @@ export default function InvestigadoresPage() {
             </td>
             <td className="px-3 py-2 text-right">
               <div className="flex items-center justify-end gap-2">
-                <button onClick={() => openEdit(inv)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
+                {(isAdmin || inv.usuarioId === usuario?.id) && (
+                  <button onClick={() => openEdit(inv)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 {isAdmin && (
                   <button onClick={() => handleDelete(inv.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
                     <Trash2 className="w-3.5 h-3.5" />
