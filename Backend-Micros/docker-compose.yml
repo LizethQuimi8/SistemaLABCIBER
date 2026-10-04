@@ -13,6 +13,7 @@ volumes:
   curriculums_files:
   compras_files:
   manuales_files:
+  prestamos_files:
 
 x-mysql-common: &mysql-common
   image: mysql:8.0
@@ -184,6 +185,7 @@ services:
       DOCUMENT_SERVICE_URL: http://document-workflow-service:8083
     volumes:
       - compras_files:/data/compras
+      - prestamos_files:/data/prestamos
     expose:
       - "8084"
 

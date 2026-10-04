@@ -3,6 +3,7 @@ import {
   Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye, Search, X,
   Monitor, Cpu, Keyboard, Mouse, Printer, Armchair, Router, Camera,
   Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
+  FileSignature, FileCheck2, FileX2,
 } from 'lucide-react'
 import { inventarioApi, prestamosApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
@@ -31,6 +32,8 @@ const PRESTAMO_ESTADO_LABEL = {
   PENDIENTE: 'Pendiente',
   APROBADO_INFRAESTRUCTURA: 'Esperando confirmación',
   ACTIVO: 'Activo',
+  DEVOLUCION_PENDIENTE: 'Acta subida, por validar',
+  DEVOLUCION_APROBADA_INFRAESTRUCTURA: 'Esperando firma final',
   DEVUELTO: 'Devuelto',
   RECHAZADO: 'Rechazado',
 }
@@ -39,6 +42,8 @@ const PRESTAMO_ESTADO_BADGE = {
   PENDIENTE: 'bg-amber-50 text-amber-700',
   APROBADO_INFRAESTRUCTURA: 'bg-sky-50 text-sky-700',
   ACTIVO: 'bg-blue-50 text-blue-700',
+  DEVOLUCION_PENDIENTE: 'bg-amber-50 text-amber-700',
+  DEVOLUCION_APROBADA_INFRAESTRUCTURA: 'bg-sky-50 text-sky-700',
   DEVUELTO: 'bg-green-50 text-green-700',
   RECHAZADO: 'bg-red-50 text-red-700',
 }
@@ -99,6 +104,11 @@ export default function InventarioPage() {
   const [solicitudBien, setSolicitudBien] = useState(null)
   const [solicitudForm, setSolicitudForm] = useState(SOLICITUD_INICIAL)
   const [solicitando, setSolicitando] = useState(false)
+  const [devolucionPrestamo, setDevolucionPrestamo] = useState(null)
+  const [actaArchivo, setActaArchivo] = useState(null)
+  const [subiendoActa, setSubiendoActa] = useState(false)
+  const [rechazoDevolucion, setRechazoDevolucion] = useState(null)
+  const [observacionRechazo, setObservacionRechazo] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS')
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS')
@@ -114,6 +124,12 @@ export default function InventarioPage() {
   // APROBADO_INFRAESTRUCTURA: solo el Administrador da la confirmacion final (o la rechaza).
   const puedeAprobarORechazar = (p) =>
     (canEditInventario && p.estado === 'PENDIENTE') || (isAdmin && p.estado === 'APROBADO_INFRAESTRUCTURA')
+
+  // Misma logica en dos firmas, pero sobre la devolucion: primero valida el
+  // acta Admin. Infraestructura, luego firma el cierre el Administrador.
+  const puedeValidarDevolucion = (p) =>
+    (canEditInventario && p.estado === 'DEVOLUCION_PENDIENTE') ||
+    (isAdmin && p.estado === 'DEVOLUCION_APROBADA_INFRAESTRUCTURA')
 
   const categorias = useMemo(() => {
     const conteo = new Map()
@@ -267,16 +283,107 @@ export default function InventarioPage() {
     }
   }
 
-  const handleDevolver = async (prestamo) => {
+  const abrirDevolucion = (prestamo) => {
+    setDevolucionPrestamo(prestamo)
+    setActaArchivo(null)
+  }
+
+  const generarActa = (prestamo) => {
+    const bien = nombrePorBienId.get(prestamo.bienId) || `#${prestamo.bienId}`
+    const docente = `${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Acta de Entrega-Devolucion</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:32px;color:#111}
+        h1{font-size:16px;text-align:center;margin:0 0 2px}
+        h2{font-size:13px;text-align:center;color:#555;margin:0 0 20px;font-weight:normal}
+        p{font-size:12px;line-height:1.6}
+        .campo{margin-bottom:10px}
+        .campo strong{display:inline-block;min-width:160px}
+        table{width:100%;border-collapse:collapse;font-size:12px;margin:14px 0}
+        th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
+        th{background:#0e6b3c;color:#fff}
+        .firma{margin-top:60px;display:flex;justify-content:space-between}
+        .firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px}
+      </style></head><body>
+      <h1>LABORATORIO CIBRS</h1>
+      <h2>Acta de Entrega / Devolución de Bienes</h2>
+      <div class="campo"><strong>Docente:</strong> ${docente || '—'}</div>
+      <div class="campo"><strong>Fecha de solicitud:</strong> ${prestamo.fechaSolicitud ? new Date(prestamo.fechaSolicitud).toLocaleDateString() : '—'}</div>
+      <div class="campo"><strong>Periodo de prestamo:</strong> ${prestamo.fechaDesde || '—'} a ${prestamo.fechaHasta || '—'}</div>
+      <p>El docente ha solicitado los siguientes equipos:</p>
+      <table>
+        <thead><tr><th>Equipo</th><th>Motivo</th></tr></thead>
+        <tbody><tr><td>${bien}</td><td>${prestamo.motivo || '—'}</td></tr></tbody>
+      </table>
+      <p>Recibo la entrega de: _____________________________________________</p>
+      <p>Una vez culminado el plazo de devolución, el Jefe de Laboratorio firma la devolución correcta.</p>
+      <div class="firma">
+        <div>Firma del docente (entrega el bien)</div>
+        <div>Firma del Jefe de Laboratorio (recibe conforme)</div>
+      </div>
+      </body></html>`
+
+    const ventana = window.open('', '_blank')
+    if (!ventana) return
+    ventana.document.write(html)
+    ventana.document.close()
+    ventana.focus()
+    ventana.print()
+  }
+
+  const handleSubirActa = async (e) => {
+    e.preventDefault()
+    if (!actaArchivo || !devolucionPrestamo) return
+    setSubiendoActa(true)
+    setError(null)
+    try {
+      await prestamosApi.subirActaDevolucion(devolucionPrestamo.id, actaArchivo)
+      setDevolucionPrestamo(null)
+      setActaArchivo(null)
+      reloadTodo()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubiendoActa(false)
+    }
+  }
+
+  const handleAprobarDevolucion = async (prestamo) => {
     setBusyId(`p-${prestamo.id}`)
     setError(null)
     try {
-      await prestamosApi.devolver(prestamo.id)
+      await prestamosApi.aprobarDevolucion(prestamo.id)
       reloadTodo()
     } catch (err) {
       setError(err.message)
     } finally {
       setBusyId(null)
+    }
+  }
+
+  const handleRechazarDevolucion = async (e) => {
+    e.preventDefault()
+    if (!rechazoDevolucion) return
+    setBusyId(`p-${rechazoDevolucion.id}`)
+    setError(null)
+    try {
+      await prestamosApi.rechazarDevolucion(rechazoDevolucion.id, observacionRechazo)
+      setRechazoDevolucion(null)
+      setObservacionRechazo('')
+      reloadTodo()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const handleVerActa = async (prestamo) => {
+    try {
+      const blob = await prestamosApi.verActa(prestamo.id)
+      window.open(URL.createObjectURL(blob), '_blank')
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -474,10 +581,10 @@ export default function InventarioPage() {
           {canEditInventario ? 'Prestamos' : 'Mis prestamos'}
         </h2>
         <Table headers={canEditInventario
-          ? ['Bien', 'Usuario', 'Periodo', 'Motivo', 'Estado', 'Devuelto', '']
-          : ['Bien', 'Periodo', 'Motivo', 'Estado', 'Devuelto', '']}>
-          {loadingPrestamos && <LoadingRow colSpan={canEditInventario ? 7 : 6} />}
-          {!loadingPrestamos && prestamos.length === 0 && <EmptyRow colSpan={canEditInventario ? 7 : 6} />}
+          ? ['Bien', 'Usuario', 'Periodo', 'Motivo', 'Estado', 'Devuelto', 'Acta / Observación', '']
+          : ['Bien', 'Periodo', 'Motivo', 'Estado', 'Devuelto', 'Acta / Observación', '']}>
+          {loadingPrestamos && <LoadingRow colSpan={canEditInventario ? 8 : 7} />}
+          {!loadingPrestamos && prestamos.length === 0 && <EmptyRow colSpan={canEditInventario ? 8 : 7} />}
           {!loadingPrestamos && prestamos.map((p) => (
             <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="px-3 py-2 font-medium text-gray-800">{nombrePorBienId.get(p.bienId) || `#${p.bienId}`}</td>
@@ -492,6 +599,22 @@ export default function InventarioPage() {
                 </span>
               </td>
               <td className="px-3 py-2 text-gray-600">{p.fechaDevolucion ? new Date(p.fechaDevolucion).toLocaleString() : '—'}</td>
+              <td className="px-3 py-2 text-gray-600 max-w-[180px]">
+                <div className="flex items-center gap-2">
+                  {p.actaRuta && (
+                    <button
+                      onClick={() => handleVerActa(p)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18]"
+                    >
+                      <FileSignature className="w-3.5 h-3.5" /> Ver acta
+                    </button>
+                  )}
+                  {p.observacionDevolucion && (
+                    <span className="truncate" title={p.observacionDevolucion}>{p.observacionDevolucion}</span>
+                  )}
+                  {!p.actaRuta && !p.observacionDevolucion && '—'}
+                </div>
+              </td>
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
                   {puedeAprobarORechazar(p) && (
@@ -515,11 +638,30 @@ export default function InventarioPage() {
                   )}
                   {p.estado === 'ACTIVO' && p.usuarioId === usuario?.id && (
                     <button
-                      onClick={() => handleDevolver(p)}
+                      onClick={() => abrirDevolucion(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-[#052a18] hover:text-[#0e6b3c] disabled:text-gray-300"
                     >
                       <Undo2 className="w-3.5 h-3.5" /> Devolver
+                    </button>
+                  )}
+                  {puedeValidarDevolucion(p) && (
+                    <button
+                      onClick={() => handleAprobarDevolucion(p)}
+                      disabled={busyId === `p-${p.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                      title={p.estado === 'DEVOLUCION_APROBADA_INFRAESTRUCTURA' ? 'Firmar el cierre final de la devolucion' : 'Validar el acta de devolucion'}
+                    >
+                      <FileCheck2 className="w-3.5 h-3.5" /> {p.estado === 'DEVOLUCION_APROBADA_INFRAESTRUCTURA' ? 'Firmar devolución' : 'Validar devolución'}
+                    </button>
+                  )}
+                  {puedeValidarDevolucion(p) && (
+                    <button
+                      onClick={() => { setRechazoDevolucion(p); setObservacionRechazo('') }}
+                      disabled={busyId === `p-${p.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800 disabled:text-gray-300"
+                    >
+                      <FileX2 className="w-3.5 h-3.5" /> Rechazar acta
                     </button>
                   )}
                 </div>
@@ -602,6 +744,51 @@ export default function InventarioPage() {
             </Field>
             <PrimaryButton type="submit" disabled={solicitando} className="w-full justify-center">
               {solicitando ? 'Enviando...' : 'Enviar solicitud'}
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
+
+      {devolucionPrestamo && (
+        <Modal title={`Devolver: ${nombrePorBienId.get(devolucionPrestamo.bienId) || ''}`} onClose={() => setDevolucionPrestamo(null)}>
+          <form onSubmit={handleSubirActa} className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Genera el acta de entrega/devolución, fírmala junto al Jefe de Laboratorio y súbela aquí para que Admin. Infraestructura y el Administrador validen la devolución.
+            </p>
+            <button
+              type="button"
+              onClick={() => generarActa(devolucionPrestamo)}
+              className="flex items-center gap-2 w-full justify-center bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] text-xs font-semibold px-4 py-2 rounded transition-colors"
+            >
+              <FileSignature className="w-4 h-4" /> Generar acta imprimible
+            </button>
+            <Field label="Acta firmada (PDF o imagen)">
+              <input
+                required type="file" accept=".pdf,.jpg,.jpeg,.png"
+                className="input"
+                onChange={(e) => setActaArchivo(e.target.files?.[0] || null)}
+              />
+            </Field>
+            <PrimaryButton type="submit" disabled={subiendoActa || !actaArchivo} className="w-full justify-center">
+              {subiendoActa ? 'Subiendo...' : 'Subir acta y registrar devolución'}
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
+
+      {rechazoDevolucion && (
+        <Modal title="Rechazar acta de devolución" onClose={() => setRechazoDevolucion(null)}>
+          <form onSubmit={handleRechazarDevolucion} className="space-y-3">
+            <Field label="Observación (p. ej. 'Archivo incorrecto')">
+              <textarea
+                rows={3} className="input"
+                value={observacionRechazo}
+                onChange={(e) => setObservacionRechazo(e.target.value)}
+                placeholder="Archivo incorrecto"
+              />
+            </Field>
+            <PrimaryButton type="submit" disabled={busyId === `p-${rechazoDevolucion.id}`} className="w-full justify-center">
+              Rechazar acta
             </PrimaryButton>
           </form>
         </Modal>

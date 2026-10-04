@@ -59,6 +59,20 @@ public class Prestamo {
     @Column(length = 500)
     private String observaciones;
 
+    /** Nombre del archivo del acta de devolucion firmada tal como quedo
+     * guardado en el volumen de almacenamiento (ver PrestamoController). */
+    private String actaRuta;
+
+    /** Nombre original del acta subida, para mostrarla/descargarla. */
+    private String actaNombreArchivo;
+
+    private String actaContentType;
+
+    /** Comentario del responsable que valida o rechaza la devolucion
+     * (p. ej. "Devuelto en buen estado" o "Archivo incorrecto"). */
+    @Column(length = 500)
+    private String observacionDevolucion;
+
     @PrePersist
     void prePersist() {
         this.fechaSolicitud = LocalDateTime.now();

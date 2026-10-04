@@ -83,7 +83,13 @@ export const prestamosApi = {
   solicitar: (data) => apiFetch('/api/prestamos', { method: 'POST', body: data }),
   aprobar: (id) => apiFetch(`/api/prestamos/${id}/aprobar`, { method: 'PATCH' }),
   rechazar: (id) => apiFetch(`/api/prestamos/${id}/rechazar`, { method: 'PATCH' }),
-  devolver: (id) => apiFetch(`/api/prestamos/${id}/devolver`, { method: 'PATCH' }),
+  subirActaDevolucion: (id, archivo) => apiUpload(`/api/prestamos/${id}/devolucion`, archivo),
+  aprobarDevolucion: (id) => apiFetch(`/api/prestamos/${id}/aprobar-devolucion`, { method: 'PATCH' }),
+  rechazarDevolucion: (id, observacion) => apiFetch(
+    `/api/prestamos/${id}/rechazar-devolucion${observacion ? `?observacion=${encodeURIComponent(observacion)}` : ''}`,
+    { method: 'PATCH' },
+  ),
+  verActa: (id) => apiFetchBlob(`/api/prestamos/${id}/acta`),
 }
 
 export const comprasApi = {

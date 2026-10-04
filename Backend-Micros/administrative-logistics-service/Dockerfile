@@ -23,7 +23,7 @@ COPY --from=build /app/administrative-logistics-service/target/administrative-lo
 # un volumen nombrado vacio aqui, Docker copia este contenido (y permisos)
 # como semilla, evitando que quede en manos de root y bloquee la escritura
 # del proceso (que corre como spring, no root).
-RUN mkdir -p /data/compras && chown -R spring:spring /data
+RUN mkdir -p /data/compras /data/prestamos && chown -R spring:spring /data
 USER spring:spring
 EXPOSE 8084
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
