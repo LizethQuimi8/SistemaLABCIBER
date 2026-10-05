@@ -291,36 +291,64 @@ export default function InventarioPage() {
   const generarActa = (prestamo) => {
     const bien = nombrePorBienId.get(prestamo.bienId) || `#${prestamo.bienId}`
     const docente = `${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Acta de Entrega-Devolucion</title>
+    const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}lici-sello.jpg`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Acta de Entrega / Devolución de Bienes</title>
       <style>
-        body{font-family:Arial,sans-serif;padding:32px;color:#111}
-        h1{font-size:16px;text-align:center;margin:0 0 2px}
-        h2{font-size:13px;text-align:center;color:#555;margin:0 0 20px;font-weight:normal}
-        p{font-size:12px;line-height:1.6}
-        .campo{margin-bottom:10px}
-        .campo strong{display:inline-block;min-width:160px}
-        table{width:100%;border-collapse:collapse;font-size:12px;margin:14px 0}
-        th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
-        th{background:#0e6b3c;color:#fff}
-        .firma{margin-top:60px;display:flex;justify-content:space-between}
-        .firma div{width:45%;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px}
+        body{font-family:'Segoe UI',Arial,sans-serif;padding:40px;color:#1a1a1a}
+        .encabezado{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #0e6b3c;padding-bottom:16px;margin-bottom:24px}
+        .encabezado .institucion{font-size:11px;letter-spacing:0.5px;color:#777;text-transform:uppercase;margin:0 0 6px}
+        .encabezado h1{font-size:21px;color:#052a18;margin:0}
+        .encabezado img{width:78px;height:78px;object-fit:contain;flex-shrink:0}
+        p{font-size:12.5px;line-height:1.7;margin:0 0 10px}
+        .datos{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;background:#f3faf6;border:1px solid #d7ece1;border-radius:8px;padding:16px 18px;margin-bottom:18px}
+        .dato .etiqueta{display:block;font-size:10px;font-weight:700;color:#0e6b3c;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px}
+        .dato .valor{font-size:13px;color:#111}
+        .seccion-titulo{font-size:12.5px;font-weight:700;color:#052a18;margin:22px 0 8px}
+        table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;border-radius:6px;overflow:hidden}
+        th,td{border:1px solid #d7ece1;padding:9px 10px;text-align:left}
+        th{background:#0e6b3c;color:#fff;font-weight:600}
+        tbody tr:nth-child(even){background:#f8fdfb}
+        .recibo{border:1.5px dashed #0e6b3c;border-radius:8px;padding:14px 16px;margin:20px 0;font-size:12.5px;color:#052a18}
+        .recibo strong{display:block;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#0e6b3c}
+        .linea{border-bottom:1px solid #333;display:inline-block;min-width:280px;height:18px}
+        .nota{font-size:11.5px;color:#555;font-style:italic;margin-top:4px}
+        .firmas{margin-top:70px;display:flex;justify-content:space-between;gap:24px}
+        .firmas div{width:46%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333}
+        .pie{margin-top:40px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px}
       </style></head><body>
-      <h1>LABORATORIO CIBRS</h1>
-      <h2>Acta de Entrega / Devolución de Bienes</h2>
-      <div class="campo"><strong>Docente:</strong> ${docente || '—'}</div>
-      <div class="campo"><strong>Fecha de solicitud:</strong> ${prestamo.fechaSolicitud ? new Date(prestamo.fechaSolicitud).toLocaleDateString() : '—'}</div>
-      <div class="campo"><strong>Periodo de prestamo:</strong> ${prestamo.fechaDesde || '—'} a ${prestamo.fechaHasta || '—'}</div>
-      <p>El docente ha solicitado los siguientes equipos:</p>
+      <div class="encabezado">
+        <div>
+          <p class="institucion">Universidad de las Fuerzas Armadas ESPE</p>
+          <h1>Acta de Entrega / Devolución de Bienes</h1>
+        </div>
+        <img src="${logoUrl}" alt="Laboratorio de Investigación de Ciberseguridad" />
+      </div>
+
+      <div class="datos">
+        <div class="dato"><span class="etiqueta">Docente</span><span class="valor">${docente || '—'}</span></div>
+        <div class="dato"><span class="etiqueta">Fecha de solicitud</span><span class="valor">${prestamo.fechaSolicitud ? new Date(prestamo.fechaSolicitud).toLocaleDateString() : '—'}</span></div>
+        <div class="dato"><span class="etiqueta">Periodo de préstamo</span><span class="valor">${prestamo.fechaDesde || '—'} a ${prestamo.fechaHasta || '—'}</span></div>
+        <div class="dato"><span class="etiqueta">Motivo</span><span class="valor">${prestamo.motivo || '—'}</span></div>
+      </div>
+
+      <p class="seccion-titulo">El docente ha solicitado los siguientes equipos:</p>
       <table>
         <thead><tr><th>Equipo</th><th>Motivo</th></tr></thead>
         <tbody><tr><td>${bien}</td><td>${prestamo.motivo || '—'}</td></tr></tbody>
       </table>
-      <p>Recibo la entrega de: _____________________________________________</p>
-      <p>Una vez culminado el plazo de devolución, el Jefe de Laboratorio firma la devolución correcta.</p>
-      <div class="firma">
+
+      <div class="recibo">
+        <strong>Recibo la entrega de</strong>
+        <span class="linea"></span>
+      </div>
+      <p class="nota">Una vez culminado el plazo de devolución, el Jefe de Laboratorio firma la devolución correcta.</p>
+
+      <div class="firmas">
         <div>Firma del docente (entrega el bien)</div>
         <div>Firma del Jefe de Laboratorio (recibe conforme)</div>
       </div>
+
+      <p class="pie">Laboratorio de Investigación de Ciberseguridad — Departamento de Ciencias de la Computación — ESPE</p>
       </body></html>`
 
     const ventana = window.open('', '_blank')
