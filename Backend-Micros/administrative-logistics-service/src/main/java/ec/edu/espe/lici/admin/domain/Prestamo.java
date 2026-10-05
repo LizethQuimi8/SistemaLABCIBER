@@ -73,6 +73,16 @@ public class Prestamo {
     @Column(length = 500)
     private String observacionDevolucion;
 
+    /** Firma independiente de Admin. Infraestructura sobre el acta de
+     * devolucion vigente; se reinicia a false cada vez que se sube un acta
+     * nueva o se rechaza. Se requieren AMBAS firmas para cerrar la devolucion. */
+    @Builder.Default
+    private Boolean devolucionFirmaInfraestructura = false;
+
+    /** Firma independiente del ADMINISTRADOR sobre el acta de devolucion vigente. */
+    @Builder.Default
+    private Boolean devolucionFirmaAdministrador = false;
+
     @PrePersist
     void prePersist() {
         this.fechaSolicitud = LocalDateTime.now();

@@ -33,7 +33,6 @@ const PRESTAMO_ESTADO_LABEL = {
   APROBADO_INFRAESTRUCTURA: 'Esperando confirmación',
   ACTIVO: 'Activo',
   DEVOLUCION_PENDIENTE: 'Acta subida, por validar',
-  DEVOLUCION_APROBADA_INFRAESTRUCTURA: 'Esperando firma final',
   DEVUELTO: 'Devuelto',
   RECHAZADO: 'Rechazado',
 }
@@ -43,7 +42,6 @@ const PRESTAMO_ESTADO_BADGE = {
   APROBADO_INFRAESTRUCTURA: 'bg-sky-50 text-sky-700',
   ACTIVO: 'bg-blue-50 text-blue-700',
   DEVOLUCION_PENDIENTE: 'bg-amber-50 text-amber-700',
-  DEVOLUCION_APROBADA_INFRAESTRUCTURA: 'bg-sky-50 text-sky-700',
   DEVUELTO: 'bg-green-50 text-green-700',
   RECHAZADO: 'bg-red-50 text-red-700',
 }
@@ -81,7 +79,7 @@ function iconoPara(nombre) {
 }
 
 export default function InventarioPage() {
-  const { isAdmin, canEditInventario, usuario } = useAuth()
+  const { isAdmin, isAdminInfraestructura, canEditInventario, usuario } = useAuth()
   const bienesFetcher = useCallback(() => inventarioApi.list(), [])
   const { data: bienes, loading, error, reload, setError } = useList(bienesFetcher)
   const prestamosFetcher = useCallback(() => prestamosApi.list(), [])
@@ -125,11 +123,17 @@ export default function InventarioPage() {
   const puedeAprobarORechazar = (p) =>
     (canEditInventario && p.estado === 'PENDIENTE') || (isAdmin && p.estado === 'APROBADO_INFRAESTRUCTURA')
 
-  // Misma logica en dos firmas, pero sobre la devolucion: primero valida el
-  // acta Admin. Infraestructura, luego firma el cierre el Administrador.
-  const puedeValidarDevolucion = (p) =>
-    (canEditInventario && p.estado === 'DEVOLUCION_PENDIENTE') ||
-    (isAdmin && p.estado === 'DEVOLUCION_APROBADA_INFRAESTRUCTURA')
+  // La devolucion exige AMBAS firmas (Admin. Infraestructura y Administrador),
+  // sin orden fijo: cada quien firma por su lado y solo deja de poder hacerlo
+  // una vez que ya registro su propia firma (espera a que firme el otro).
+  const puedeFirmarDevolucion = (p) => {
+    if (p.estado !== 'DEVOLUCION_PENDIENTE') return false
+    if (isAdmin) return !p.devolucionFirmaAdministrador
+    if (isAdminInfraestructura) return !p.devolucionFirmaInfraestructura
+    return false
+  }
+
+  const puedeRechazarDevolucion = (p) => canEditInventario && p.estado === 'DEVOLUCION_PENDIENTE'
 
   const categorias = useMemo(() => {
     const conteo = new Map()
@@ -620,8 +624,8 @@ export default function InventarioPage() {
                 </span>
               </td>
               <td className="px-3 py-2 text-gray-600">{p.fechaDevolucion ? new Date(p.fechaDevolucion).toLocaleString() : '—'}</td>
-              <td className="px-3 py-2 text-gray-600 max-w-[180px]">
-                <div className="flex items-center gap-2">
+              <td className="px-3 py-2 text-gray-600 max-w-[200px]">
+                <div className="flex flex-col gap-1">
                   {p.actaRuta && (
                     <button
                       onClick={() => handleVerActa(p)}
@@ -630,10 +634,15 @@ export default function InventarioPage() {
                       <FileSignature className="w-3.5 h-3.5" /> Ver acta
                     </button>
                   )}
+                  {p.estado === 'DEVOLUCION_PENDIENTE' && (
+                    <span className="text-[10px] text-gray-500">
+                      Infraestructura: {p.devolucionFirmaInfraestructura ? '✓ firmado' : 'pendiente'} · Administrador: {p.devolucionFirmaAdministrador ? '✓ firmado' : 'pendiente'}
+                    </span>
+                  )}
                   {p.observacionDevolucion && (
                     <span className="truncate" title={p.observacionDevolucion}>{p.observacionDevolucion}</span>
                   )}
-                  {!p.actaRuta && !p.observacionDevolucion && '—'}
+                  {!p.actaRuta && !p.observacionDevolucion && p.estado !== 'DEVOLUCION_PENDIENTE' && '—'}
                 </div>
               </td>
               <td className="px-3 py-2 text-right">
@@ -666,17 +675,17 @@ export default function InventarioPage() {
                       <Undo2 className="w-3.5 h-3.5" /> Devolver
                     </button>
                   )}
-                  {puedeValidarDevolucion(p) && (
+                  {puedeFirmarDevolucion(p) && (
                     <button
                       onClick={() => handleAprobarDevolucion(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
-                      title={p.estado === 'DEVOLUCION_APROBADA_INFRAESTRUCTURA' ? 'Firmar el cierre final de la devolucion' : 'Validar el acta de devolucion'}
+                      title="Firmar la devolucion (se cierra cuando ambos, Administrador e Infraestructura, hayan firmado)"
                     >
-                      <FileCheck2 className="w-3.5 h-3.5" /> {p.estado === 'DEVOLUCION_APROBADA_INFRAESTRUCTURA' ? 'Firmar devolución' : 'Validar devolución'}
+                      <FileCheck2 className="w-3.5 h-3.5" /> Firmar devolución
                     </button>
                   )}
-                  {puedeValidarDevolucion(p) && (
+                  {puedeRechazarDevolucion(p) && (
                     <button
                       onClick={() => { setRechazoDevolucion(p); setObservacionRechazo('') }}
                       disabled={busyId === `p-${p.id}`}

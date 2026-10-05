@@ -45,13 +45,15 @@ import java.util.List;
  * primero por Infraestructura), se activa de inmediato: no tiene sentido
  * pedirle confirmacion a si mismo.
  * <p>
- * La devolucion sigue el mismo patron de dos firmas: el solicitante (solo
- * el, nadie mas) sube el acta de entrega/devolucion firmada
- * (DEVOLUCION_PENDIENTE); Admin. Infraestructura la valida o la rechaza
- * ("archivo incorrecto", vuelve a ACTIVO para subir una nueva); si valida,
- * pasa a DEVOLUCION_APROBADA_INFRAESTRUCTURA a la espera de la firma final
- * del ADMINISTRADOR, que tambien puede rechazarla. Solo con ambas firmas
- * (o la del ADMINISTRADOR directamente) el bien vuelve a DISPONIBLE.
+ * La devolucion exige AMBAS firmas, sin orden fijo: el solicitante (solo el,
+ * nadie mas) sube el acta de entrega/devolucion firmada (DEVOLUCION_PENDIENTE)
+ * y tanto Admin. Infraestructura como el ADMINISTRADOR reciben la
+ * notificacion de inmediato. Cada uno valida por su lado (se registra su
+ * firma por separado); en cuanto firma uno, se le avisa al otro que falta su
+ * firma. Solo cuando AMBOS validaron se cierra la devolucion (DEVUELTO, el
+ * bien vuelve a DISPONIBLE). Cualquiera de los dos puede rechazar el acta en
+ * cualquier momento mientras este pendiente ("archivo incorrecto"): vuelve a
+ * ACTIVO, se reinician ambas firmas y el solicitante debe subir una nueva.
  */
 @RestController
 @RequestMapping("/api/prestamos")
@@ -242,56 +244,61 @@ public class PrestamoController {
         prestamo.setActaNombreArchivo(archivo.getOriginalFilename());
         prestamo.setActaContentType(archivo.getContentType());
         prestamo.setObservacionDevolucion(null);
+        prestamo.setDevolucionFirmaInfraestructura(false);
+        prestamo.setDevolucionFirmaAdministrador(false);
         prestamo.setEstado(EstadoPrestamo.DEVOLUCION_PENDIENTE);
         prestamoRepository.save(prestamo);
 
         BienInventario bien = bienDelPrestamo(prestamo);
-        notificacionClient.notificarPorRol("ADMIN_INFRAESTRUCTURA",
-                "Acta de devolucion subida para " + bien.getNombre() + ": requiere tu validacion.",
-                prestamo.getId(), CurrentUser.rawToken());
+        String token = CurrentUser.rawToken();
+        String mensaje = "Acta de devolucion subida para " + bien.getNombre() + ": requiere la firma de Admin. Infraestructura y del Administrador.";
+        notificacionClient.notificarPorRol("ADMIN_INFRAESTRUCTURA", mensaje, prestamo.getId(), token);
+        notificacionClient.notificarPorRol("ADMINISTRADOR", mensaje, prestamo.getId(), token);
 
         return prestamo;
     }
 
     /**
-     * Valida la devolucion. Si esta DEVOLUCION_PENDIENTE: Admin.
-     * Infraestructura o el ADMINISTRADOR pueden validar; si valida
-     * Infraestructura queda DEVOLUCION_APROBADA_INFRAESTRUCTURA (a la espera
-     * de la firma final), y si valida el propio ADMINISTRADOR se cierra de
-     * una vez. Si ya esta DEVOLUCION_APROBADA_INFRAESTRUCTURA, solo el
-     * ADMINISTRADOR puede dar la firma final (el bien vuelve a DISPONIBLE).
+     * Registra la firma de quien valida (Admin. Infraestructura o el
+     * ADMINISTRADOR) sobre el acta de devolucion vigente. Cada rol firma de
+     * forma independiente, en cualquier orden; en cuanto firma uno se avisa
+     * al otro que falta su firma. Solo al tener AMBAS firmas se cierra la
+     * devolucion (DEVUELTO, el bien vuelve a DISPONIBLE).
      */
     @PatchMapping("/{id}/aprobar-devolucion")
     public Prestamo aprobarDevolucion(@PathVariable Long id) {
         Prestamo prestamo = buscar(id);
-        String token = CurrentUser.rawToken();
-
-        if (prestamo.getEstado() == EstadoPrestamo.DEVOLUCION_PENDIENTE) {
-            if (!puedeGestionarSolicitudes()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para validar devoluciones");
-            }
-            if (CurrentUser.isAdministrador()) {
-                return cerrarDevolucion(prestamo, token);
-            }
-
-            BienInventario bien = bienDelPrestamo(prestamo);
-            prestamo.setEstado(EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA);
-            prestamoRepository.save(prestamo);
-
-            notificacionClient.notificarPorRol("ADMINISTRADOR",
-                    "Acta de devolucion de " + bien.getNombre() + " validada por Infraestructura: requiere tu firma final.",
-                    prestamo.getId(), token);
-            return prestamo;
+        if (prestamo.getEstado() != EstadoPrestamo.DEVOLUCION_PENDIENTE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La devolucion no esta pendiente de validacion");
         }
 
-        if (prestamo.getEstado() == EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA) {
-            if (!CurrentUser.isAdministrador()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede dar la firma final de la devolucion");
+        if (CurrentUser.isAdministrador()) {
+            if (Boolean.TRUE.equals(prestamo.getDevolucionFirmaAdministrador())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya registraste tu firma; falta la firma de Admin. Infraestructura");
             }
+            prestamo.setDevolucionFirmaAdministrador(true);
+        } else if (CurrentUser.isAdminInfraestructura()) {
+            if (Boolean.TRUE.equals(prestamo.getDevolucionFirmaInfraestructura())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya registraste tu firma; falta la firma del Administrador");
+            }
+            prestamo.setDevolucionFirmaInfraestructura(true);
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para validar devoluciones");
+        }
+
+        String token = CurrentUser.rawToken();
+        if (Boolean.TRUE.equals(prestamo.getDevolucionFirmaAdministrador()) && Boolean.TRUE.equals(prestamo.getDevolucionFirmaInfraestructura())) {
             return cerrarDevolucion(prestamo, token);
         }
 
-        throw new ResponseStatusException(HttpStatus.CONFLICT, "La devolucion no esta pendiente de validacion");
+        prestamoRepository.save(prestamo);
+        BienInventario bien = bienDelPrestamo(prestamo);
+        String rolFaltante = CurrentUser.isAdministrador() ? "ADMIN_INFRAESTRUCTURA" : "ADMINISTRADOR";
+        String quienFirmo = CurrentUser.isAdministrador() ? "el Administrador" : "Admin. Infraestructura";
+        notificacionClient.notificarPorRol(rolFaltante,
+                "Ya firmo " + quienFirmo + " la devolucion de " + bien.getNombre() + ": falta tu firma.",
+                prestamo.getId(), token);
+        return prestamo;
     }
 
     private Prestamo cerrarDevolucion(Prestamo prestamo, String token) {
@@ -316,27 +323,26 @@ public class PrestamoController {
 
     /**
      * Rechaza el acta de devolucion (p. ej. "archivo incorrecto"): vuelve a
-     * ACTIVO para que el solicitante suba un acta nueva. Mismas reglas de
-     * quien puede actuar segun el estado que en aprobar-devolucion.
+     * ACTIVO para que el solicitante suba una nueva, reiniciando ambas
+     * firmas. Cualquiera de los dos (Admin. Infraestructura o el
+     * ADMINISTRADOR) puede rechazarla mientras este pendiente, sin importar
+     * si el otro ya habia firmado.
      */
     @PatchMapping("/{id}/rechazar-devolucion")
     public Prestamo rechazarDevolucion(@PathVariable Long id, @RequestParam(required = false) String observacion) {
         Prestamo prestamo = buscar(id);
 
-        if (prestamo.getEstado() == EstadoPrestamo.DEVOLUCION_PENDIENTE) {
-            if (!puedeGestionarSolicitudes()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para rechazar devoluciones");
-            }
-        } else if (prestamo.getEstado() == EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA) {
-            if (!CurrentUser.isAdministrador()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede rechazar la firma final de la devolucion");
-            }
-        } else {
+        if (prestamo.getEstado() != EstadoPrestamo.DEVOLUCION_PENDIENTE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La devolucion no esta pendiente de validacion");
+        }
+        if (!puedeGestionarSolicitudes()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para rechazar devoluciones");
         }
 
         prestamo.setEstado(EstadoPrestamo.ACTIVO);
         prestamo.setObservacionDevolucion(observacion != null && !observacion.isBlank() ? observacion : "Archivo incorrecto");
+        prestamo.setDevolucionFirmaInfraestructura(false);
+        prestamo.setDevolucionFirmaAdministrador(false);
         prestamoRepository.save(prestamo);
 
         BienInventario bien = bienDelPrestamo(prestamo);

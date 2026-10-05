@@ -337,7 +337,7 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void iniciarDevolucionGuardaElActaYQuedaPendienteDeValidacion() throws IOException {
+    void iniciarDevolucionGuardaElActaYAvisaAAmbosFirmantes() throws IOException {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
@@ -349,9 +349,12 @@ class PrestamoControllerTest {
         assertThat(actualizado.getEstado()).isEqualTo(EstadoPrestamo.DEVOLUCION_PENDIENTE);
         assertThat(actualizado.getActaNombreArchivo()).isEqualTo("acta.pdf");
         assertThat(actualizado.getActaRuta()).endsWith(".pdf");
+        assertThat(actualizado.getDevolucionFirmaInfraestructura()).isFalse();
+        assertThat(actualizado.getDevolucionFirmaAdministrador()).isFalse();
         assertThat(storageDir.resolve(actualizado.getActaRuta())).exists();
         verify(bienInventarioRepository, never()).save(any());
         verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any(), any());
+        verify(notificacionClient).notificarPorRol(eq("ADMINISTRADOR"), any(), any(), any());
     }
 
     @Test
@@ -367,7 +370,7 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void adminInfraestructuraValidaLaDevolucionPendienteYAvisaAlAdministrador() {
+    void adminInfraestructuraFirmaPrimeroQuedaEnEsperaDeLaFirmaDelAdministrador() {
         authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
@@ -376,15 +379,35 @@ class PrestamoControllerTest {
 
         Prestamo actualizado = controller.aprobarDevolucion(1L);
 
-        assertThat(actualizado.getEstado()).isEqualTo(EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA);
+        assertThat(actualizado.getEstado()).isEqualTo(EstadoPrestamo.DEVOLUCION_PENDIENTE);
+        assertThat(actualizado.getDevolucionFirmaInfraestructura()).isTrue();
+        assertThat(actualizado.getDevolucionFirmaAdministrador()).isFalse();
         verify(bienInventarioRepository, never()).save(any());
         verify(notificacionClient).notificarPorRol(eq("ADMINISTRADOR"), any(), any(), any());
     }
 
     @Test
-    void administradorCierraLaDevolucionAprobadaPorInfraestructuraYLiberaElBien() {
+    void administradorFirmaPrimeroQuedaEnEsperaDeLaFirmaDeInfraestructura() {
         authenticateAs(1L, "ADMINISTRADOR");
-        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA);
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.EN_USO)));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo actualizado = controller.aprobarDevolucion(1L);
+
+        assertThat(actualizado.getEstado()).isEqualTo(EstadoPrestamo.DEVOLUCION_PENDIENTE);
+        assertThat(actualizado.getDevolucionFirmaAdministrador()).isTrue();
+        assertThat(actualizado.getDevolucionFirmaInfraestructura()).isFalse();
+        verify(bienInventarioRepository, never()).save(any());
+        verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any(), any());
+    }
+
+    @Test
+    void conAmbasFirmasSeCierraLaDevolucionYLiberaElBien() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
+        prestamo.setDevolucionFirmaInfraestructura(true);
         BienInventario bien = bienDe(1L, EstadoBien.EN_USO);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
         when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
@@ -400,10 +423,25 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void adminInfraestructuraNoPuedeDarLaFirmaFinalDeLaDevolucion() {
-        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+    void unUsuarioQueYaFirmoNoPuedeVolverAFirmar() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
+        prestamo.setDevolucionFirmaAdministrador(true);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+
+        assertThatThrownBy(() -> controller.aprobarDevolucion(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void unDocenteNoPuedeValidarDevoluciones() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(
-                prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA)));
+                prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE)));
 
         assertThatThrownBy(() -> controller.aprobarDevolucion(1L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -414,23 +452,20 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void administradorPuedeCerrarUnaDevolucionPendienteDirectamente() {
+    void aprobarDevolucionRechazaSiNoEstaPendiente() {
         authenticateAs(1L, "ADMINISTRADOR");
-        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
-        BienInventario bien = bienDe(1L, EstadoBien.EN_USO);
-        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
-        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
-        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO)));
 
-        Prestamo devuelto = controller.aprobarDevolucion(1L);
+        assertThatThrownBy(() -> controller.aprobarDevolucion(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
 
-        assertThat(devuelto.getEstado()).isEqualTo(EstadoPrestamo.DEVUELTO);
-        assertThat(bien.getEstado()).isEqualTo(EstadoBien.DISPONIBLE);
+        verify(prestamoRepository, never()).save(any());
     }
 
     @Test
-    void adminInfraestructuraPuedeRechazarElActaDeDevolucionPorIncorrecto() {
+    void cualquieraDeLosDosPuedeRechazarElActaDeDevolucion() {
         authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
@@ -445,15 +480,44 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void adminInfraestructuraNoPuedeRechazarLaFirmaFinalDeLaDevolucion() {
-        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+    void rechazarReiniciaAmbasFirmasAunqueUnaYaEstuvieraFirmada() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE);
+        prestamo.setDevolucionFirmaInfraestructura(true);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.EN_USO)));
+
+        Prestamo actualizado = controller.rechazarDevolucion(1L, "Archivo incorrecto");
+
+        assertThat(actualizado.getEstado()).isEqualTo(EstadoPrestamo.ACTIVO);
+        assertThat(actualizado.getDevolucionFirmaInfraestructura()).isFalse();
+        assertThat(actualizado.getDevolucionFirmaAdministrador()).isFalse();
+    }
+
+    @Test
+    void unDocenteNoPuedeRechazarDevoluciones() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(
-                prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_APROBADA_INFRAESTRUCTURA)));
+                prestamoDe(1L, 1L, 5L, EstadoPrestamo.DEVOLUCION_PENDIENTE)));
 
         assertThatThrownBy(() -> controller.rechazarDevolucion(1L, "Archivo incorrecto"))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void rechazarDevolucionRechazaSiNoEstaPendiente() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.ACTIVO)));
+
+        assertThatThrownBy(() -> controller.rechazarDevolucion(1L, "Archivo incorrecto"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
 
         verify(prestamoRepository, never()).save(any());
     }
