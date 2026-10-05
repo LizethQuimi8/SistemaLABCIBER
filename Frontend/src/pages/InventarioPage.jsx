@@ -298,6 +298,7 @@ export default function InventarioPage() {
     const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}lici-sello.jpg`
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Acta de Entrega / Devolución de Bienes</title>
       <style>
+        @page{margin:0}
         body{font-family:'Segoe UI',Arial,sans-serif;padding:40px;color:#1a1a1a}
         .encabezado{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #0e6b3c;padding-bottom:16px;margin-bottom:24px}
         .encabezado .institucion{font-size:11px;letter-spacing:0.5px;color:#777;text-transform:uppercase;margin:0 0 6px}
@@ -313,7 +314,7 @@ export default function InventarioPage() {
         th{background:#0e6b3c;color:#fff;font-weight:600}
         tbody tr:nth-child(even){background:#f8fdfb}
         .nota{font-size:11.5px;color:#555;font-style:italic;margin-top:16px}
-        .firmas{margin-top:70px;display:flex;justify-content:space-between;gap:24px}
+        .firmas{margin-top:120px;display:flex;justify-content:space-between;gap:24px}
         .firmas div{width:46%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333}
         .pie{margin-top:40px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px}
       </style></head><body>
