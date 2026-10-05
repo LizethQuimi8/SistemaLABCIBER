@@ -25,8 +25,10 @@ import java.util.Collection;
  * Prestamos -> los 4 roles pueden solicitar/ver; aprobar es de Administrador y
  * Admin. Infraestructura, rechazar es exclusivo de Administrador (verificado
  * en PrestamoController).
- * Compras Publicas -> Administrador y Responsable Compras CRUD completo, el
- * resto (Docente, Admin. Infraestructura) solo lectura.
+ * Compras Publicas -> los 4 roles pueden crear/ver/subir archivos; editar el
+ * proceso o su archivo es de los responsables de cada compra (o quien la
+ * creo) o Administrador; eliminar es exclusivo de Administrador (verificado
+ * en CompraPublicaController).
  */
 @Configuration
 @EnableWebSecurity
@@ -62,9 +64,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/inventario/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers("/api/prestamos/**")
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
-                        .requestMatchers(HttpMethod.GET, "/api/compras/**")
+                        .requestMatchers("/api/compras/**")
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
-                        .requestMatchers("/api/compras/**").hasAnyRole("ADMINISTRADOR", "RESPONSABLE_COMPRAS")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

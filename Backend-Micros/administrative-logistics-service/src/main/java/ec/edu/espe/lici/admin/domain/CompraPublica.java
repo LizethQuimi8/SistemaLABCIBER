@@ -51,6 +51,12 @@ public class CompraPublica {
     @Column(length = 300)
     private String responsables;
 
+    /** Ids (core-security-users-service) de los mismos responsables, separados
+     * por coma (p. ej. "5,12"); es lo que realmente se usa para autorizar
+     * quien puede editar el proceso o su archivo (ver CompraPublicaController). */
+    @Column(length = 300)
+    private String responsableIds;
+
     /** Id del Usuario (core-security-users-service) que solicito la compra. */
     private Long usuarioSolicitanteId;
 
@@ -68,6 +74,13 @@ public class CompraPublica {
     private String archivoNombreArchivo;
 
     private String archivoContentType;
+
+    /** Nombre en disco del ZIP con los documentos de la fase Entrega de bienes. */
+    private String zipEntregaRuta;
+
+    private String zipEntregaNombreArchivo;
+
+    private String zipEntregaContentType;
 
     @PrePersist
     void prePersist() {

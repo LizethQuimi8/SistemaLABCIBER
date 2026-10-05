@@ -101,6 +101,8 @@ export const comprasApi = {
   setFase: (id, fase) => apiFetch(`/api/compras/${id}/fase?fase=${fase}`, { method: 'PATCH' }),
   subirArchivo: (id, file) => apiUpload(`/api/compras/${id}/archivo`, file),
   verArchivo: (id) => apiFetchBlob(`/api/compras/${id}/archivo`),
+  subirZipEntrega: (id, file) => apiUpload(`/api/compras/${id}/zip-entrega`, file),
+  verZipEntrega: (id) => apiFetchBlob(`/api/compras/${id}/zip-entrega`),
   remove: (id) => apiFetch(`/api/compras/${id}`, { method: 'DELETE' }),
 }
 

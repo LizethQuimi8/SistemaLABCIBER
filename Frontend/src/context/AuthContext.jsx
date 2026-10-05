@@ -51,14 +51,15 @@ export function AuthProvider({ children }) {
   const isResponsableCompras = usuario?.rol === 'RESPONSABLE_COMPRAS'
   // Cada rol especializado edita solo su modulo; el resto de pestañas les
   // queda en solo lectura (excepto Docentes Investigadores, que es editable
-  // por cualquier usuario autenticado, ver InvestigadoresPage).
+  // por cualquier usuario autenticado, ver InvestigadoresPage; y Compras
+  // Publicas, donde cualquiera crea pero solo sus responsables editan, ver
+  // ComprasPage).
   const canEditInventario = isAdmin || isAdminInfraestructura
-  const canEditCompras = isAdmin || isResponsableCompras
 
   return (
     <AuthContext.Provider value={{
       usuario, isAdmin, isAdminInfraestructura, isResponsableCompras,
-      canEditInventario, canEditCompras, login, logout, completarPrimerIngreso, loading, error,
+      canEditInventario, login, logout, completarPrimerIngreso, loading, error,
     }}>
       {children}
     </AuthContext.Provider>

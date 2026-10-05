@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, ShoppingCart, FileDown, FileUp, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, ShoppingCart, FileDown, FileUp, Eye, Archive } from 'lucide-react'
 import { comprasApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -41,7 +41,7 @@ const FORM_INICIAL = {
 }
 
 export default function ComprasPage() {
-  const { canEditCompras } = useAuth()
+  const { isAdmin, usuario } = useAuth()
   const fetcher = useCallback(() => comprasApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
@@ -52,6 +52,8 @@ export default function ComprasPage() {
   const [responsablesIds, setResponsablesIds] = useState([])
   const [archivo, setArchivo] = useState(null)
   const [archivoActualNombre, setArchivoActualNombre] = useState(null)
+  const [zipEntrega, setZipEntrega] = useState(null)
+  const [zipActualNombre, setZipActualNombre] = useState(null)
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [viewingId, setViewingId] = useState(null)
@@ -63,6 +65,16 @@ export default function ComprasPage() {
     () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
     [directorio]
   )
+
+  // Puede editar el proceso (y su archivo): quien lo creo, cualquiera de sus
+  // responsables actuales, o el ADMINISTRADOR. Eliminar es solo ADMINISTRADOR.
+  const puedeEditar = (c) => {
+    if (isAdmin) return true
+    if (!usuario) return false
+    if (c.usuarioSolicitanteId === usuario.id) return true
+    const ids = (c.responsableIds || '').split(',').map((s) => s.trim()).filter(Boolean)
+    return ids.includes(String(usuario.id))
+  }
 
   const toggleResponsable = (usuarioId) => {
     setResponsablesIds((prev) => (
@@ -89,9 +101,11 @@ export default function ComprasPage() {
   const openCreate = () => {
     setEditingId(null)
     setForm({ ...FORM_INICIAL, anio: anioFiltro === 'TODOS' ? String(anioActual) : anioFiltro })
-    setResponsablesIds([])
+    setResponsablesIds(usuario ? [usuario.id] : [])
     setArchivo(null)
     setArchivoActualNombre(null)
+    setZipEntrega(null)
+    setZipActualNombre(null)
     setShowForm(true)
   }
 
@@ -106,10 +120,11 @@ export default function ComprasPage() {
       responsables: c.responsables || '',
       fase: c.fase || 'PREPARATORIA',
     })
-    const nombresGuardados = (c.responsables || '').split(',').map((s) => s.trim()).filter(Boolean)
-    setResponsablesIds(directorio.filter((u) => nombresGuardados.includes(`${u.nombres} ${u.apellidos}`)).map((u) => u.id))
+    setResponsablesIds((c.responsableIds || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number))
     setArchivo(null)
     setArchivoActualNombre(c.archivoNombreArchivo || null)
+    setZipEntrega(null)
+    setZipActualNombre(c.zipEntregaNombreArchivo || null)
     setShowForm(true)
   }
 
@@ -119,7 +134,13 @@ export default function ComprasPage() {
     setError(null)
     try {
       const responsables = responsablesIds.map((id) => nombrePorUsuarioId.get(id)).filter(Boolean).join(', ')
-      const payload = { ...form, responsables, monto: form.monto ? Number(form.monto) : null, anio: Number(form.anio) }
+      const payload = {
+        ...form,
+        responsables,
+        responsableIds: responsablesIds.join(','),
+        monto: form.monto ? Number(form.monto) : null,
+        anio: Number(form.anio),
+      }
       let id = editingId
       if (editingId) {
         await comprasApi.update(editingId, payload)
@@ -130,11 +151,15 @@ export default function ComprasPage() {
       if (archivo) {
         await comprasApi.subirArchivo(id, archivo)
       }
+      if (zipEntrega) {
+        await comprasApi.subirZipEntrega(id, zipEntrega)
+      }
       setShowForm(false)
       setEditingId(null)
       setForm(FORM_INICIAL)
       setResponsablesIds([])
       setArchivo(null)
+      setZipEntrega(null)
       reload()
     } catch (err) {
       setError(err.message)
@@ -148,6 +173,21 @@ export default function ComprasPage() {
     setError(null)
     try {
       const blob = await comprasApi.verArchivo(compra.id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setViewingId(null)
+    }
+  }
+
+  const handleVerZip = async (compra) => {
+    setViewingId(`zip-${compra.id}`)
+    setError(null)
+    try {
+      const blob = await comprasApi.verZipEntrega(compra.id)
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank')
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
@@ -238,11 +278,9 @@ export default function ComprasPage() {
             >
               <FileDown className="w-4 h-4" /> Generar reporte
             </button>
-            {canEditCompras && (
-              <PrimaryButton onClick={openCreate}>
-                <Plus className="w-4 h-4" /> Nuevo objeto de contratación
-              </PrimaryButton>
-            )}
+            <PrimaryButton onClick={openCreate}>
+              <Plus className="w-4 h-4" /> Nuevo objeto de contratación
+            </PrimaryButton>
           </div>
         }
       />
@@ -281,10 +319,13 @@ export default function ComprasPage() {
         ))}
       </div>
 
-      <Table headers={canEditCompras ? ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Archivo', 'Fase', ''] : ['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Archivo', 'Fase']}>
-        {loading && <LoadingRow colSpan={canEditCompras ? 8 : 7} />}
-        {!loading && filtradas.length === 0 && <EmptyRow colSpan={canEditCompras ? 8 : 7} />}
-        {!loading && filtradas.map((c) => (
+      <Table headers={['Objeto de contratación', 'N° Proceso', 'Tipo', 'Monto', 'Responsables', 'Archivo', 'ZIP entrega', 'Fase', '']}>
+        {loading && <LoadingRow colSpan={9} />}
+        {!loading && filtradas.length === 0 && <EmptyRow colSpan={9} />}
+        {!loading && filtradas.map((c) => {
+          const editable = puedeEditar(c)
+          const faseEntregaOTardia = c.fase === 'ENTREGA_BIENES' || c.fase === 'PAGO_PROVEEDOR'
+          return (
           <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <ShoppingCart className="w-3.5 h-3.5 text-gray-400" /> {c.objetoContratacion}
@@ -308,7 +349,23 @@ export default function ComprasPage() {
               )}
             </td>
             <td className="px-3 py-2">
-              {canEditCompras ? (
+              {c.zipEntregaRuta ? (
+                <button
+                  onClick={() => handleVerZip(c)}
+                  disabled={viewingId === `zip-${c.id}`}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                  title={c.zipEntregaNombreArchivo || 'Ver ZIP de entrega'}
+                >
+                  <Archive className="w-3.5 h-3.5" /> {viewingId === `zip-${c.id}` ? 'Abriendo...' : 'Ver'}
+                </button>
+              ) : faseEntregaOTardia ? (
+                <span className="text-gray-400 text-xs">Sin ZIP</span>
+              ) : (
+                <span className="text-gray-300 text-xs">—</span>
+              )}
+            </td>
+            <td className="px-3 py-2">
+              {editable ? (
                 <select
                   className={`text-[10px] font-semibold rounded-full px-2 py-1 border-0 ${FASE_BADGE[c.fase]}`}
                   value={c.fase}
@@ -324,20 +381,23 @@ export default function ComprasPage() {
                 </span>
               )}
             </td>
-            {canEditCompras && (
-              <td className="px-3 py-2 text-right">
-                <div className="flex items-center justify-end gap-2">
+            <td className="px-3 py-2 text-right">
+              <div className="flex items-center justify-end gap-2">
+                {editable && (
                   <button onClick={() => openEdit(c)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-700">
+                )}
+                {isAdmin && (
+                  <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
-                </div>
-              </td>
-            )}
+                )}
+              </div>
+            </td>
           </tr>
-        ))}
+          )
+        })}
       </Table>
 
       {showForm && (
@@ -394,6 +454,15 @@ export default function ComprasPage() {
                 <input type="file" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] || null)} />
               </label>
             </Field>
+            {(form.fase === 'ENTREGA_BIENES' || form.fase === 'PAGO_PROVEEDOR') && (
+              <Field label={zipActualNombre ? 'Reemplazar ZIP de entrega de bienes' : 'ZIP con los documentos de entrega de bienes'}>
+                <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
+                  <Archive className="w-4 h-4 flex-shrink-0" />
+                  {zipEntrega ? zipEntrega.name : (zipActualNombre || 'Subir archivo .zip')}
+                  <input type="file" accept=".zip" className="hidden" onChange={(e) => setZipEntrega(e.target.files?.[0] || null)} />
+                </label>
+              </Field>
+            )}
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
               {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Registrar'}
             </PrimaryButton>
