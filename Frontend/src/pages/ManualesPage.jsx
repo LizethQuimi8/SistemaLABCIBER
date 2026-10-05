@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Plus, Pencil, Trash2, FileText, Eye, Upload } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Plus, Pencil, Trash2, FileText, Eye, Upload, Search } from 'lucide-react'
 import { manualesApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -19,6 +19,15 @@ export default function ManualesPage() {
   const [archivo, setArchivo] = useState(null)
   const [saving, setSaving] = useState(false)
   const [viewingId, setViewingId] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
+
+  const filtrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase()
+    if (!termino) return data
+    return data.filter((m) =>
+      (m.titulo || '').toLowerCase().includes(termino) || (m.descripcion || '').toLowerCase().includes(termino)
+    )
+  }, [data, busqueda])
 
   const openCreate = () => {
     setEditingId(null)
@@ -100,10 +109,22 @@ export default function ManualesPage() {
 
       <ErrorBanner message={error} />
 
+      <div className="relative mb-3 max-w-xs">
+        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por título o descripción..."
+          className="input pl-8 text-xs py-1.5 w-full"
+        />
+      </div>
+
       <Table headers={isAdmin ? ['Título', 'Descripción', 'Archivo', ''] : ['Título', 'Descripción', 'Archivo']}>
         {loading && <LoadingRow colSpan={isAdmin ? 4 : 3} />}
-        {!loading && data.length === 0 && <EmptyRow colSpan={isAdmin ? 4 : 3} message="No hay manuales o procesos cargados todavía" />}
-        {!loading && data.map((m) => (
+        {!loading && filtrados.length === 0 && (
+          <EmptyRow colSpan={isAdmin ? 4 : 3} message={data.length === 0 ? 'No hay manuales o procesos cargados todavía' : 'Ningún manual coincide con la búsqueda'} />
+        )}
+        {!loading && filtrados.map((m) => (
           <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <FileText className="w-3.5 h-3.5 text-gray-400" /> {m.titulo}
