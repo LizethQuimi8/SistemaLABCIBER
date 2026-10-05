@@ -341,7 +341,7 @@ export default function InventarioPage() {
         <strong>Recibo la entrega de</strong>
         <span class="linea"></span>
       </div>
-      <p class="nota">Una vez culminado el plazo de devolución, el Jefe de Laboratorio firma la devolución correcta.</p>
+      <p class="nota"><strong>Constancia:</strong> Con la firma de este apartado, se certifica haber recibido los equipos descritos en esta acta a entera conformidad.</p>
 
       <div class="firmas">
         <div>Firma del docente (entrega el bien)</div>
