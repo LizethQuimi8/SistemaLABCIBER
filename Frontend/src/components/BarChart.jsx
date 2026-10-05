@@ -13,7 +13,7 @@ export default function BarChart({ data = [], loading = false }) {
       <div className="flex items-center gap-3 mb-3 text-xs">
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 rounded-sm bg-green-500 inline-block" />
-          <span className="text-gray-600">Conteo por modulo (datos reales)</span>
+          <span className="text-gray-600">Conteo por módulo</span>
         </div>
       </div>
 
