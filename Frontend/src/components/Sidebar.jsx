@@ -21,11 +21,11 @@ const menuItems = [
   { id: 'publicaciones', label: 'Artículos y Publicaciones', icon: BookOpen },
   { id: 'documentos', label: 'Documentos y Correspondencia', icon: FileText },
   { id: 'manuales', label: 'Manuales y Procesos', icon: BookMarked },
-  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'inventario', label: 'Inventario', icon: Package },
   { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },
   { id: 'usuarios', label: 'Gestión de Usuarios', icon: Users, adminOnly: true },
   { id: 'reportes', label: 'Reportes', icon: BarChart2 },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
 ]
 
 export default function Sidebar({ currentView, onNavigate, open, onClose }) {
