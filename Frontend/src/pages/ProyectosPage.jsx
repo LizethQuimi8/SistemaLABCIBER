@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, FolderOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, FolderOpen, FileUp, Eye } from 'lucide-react'
 import { proyectosApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -21,17 +21,23 @@ export default function ProyectosPage() {
   )
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [editingProyecto, setEditingProyecto] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
+  const [documentoAprobacion, setDocumentoAprobacion] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [viewingId, setViewingId] = useState(null)
 
   const openCreate = () => {
     setEditingId(null)
+    setEditingProyecto(null)
     setForm(FORM_INICIAL)
+    setDocumentoAprobacion(null)
     setShowForm(true)
   }
 
   const openEdit = (p) => {
     setEditingId(p.id)
+    setEditingProyecto(p)
     setForm({
       nombre: p.nombre || '',
       descripcion: p.descripcion || '',
@@ -40,6 +46,7 @@ export default function ProyectosPage() {
       avancePorcentaje: p.avancePorcentaje ?? 0,
       usuarioResponsableId: p.usuarioResponsableId ? String(p.usuarioResponsableId) : '',
     })
+    setDocumentoAprobacion(null)
     setShowForm(true)
   }
 
@@ -54,19 +61,39 @@ export default function ProyectosPage() {
         avancePorcentaje: Number(form.avancePorcentaje) || 0,
         usuarioResponsableId: form.usuarioResponsableId ? Number(form.usuarioResponsableId) : null,
       }
+      let id = editingId
       if (editingId) {
         await proyectosApi.update(editingId, payload)
       } else {
-        await proyectosApi.create(payload)
+        const creado = await proyectosApi.create(payload)
+        id = creado.id
       }
+      if (documentoAprobacion) await proyectosApi.subirDocumentoAprobacion(id, documentoAprobacion)
       setShowForm(false)
       setEditingId(null)
+      setEditingProyecto(null)
       setForm(FORM_INICIAL)
+      setDocumentoAprobacion(null)
       reload()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleVerDocumento = async (p) => {
+    setViewingId(p.id)
+    setError(null)
+    try {
+      const blob = await proyectosApi.verDocumentoAprobacion(p.id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setViewingId(null)
     }
   }
 
@@ -95,9 +122,9 @@ export default function ProyectosPage() {
 
       <ErrorBanner message={error} />
 
-      <Table headers={['Nombre', 'Estado', 'Avance', 'Presupuesto', 'Responsable', '']}>
-        {loading && <LoadingRow colSpan={6} />}
-        {!loading && data.length === 0 && <EmptyRow colSpan={6} />}
+      <Table headers={['Nombre', 'Estado', 'Avance', 'Presupuesto', 'Responsable', 'Doc. aprobación', '']}>
+        {loading && <LoadingRow colSpan={7} />}
+        {!loading && data.length === 0 && <EmptyRow colSpan={7} />}
         {!loading && data.map((p) => (
           <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
@@ -111,6 +138,14 @@ export default function ProyectosPage() {
             <td className="px-3 py-2 text-gray-600">{p.avancePorcentaje ?? 0}%</td>
             <td className="px-3 py-2 text-gray-600">{p.presupuesto ?? '—'}</td>
             <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioResponsableId) || `#${p.usuarioResponsableId}`}</td>
+            <td className="px-3 py-2">
+              <ArchivoBoton
+                disponible={!!p.documentoAprobacionRuta}
+                cargando={viewingId === p.id}
+                titulo={p.documentoAprobacionNombreArchivo}
+                onClick={() => handleVerDocumento(p)}
+              />
+            </td>
             <td className="px-3 py-2 text-right">
               <div className="flex items-center justify-end gap-2">
                 {puedeEditar(p) && (
@@ -163,13 +198,45 @@ export default function ProyectosPage() {
                 <input className="input bg-gray-50 text-gray-500" value={`${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()} disabled />
               )}
             </Field>
+            <ArchivoInput
+              label={editingProyecto?.documentoAprobacionRuta ? 'Reemplazar documento de aprobación (PDF)' : 'Documento de aprobación (PDF)'}
+              file={documentoAprobacion}
+              onChange={setDocumentoAprobacion}
+              placeholder={editingProyecto?.documentoAprobacionNombreArchivo}
+            />
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
-              {saving ? 'Guardando...' : editingId ? 'Guardar cambios' : 'Crear proyecto'}
+              {saving ? (documentoAprobacion ? 'Subiendo...' : 'Guardando...') : editingId ? 'Guardar cambios' : 'Crear proyecto'}
             </PrimaryButton>
           </form>
         </Modal>
       )}
     </main>
+  )
+}
+
+function ArchivoBoton({ disponible, cargando, titulo, onClick, icon: Icon = Eye, etiqueta = 'Ver' }) {
+  if (!disponible) return <span className="text-gray-400 text-xs">Sin subir</span>
+  return (
+    <button
+      onClick={onClick}
+      disabled={cargando}
+      className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+      title={titulo || etiqueta}
+    >
+      <Icon className="w-3.5 h-3.5" /> {cargando ? 'Abriendo...' : etiqueta}
+    </button>
+  )
+}
+
+function ArchivoInput({ label, file, onChange, placeholder, icon: Icon = FileUp }) {
+  return (
+    <Field label={label}>
+      <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        {file ? file.name : (placeholder || 'Subir archivo PDF')}
+        <input type="file" accept=".pdf" className="hidden" onChange={(e) => onChange(e.target.files?.[0] || null)} />
+      </label>
+    </Field>
   )
 }
 

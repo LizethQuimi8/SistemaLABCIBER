@@ -19,12 +19,17 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 lici:
   security:
     jwk-set-uri: ${JWK_SET_URI:http://localhost:8081/oauth2/jwks}
   storage:
     curriculums-dir: ${CURRICULUMS_STORAGE_DIR:/data/curriculums}
+    proyectos-dir: ${PROYECTOS_STORAGE_DIR:/data/proyectos}
 
 management:
   endpoints:

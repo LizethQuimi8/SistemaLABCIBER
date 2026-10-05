@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen, Filter } from 'lucide-react'
 import { publicacionesApi, investigadoresApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -24,6 +24,8 @@ export default function PublicacionesPage() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
+  const [autorFiltro, setAutorFiltro] = useState('TODOS')
+  const [anioFiltro, setAnioFiltro] = useState('TODOS')
 
   const investigadorIdPorUsuarioId = useMemo(
     () => new Map(investigadores.map((inv) => [inv.usuarioId, inv.id])),
@@ -33,6 +35,31 @@ export default function PublicacionesPage() {
     () => new Map(investigadores.map((inv) => [inv.id, inv.usuarioId])),
     [investigadores]
   )
+
+  const autores = useMemo(() => {
+    const ids = new Set(data.map((p) => p.usuarioId).filter(Boolean))
+    return [...ids]
+      .map((id) => ({ id, nombre: nombrePorUsuarioId.get(id) || `#${id}` }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }, [data, nombrePorUsuarioId])
+
+  const anios = useMemo(
+    () => [...new Set(data.map((p) => p.anioPublicacion).filter(Boolean))].sort((a, b) => b - a),
+    [data]
+  )
+
+  const dataFiltrada = useMemo(() => {
+    return data.filter((p) => {
+      if (autorFiltro !== 'TODOS' && String(p.usuarioId) !== autorFiltro) return false
+      if (anioFiltro !== 'TODOS' && String(p.anioPublicacion) !== anioFiltro) return false
+      return true
+    })
+  }, [data, autorFiltro, anioFiltro])
+
+  const limpiarFiltros = () => {
+    setAutorFiltro('TODOS')
+    setAnioFiltro('TODOS')
+  }
 
   const abrirCrear = () => {
     setEditingId(null)
@@ -117,10 +144,33 @@ export default function PublicacionesPage() {
 
       <ErrorBanner message={error} />
 
+      <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-2">
+          <Filter className="w-3.5 h-3.5" /> Filtrar por autor y año
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <select className="input py-1.5 text-xs w-56" value={autorFiltro} onChange={(e) => setAutorFiltro(e.target.value)}>
+            <option value="TODOS">Todos los autores</option>
+            {autores.map((a) => <option key={a.id} value={String(a.id)}>{a.nombre}</option>)}
+          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <FiltroChip active={anioFiltro === 'TODOS'} onClick={() => setAnioFiltro('TODOS')}>Todos los años</FiltroChip>
+            {anios.map((a) => (
+              <FiltroChip key={a} active={anioFiltro === String(a)} onClick={() => setAnioFiltro(String(a))}>{a}</FiltroChip>
+            ))}
+          </div>
+          {(autorFiltro !== 'TODOS' || anioFiltro !== 'TODOS') && (
+            <button onClick={limpiarFiltros} className="text-xs text-gray-400 hover:text-red-600">
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
       <Table headers={['Titulo', 'Revista', 'Año', 'DOI', 'Autor', '']}>
         {loading && <LoadingRow colSpan={6} />}
-        {!loading && data.length === 0 && <EmptyRow colSpan={6} />}
-        {!loading && data.map((p) => (
+        {!loading && dataFiltrada.length === 0 && <EmptyRow colSpan={6} message={data.length === 0 ? 'Sin registros todavia' : 'Ningún artículo coincide con los filtros aplicados'} />}
+        {!loading && dataFiltrada.map((p) => (
           <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <BookOpen className="w-3.5 h-3.5 text-gray-400" /> {p.titulo}
@@ -195,5 +245,17 @@ function Field({ label, children }) {
       <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+function FiltroChip({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 flex-shrink-0 rounded-full border font-semibold whitespace-nowrap transition-colors px-3 py-1.5 text-xs
+        ${active ? 'bg-[#0e6b3c] text-white border-[#0e6b3c]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0e6b3c]'}`}
+    >
+      {children}
+    </button>
   )
 }

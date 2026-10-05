@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, UserCheck, FileUp, Eye, Info, CalendarDays } from 'lucide-react'
-import { investigadoresApi, usuariosApi } from '../api/services'
+import { Plus, Pencil, Trash2, UserCheck, FileUp, Eye, Info, CalendarDays, BookOpen } from 'lucide-react'
+import { investigadoresApi, usuariosApi, publicacionesApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { useAuth } from '../context/AuthContext'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -14,6 +14,8 @@ export default function InvestigadoresPage() {
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
   const { data: directorio } = useList(directorioFetcher)
+  const publicacionesFetcher = useCallback(() => publicacionesApi.list(), [])
+  const { data: publicaciones } = useList(publicacionesFetcher)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editingInv, setEditingInv] = useState(null)
@@ -27,6 +29,10 @@ export default function InvestigadoresPage() {
   const nombrePorUsuarioId = useMemo(
     () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
     [directorio]
+  )
+  const publicacionesDelDetalle = useMemo(
+    () => (detalle ? publicaciones.filter((p) => p.investigadorId === detalle.id) : []),
+    [publicaciones, detalle]
   )
 
   const openCreate = () => {
@@ -256,6 +262,24 @@ export default function InvestigadoresPage() {
                 icon={CalendarDays}
                 onClick={() => handleVerArchivo(detalle, 'horario')}
               />
+            </div>
+            <div className="pt-2 border-t border-gray-100">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mb-2">
+                <BookOpen className="w-3.5 h-3.5" /> Sus publicaciones ({publicacionesDelDetalle.length})
+              </span>
+              {publicacionesDelDetalle.length === 0 ? (
+                <p className="text-xs text-gray-400">Este docente aun no tiene publicaciones registradas.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {publicacionesDelDetalle.map((p) => (
+                    <li key={p.id} className="text-xs text-gray-700">
+                      <span className="font-semibold">{p.titulo}</span>
+                      {p.revista && <span className="text-gray-500"> — {p.revista}</span>}
+                      {p.anioPublicacion && <span className="text-gray-400"> ({p.anioPublicacion})</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </Modal>

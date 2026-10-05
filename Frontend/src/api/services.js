@@ -23,6 +23,8 @@ export const proyectosApi = {
   list: () => apiFetch('/api/proyectos'),
   create: (data) => apiFetch('/api/proyectos', { method: 'POST', body: data }),
   update: (id, data) => apiFetch(`/api/proyectos/${id}`, { method: 'PUT', body: data }),
+  subirDocumentoAprobacion: (id, file) => apiUpload(`/api/proyectos/${id}/documento-aprobacion`, file),
+  verDocumentoAprobacion: (id) => apiFetchBlob(`/api/proyectos/${id}/documento-aprobacion`),
   remove: (id) => apiFetch(`/api/proyectos/${id}`, { method: 'DELETE' }),
 }
 

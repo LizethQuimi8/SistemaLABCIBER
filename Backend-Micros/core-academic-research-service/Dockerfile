@@ -23,7 +23,7 @@ COPY --from=build /app/core-academic-research-service/target/core-academic-resea
 # un volumen nombrado vacio aqui, Docker copia este contenido (y permisos)
 # como semilla, evitando que quede en manos de root y bloquee la escritura
 # del proceso (que corre como spring, no root).
-RUN mkdir -p /data/curriculums && chown -R spring:spring /data
+RUN mkdir -p /data/curriculums /data/proyectos && chown -R spring:spring /data
 USER spring:spring
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

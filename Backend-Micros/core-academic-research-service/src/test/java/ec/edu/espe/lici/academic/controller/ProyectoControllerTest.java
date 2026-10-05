@@ -6,12 +6,18 @@ import ec.edu.espe.lici.academic.repository.ProyectoRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +33,17 @@ class ProyectoControllerTest {
     private ProyectoRepository proyectoRepository;
     private ProyectoController controller;
 
+    @TempDir
+    Path storageDir;
+
     @BeforeEach
     void setUp() {
         proyectoRepository = mock(ProyectoRepository.class);
-        controller = new ProyectoController(proyectoRepository);
+        controller = new ProyectoController(proyectoRepository, storageDir.toString());
+    }
+
+    private MockMultipartFile documentoAprobacion() {
+        return new MockMultipartFile("archivo", "aprobacion.pdf", "application/pdf", "contenido".getBytes());
     }
 
     @AfterEach
@@ -143,5 +156,57 @@ class ProyectoControllerTest {
         Proyecto actualizado = controller.actualizar(1L, request);
 
         assertThat(actualizado.getUsuarioResponsableId()).isEqualTo(7L);
+    }
+
+    @Test
+    void elResponsablePuedeSubirElDocumentoDeAprobacion() throws IOException {
+        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
+        when(proyectoRepository.findById(1L)).thenReturn(Optional.of(proyectoDe(1L, 7L)));
+        when(proyectoRepository.save(any(Proyecto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Proyecto actualizado = controller.subirDocumentoAprobacion(1L, documentoAprobacion());
+
+        assertThat(actualizado.getDocumentoAprobacionNombreArchivo()).isEqualTo("aprobacion.pdf");
+        assertThat(actualizado.getDocumentoAprobacionRuta()).endsWith(".pdf");
+        assertThat(storageDir.resolve(actualizado.getDocumentoAprobacionRuta())).exists();
+    }
+
+    @Test
+    void unDocenteNoPuedeSubirElDocumentoDeAprobacionDeOtroUsuario() {
+        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
+        when(proyectoRepository.findById(1L)).thenReturn(Optional.of(proyectoDe(1L, 99L)));
+
+        assertThatThrownBy(() -> controller.subirDocumentoAprobacion(1L, documentoAprobacion()))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(proyectoRepository, never()).save(any());
+    }
+
+    @Test
+    void cualquierUsuarioPuedeDescargarElDocumentoDeAprobacion() throws IOException {
+        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
+        when(proyectoRepository.findById(1L)).thenReturn(Optional.of(proyectoDe(1L, 7L)));
+        when(proyectoRepository.save(any(Proyecto.class))).thenAnswer(inv -> inv.getArgument(0));
+        Proyecto conDocumento = controller.subirDocumentoAprobacion(1L, documentoAprobacion());
+        when(proyectoRepository.findById(1L)).thenReturn(Optional.of(conDocumento));
+
+        authenticateAs(99L, "DOCENTE_INVESTIGADOR");
+        ResponseEntity<Resource> respuesta = controller.descargarDocumentoAprobacion(1L);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respuesta.getBody().exists()).isTrue();
+    }
+
+    @Test
+    void descargarDocumentoAprobacionLanzaNotFoundSiNoSeHaSubidoNada() {
+        authenticateAs(7L, "DOCENTE_INVESTIGADOR");
+        when(proyectoRepository.findById(1L)).thenReturn(Optional.of(proyectoDe(1L, 7L)));
+
+        assertThatThrownBy(() -> controller.descargarDocumentoAprobacion(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 }

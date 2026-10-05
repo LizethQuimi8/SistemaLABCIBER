@@ -49,6 +49,15 @@ public class Proyecto {
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    /** Nombre del archivo del documento de aprobacion tal como quedo guardado
+     * en el volumen de almacenamiento (ver ProyectoController). */
+    private String documentoAprobacionRuta;
+
+    /** Nombre original del documento de aprobacion, para mostrarlo/descargarlo. */
+    private String documentoAprobacionNombreArchivo;
+
+    private String documentoAprobacionContentType;
+
     @PrePersist
     void prePersist() {
         this.fechaCreacion = LocalDateTime.now();
