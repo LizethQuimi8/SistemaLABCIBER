@@ -47,7 +47,7 @@ export default function DocumentosPage() {
 
   const openCreate = () => {
     setEditingId(null)
-    setForm(FORM_INICIAL)
+    setForm({ ...FORM_INICIAL, firmanteId: String(usuario?.id ?? '') })
     setArchivo(null)
     setShowForm(true)
   }
@@ -58,7 +58,7 @@ export default function DocumentosPage() {
       titulo: d.titulo || '',
       asunto: d.asunto || '',
       tipo: d.tipo || 'MEMORANDO',
-      firmanteId: d.firmanteId ? String(d.firmanteId) : '',
+      firmanteId: isAdmin ? (d.firmanteId ? String(d.firmanteId) : '') : String(usuario?.id ?? ''),
       estado: d.estado || 'BORRADOR',
     })
     setArchivo(null)
@@ -227,13 +227,17 @@ export default function DocumentosPage() {
                 onChange={(e) => setArchivo(e.target.files?.[0] || null)}
               />
             </Field>
-            <Field label="Responsable (opcional)">
-              <select className="input" value={form.firmanteId} onChange={(e) => setForm({ ...form, firmanteId: e.target.value })}>
-                <option value="">Sin asignar</option>
-                {directorio.map((u) => (
-                  <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
-                ))}
-              </select>
+            <Field label="Responsable">
+              {isAdmin ? (
+                <select className="input" value={form.firmanteId} onChange={(e) => setForm({ ...form, firmanteId: e.target.value })}>
+                  <option value="">Sin asignar</option>
+                  {directorio.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombres} {u.apellidos}</option>
+                  ))}
+                </select>
+              ) : (
+                <input className="input bg-gray-50 text-gray-500" value={`${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()} disabled />
+              )}
             </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
               {saving ? (archivo ? 'Subiendo...' : 'Guardando...') : (
