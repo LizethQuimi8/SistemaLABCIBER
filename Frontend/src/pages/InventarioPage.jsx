@@ -728,7 +728,7 @@ export default function InventarioPage() {
                 />
               </Field>
             </div>
-            <Field label="Motivo (para que lo necesita)">
+            <Field label="Motivo">
               <textarea
                 required rows={2} className="input"
                 value={solicitudForm.motivo}
