@@ -308,10 +308,7 @@ export default function InventarioPage() {
         th,td{border:1px solid #d7ece1;padding:9px 10px;text-align:left}
         th{background:#0e6b3c;color:#fff;font-weight:600}
         tbody tr:nth-child(even){background:#f8fdfb}
-        .recibo{border:1.5px dashed #0e6b3c;border-radius:8px;padding:14px 16px;margin:20px 0;font-size:12.5px;color:#052a18}
-        .recibo strong{display:block;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:#0e6b3c}
-        .linea{border-bottom:1px solid #333;display:inline-block;min-width:280px;height:18px}
-        .nota{font-size:11.5px;color:#555;font-style:italic;margin-top:4px}
+        .nota{font-size:11.5px;color:#555;font-style:italic;margin-top:16px}
         .firmas{margin-top:70px;display:flex;justify-content:space-between;gap:24px}
         .firmas div{width:46%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333}
         .pie{margin-top:40px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px}
@@ -337,10 +334,6 @@ export default function InventarioPage() {
         <tbody><tr><td>${bien}</td><td>${prestamo.motivo || '—'}</td></tr></tbody>
       </table>
 
-      <div class="recibo">
-        <strong>Recibo la entrega de</strong>
-        <span class="linea"></span>
-      </div>
       <p class="nota"><strong>Constancia:</strong> Con la firma de este apartado, se certifica haber recibido los equipos descritos en esta acta a entera conformidad.</p>
 
       <div class="firmas">
