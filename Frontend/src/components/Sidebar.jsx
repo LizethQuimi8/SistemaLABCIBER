@@ -24,7 +24,7 @@ const menuItems = [
   { id: 'inventario', label: 'Inventario', icon: Package },
   { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },
   { id: 'usuarios', label: 'Gestión de Usuarios', icon: Users, adminOnly: true },
-  { id: 'reportes', label: 'Reportes', icon: BarChart2 },
+  { id: 'reportes', label: 'Reportes', icon: BarChart2, adminOnly: true },
   { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
 ]
 

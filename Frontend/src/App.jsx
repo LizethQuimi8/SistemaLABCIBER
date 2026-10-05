@@ -38,7 +38,7 @@ function AuthenticatedApp() {
   const { isAdmin } = useAuth()
 
   // Si el rol pierde acceso a un modulo (p. ej. tras cambiar de usuario), volver al dashboard.
-  const view = currentView === 'usuarios' && !isAdmin ? 'dashboard' : currentView
+  const view = (currentView === 'usuarios' || currentView === 'reportes') && !isAdmin ? 'dashboard' : currentView
   const ActiveView = VIEWS[view] || Dashboard
 
   const navigate = (nextView) => {
