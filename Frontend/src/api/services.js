@@ -58,8 +58,8 @@ export const documentosApi = {
 
 export const manualesApi = {
   list: () => apiFetch('/api/manuales'),
-  crear: (titulo, descripcion, archivo) => apiUpload('/api/manuales', archivo, { fields: { titulo, descripcion } }),
-  actualizar: (id, titulo, descripcion, archivo) => apiUpload(`/api/manuales/${id}`, archivo, { method: 'PUT', fields: { titulo, descripcion } }),
+  crear: (titulo, descripcion, tipo, archivo) => apiUpload('/api/manuales', archivo, { fields: { titulo, descripcion, tipo } }),
+  actualizar: (id, titulo, descripcion, tipo, archivo) => apiUpload(`/api/manuales/${id}`, archivo, { method: 'PUT', fields: { titulo, descripcion, tipo } }),
   verArchivo: (id) => apiFetchBlob(`/api/manuales/${id}/archivo`),
   remove: (id) => apiFetch(`/api/manuales/${id}`, { method: 'DELETE' }),
 }

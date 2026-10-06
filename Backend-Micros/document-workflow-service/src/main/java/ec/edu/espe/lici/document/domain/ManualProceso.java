@@ -31,6 +31,10 @@ public class ManualProceso {
     @Column(length = 2000)
     private String descripcion;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TipoManual tipo;
+
     /** Nombre del archivo tal como quedo guardado en el volumen de almacenamiento
      * (ver ManualProcesoController); el binario nunca se guarda en la BD. */
     @Column(length = 500)
@@ -53,5 +57,8 @@ public class ManualProceso {
     @PrePersist
     void prePersist() {
         this.fechaCarga = LocalDateTime.now();
+        if (this.tipo == null) {
+            this.tipo = TipoManual.MANUAL;
+        }
     }
 }

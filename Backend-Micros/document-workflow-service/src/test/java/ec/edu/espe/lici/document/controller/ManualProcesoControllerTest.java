@@ -1,6 +1,7 @@
 package ec.edu.espe.lici.document.controller;
 
 import ec.edu.espe.lici.document.domain.ManualProceso;
+import ec.edu.espe.lici.document.domain.TipoManual;
 import ec.edu.espe.lici.document.repository.ManualProcesoRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,7 +74,7 @@ class ManualProcesoControllerTest {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         MockMultipartFile archivo = new MockMultipartFile("archivo", "manual.pdf", "application/pdf", "contenido".getBytes());
 
-        assertThatThrownBy(() -> controller.crear("Manual", null, archivo))
+        assertThatThrownBy(() -> controller.crear("Manual", null, null, archivo))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -87,11 +88,12 @@ class ManualProcesoControllerTest {
         when(manualProcesoRepository.save(any(ManualProceso.class))).thenAnswer(inv -> inv.getArgument(0));
         MockMultipartFile archivo = new MockMultipartFile("archivo", "manual.pdf", "application/pdf", "contenido".getBytes());
 
-        var response = controller.crear("Manual de laboratorio", "Descripcion", archivo);
+        var response = controller.crear("Manual de laboratorio", "Descripcion", TipoManual.PROCESO, archivo);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         ManualProceso creado = response.getBody();
         assertThat(creado.getTitulo()).isEqualTo("Manual de laboratorio");
+        assertThat(creado.getTipo()).isEqualTo(TipoManual.PROCESO);
         assertThat(creado.getNombreArchivo()).isEqualTo("manual.pdf");
         assertThat(creado.getContentType()).isEqualTo("application/pdf");
         assertThat(creado.getRutaArchivo()).endsWith(".pdf");
@@ -102,7 +104,7 @@ class ManualProcesoControllerTest {
     void unDocenteNoPuedeActualizarUnManual() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
 
-        assertThatThrownBy(() -> controller.actualizar(1L, "Nuevo titulo", null, null))
+        assertThatThrownBy(() -> controller.actualizar(1L, "Nuevo titulo", null, null, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -118,10 +120,23 @@ class ManualProcesoControllerTest {
         when(manualProcesoRepository.findById(1L)).thenReturn(Optional.of(existente));
         when(manualProcesoRepository.save(any(ManualProceso.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ManualProceso actualizado = controller.actualizar(1L, "Titulo actualizado", "Nueva descripcion", null);
+        ManualProceso actualizado = controller.actualizar(1L, "Titulo actualizado", "Nueva descripcion", null, null);
 
         assertThat(actualizado.getTitulo()).isEqualTo("Titulo actualizado");
         assertThat(actualizado.getRutaArchivo()).isEqualTo("manual-1-viejo.pdf");
+    }
+
+    @Test
+    void unAdministradorPuedeActualizarElTipo() throws IOException {
+        authenticateAs(1L, "ADMINISTRADOR");
+        ManualProceso existente = manualDe(1L);
+        existente.setTipo(TipoManual.MANUAL);
+        when(manualProcesoRepository.findById(1L)).thenReturn(Optional.of(existente));
+        when(manualProcesoRepository.save(any(ManualProceso.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ManualProceso actualizado = controller.actualizar(1L, "Titulo actualizado", null, TipoManual.PROCESO, null);
+
+        assertThat(actualizado.getTipo()).isEqualTo(TipoManual.PROCESO);
     }
 
     @Test
@@ -152,7 +167,7 @@ class ManualProcesoControllerTest {
         authenticateAs(1L, "ADMINISTRADOR");
         when(manualProcesoRepository.save(any(ManualProceso.class))).thenAnswer(inv -> inv.getArgument(0));
         MockMultipartFile archivo = new MockMultipartFile("archivo", "manual.pdf", "application/pdf", "contenido".getBytes());
-        ManualProceso creado = controller.crear("Manual", null, archivo).getBody();
+        ManualProceso creado = controller.crear("Manual", null, null, archivo).getBody();
         when(manualProcesoRepository.findById(creado.getId())).thenReturn(Optional.of(creado));
 
         ResponseEntity<Resource> respuesta = controller.descargarArchivo(creado.getId());

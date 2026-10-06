@@ -1,6 +1,7 @@
 package ec.edu.espe.lici.document.controller;
 
 import ec.edu.espe.lici.document.domain.ManualProceso;
+import ec.edu.espe.lici.document.domain.TipoManual;
 import ec.edu.espe.lici.document.repository.ManualProcesoRepository;
 import ec.edu.espe.lici.document.security.CurrentUser;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,7 @@ public class ManualProcesoController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ManualProceso> crear(@RequestParam String titulo,
                                                 @RequestParam(required = false) String descripcion,
+                                                @RequestParam(required = false) TipoManual tipo,
                                                 @RequestParam("archivo") MultipartFile archivo) throws IOException {
         exigirAdministrador();
         if (archivo.isEmpty()) {
@@ -58,6 +60,7 @@ public class ManualProcesoController {
         ManualProceso manual = ManualProceso.builder()
                 .titulo(titulo)
                 .descripcion(descripcion)
+                .tipo(tipo)
                 .usuarioId(CurrentUser.id())
                 .build();
         manual = manualProcesoRepository.save(manual);
@@ -73,12 +76,16 @@ public class ManualProcesoController {
     public ManualProceso actualizar(@PathVariable Long id,
                                      @RequestParam String titulo,
                                      @RequestParam(required = false) String descripcion,
+                                     @RequestParam(required = false) TipoManual tipo,
                                      @RequestParam(value = "archivo", required = false) MultipartFile archivo) throws IOException {
         exigirAdministrador();
         ManualProceso manual = buscar(id);
 
         manual.setTitulo(titulo);
         manual.setDescripcion(descripcion);
+        if (tipo != null) {
+            manual.setTipo(tipo);
+        }
         manual.setUsuarioId(CurrentUser.id());
 
         if (archivo != null && !archivo.isEmpty()) {
