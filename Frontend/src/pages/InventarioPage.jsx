@@ -296,6 +296,7 @@ export default function InventarioPage() {
     const bien = nombrePorBienId.get(prestamo.bienId) || `#${prestamo.bienId}`
     const docente = `${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()
     const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}lici-sello.jpg`
+    const espeLogoUrl = `${window.location.origin}${import.meta.env.BASE_URL}espe-logo.png`
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Acta de Entrega / Devolución de Bienes</title>
       <style>
         @page{margin:0}
@@ -303,7 +304,8 @@ export default function InventarioPage() {
         .encabezado{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #0e6b3c;padding-bottom:16px;margin-bottom:24px}
         .encabezado .institucion{font-size:11px;letter-spacing:0.5px;color:#777;text-transform:uppercase;margin:0 0 6px}
         .encabezado h1{font-size:21px;color:#052a18;margin:0}
-        .encabezado img{width:78px;height:78px;object-fit:contain;flex-shrink:0}
+        .encabezado img{height:70px;width:auto;object-fit:contain;flex-shrink:0}
+        .encabezado .centro{flex:1;text-align:center}
         p{font-size:12.5px;line-height:1.7;margin:0 0 10px}
         .datos{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;background:#f3faf6;border:1px solid #d7ece1;border-radius:8px;padding:16px 18px;margin-bottom:18px}
         .dato .etiqueta{display:block;font-size:10px;font-weight:700;color:#0e6b3c;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px}
@@ -314,12 +316,13 @@ export default function InventarioPage() {
         th{background:#0e6b3c;color:#fff;font-weight:600}
         tbody tr:nth-child(even){background:#f8fdfb}
         .nota{font-size:11.5px;color:#555;font-style:italic;margin-top:16px}
-        .firmas{margin-top:120px;display:flex;justify-content:space-between;gap:24px}
-        .firmas div{width:46%;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333}
+        .firmas{margin-top:120px;display:flex;justify-content:space-between;gap:20px}
+        .firmas div{flex:1;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333}
         .pie{margin-top:40px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px}
       </style></head><body>
       <div class="encabezado">
-        <div>
+        <img src="${espeLogoUrl}" alt="Universidad de las Fuerzas Armadas ESPE" />
+        <div class="centro">
           <p class="institucion">Universidad de las Fuerzas Armadas ESPE</p>
           <h1>Acta de Entrega / Devolución de Bienes</h1>
         </div>
@@ -342,7 +345,8 @@ export default function InventarioPage() {
       <p class="nota"><strong>Constancia:</strong> Con la firma de este apartado, se certifica haber recibido los equipos descritos en esta acta a entera conformidad.</p>
 
       <div class="firmas">
-        <div>Firma del Administrador</div>
+        <div>Firma del Docente que solicitó</div>
+        <div>Firma del Jefe de Laboratorio</div>
         <div>Firma del Administrador de Infraestructura</div>
       </div>
 
