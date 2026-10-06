@@ -342,8 +342,8 @@ export default function InventarioPage() {
       <p class="nota"><strong>Constancia:</strong> Con la firma de este apartado, se certifica haber recibido los equipos descritos en esta acta a entera conformidad.</p>
 
       <div class="firmas">
-        <div>Firma del docente (entrega el bien)</div>
-        <div>Firma del Jefe de Laboratorio (recibe conforme)</div>
+        <div>Firma del Administrador</div>
+        <div>Firma del Administrador de Infraestructura</div>
       </div>
 
       <p class="pie">Laboratorio de Investigación de Ciberseguridad — Departamento de Ciencias de la Computación — ESPE</p>
