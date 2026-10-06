@@ -36,12 +36,20 @@ export default function PublicacionesPage() {
     [investigadores]
   )
 
+  // El "Autor" que se ve y edita es el Investigador asignado (investigadorId),
+  // no el usuarioId (quien creo/es dueño del registro, usado solo para permisos de edicion).
+  const nombreAutorDe = (p) => {
+    if (!p.investigadorId) return null
+    const usuarioId = usuarioIdPorInvestigadorId.get(p.investigadorId)
+    return usuarioId ? nombrePorUsuarioId.get(usuarioId) : null
+  }
+
   const autores = useMemo(() => {
-    const ids = new Set(data.map((p) => p.usuarioId).filter(Boolean))
+    const ids = new Set(data.map((p) => p.investigadorId).filter(Boolean))
     return [...ids]
-      .map((id) => ({ id, nombre: nombrePorUsuarioId.get(id) || `#${id}` }))
+      .map((id) => ({ id, nombre: nombrePorUsuarioId.get(usuarioIdPorInvestigadorId.get(id)) || `#${id}` }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre))
-  }, [data, nombrePorUsuarioId])
+  }, [data, nombrePorUsuarioId, usuarioIdPorInvestigadorId])
 
   const anios = useMemo(
     () => [...new Set(data.map((p) => p.anioPublicacion).filter(Boolean))].sort((a, b) => b - a),
@@ -50,7 +58,7 @@ export default function PublicacionesPage() {
 
   const dataFiltrada = useMemo(() => {
     return data.filter((p) => {
-      if (autorFiltro !== 'TODOS' && String(p.usuarioId) !== autorFiltro) return false
+      if (autorFiltro !== 'TODOS' && String(p.investigadorId) !== autorFiltro) return false
       if (anioFiltro !== 'TODOS' && String(p.anioPublicacion) !== anioFiltro) return false
       return true
     })
@@ -178,7 +186,7 @@ export default function PublicacionesPage() {
             <td className="px-3 py-2 text-gray-600">{p.revista || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{p.anioPublicacion || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{p.doi || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioId) || `#${p.usuarioId}`}</td>
+            <td className="px-3 py-2 text-gray-600">{nombreAutorDe(p) || '—'}</td>
             <td className="px-3 py-2 text-right">
               <div className="flex items-center justify-end gap-2">
                 {puedeEditar(p) && (
