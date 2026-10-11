@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag } from 'lucide-react'
 import { planificacionEstrategicaApi, informacionLaboratorioApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -29,6 +29,8 @@ export default function PlanificacionEstrategicaPage() {
   const [infoForm, setInfoForm] = useState(INFO_INICIAL)
   const [editingInfo, setEditingInfo] = useState(false)
   const [savingInfo, setSavingInfo] = useState(false)
+  const [abierto, setAbierto] = useState({ misionVision: false, objetivos: false })
+  const toggleAbierto = (key) => setAbierto((prev) => ({ ...prev, [key]: !prev[key] }))
 
   useEffect(() => {
     let cancelado = false
@@ -169,53 +171,40 @@ export default function PlanificacionEstrategicaPage() {
 
       <ErrorBanner message={error} />
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-5">
-        <div className="flex items-center justify-between gap-3 px-5 pt-5">
-          <div className="flex items-center gap-2">
-            <div className="bg-[#0e6b3c] text-white p-2 rounded">
-              <Compass className="w-4 h-4" />
-            </div>
-            <h2 className="text-base font-bold text-[#052a18]">¿Qué es el Laboratorio?</h2>
-          </div>
-          {isAdmin && (
-            <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
-              <Pencil className="w-3.5 h-3.5" /> Editar
-            </button>
-          )}
+      {isAdmin && (
+        <div className="flex justify-end mb-2">
+          <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
+            <Pencil className="w-3.5 h-3.5" /> Editar información institucional
+          </button>
         </div>
+      )}
 
-        {infoVacia ? (
-          <p className="text-xs text-gray-400 px-5 pb-5 pt-3">
-            {isAdmin ? 'Aún no se ha redactado esta sección. Usa "Editar" para completarla.' : 'Esta sección todavía no ha sido completada.'}
+      {infoVacia ? (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-5">
+          <p className="text-xs text-gray-400">
+            {isAdmin ? 'Aún no se ha redactado esta sección. Usa "Editar información institucional" para completarla.' : 'Esta sección todavía no ha sido completada.'}
           </p>
-        ) : (
-          <div className="p-5">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <div className="bg-[#052a18] text-white rounded-xl p-5 space-y-5">
+        </div>
+      ) : (
+        <div className="space-y-4 mb-5">
+          {(info?.queEsElLaboratorio || ambitos.length > 0) && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-4 bg-[#052a18]">
+                <div className="bg-white/10 text-white p-2 rounded">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <h2 className="text-sm font-bold text-white">¿Qué es el Laboratorio?</h2>
+              </div>
+              <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {info?.queEsElLaboratorio && (
                   <div>
-                    <p className="text-sm font-bold uppercase tracking-wide mb-1">Definición</p>
-                    <p className="text-xs leading-relaxed text-gray-200 whitespace-pre-line">{info.queEsElLaboratorio}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#0e6b3c] mb-1">Definición</p>
+                    <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line">{info.queEsElLaboratorio}</p>
                   </div>
                 )}
-                {info?.mision && (
-                  <div className="pt-3 border-t border-white/10">
-                    <p className="text-sm font-bold uppercase tracking-wide mb-1">Misión</p>
-                    <p className="text-xs leading-relaxed text-gray-200 whitespace-pre-line">{info.mision}</p>
-                  </div>
-                )}
-                {info?.vision && (
-                  <div className="pt-3 border-t border-white/10">
-                    <p className="text-sm font-bold uppercase tracking-wide mb-1">Visión</p>
-                    <p className="text-xs leading-relaxed text-gray-200 whitespace-pre-line">{info.vision}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-5">
                 {ambitos.length > 0 && (
                   <div>
-                    <p className="text-sm font-bold text-[#052a18] mb-2">Ámbitos de actuación</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#0e6b3c] mb-2">Ámbitos de actuación</p>
                     <div className="space-y-3">
                       {ambitos.map((a, i) => (
                         <div key={i} className="flex gap-2">
@@ -229,34 +218,64 @@ export default function PlanificacionEstrategicaPage() {
                     </div>
                   </div>
                 )}
-                {info?.objetivos && (
-                  <div className={ambitos.length > 0 ? 'pt-3 border-t border-gray-100' : ''}>
-                    <p className="text-sm font-bold text-[#052a18] mb-1">Objetivos</p>
-                    <p className="text-gray-700 text-xs leading-relaxed whitespace-pre-line">{info.objetivos}</p>
+              </div>
+            </div>
+          )}
+
+          {(info?.mision || info?.vision) && (
+            <AccordionSection
+              icon={<Flag className="w-4 h-4" />}
+              title="Misión y Visión"
+              open={abierto.misionVision}
+              onToggle={() => toggleAbierto('misionVision')}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {info?.mision && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#0e6b3c] mb-1">Misión</p>
+                    <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line">{info.mision}</p>
+                  </div>
+                )}
+                {info?.vision && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#0e6b3c] mb-1">Visión</p>
+                    <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line">{info.vision}</p>
                   </div>
                 )}
               </div>
-            </div>
+            </AccordionSection>
+          )}
 
-            {info?.indicadoresClave && (
-              <div className="pt-5 mt-5 border-t border-gray-100">
-                <p className="text-sm font-bold text-[#052a18] mb-3">Indicadores Clave</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {info.indicadoresClave.split('\n').map((linea) => linea.trim()).filter(Boolean).map((linea, i) => {
-                    const match = linea.match(/^(\S+)\s+(.*)$/)
-                    return (
-                      <div key={i} className="bg-[#f3faf6] rounded-lg p-3 text-center">
-                        <p className="text-xl font-black text-[#052a18] leading-none">{match ? match[1] : linea}</p>
-                        {match && <p className="text-[10px] text-gray-500 mt-1">{match[2]}</p>}
-                      </div>
-                    )
-                  })}
+          {(info?.objetivos || info?.indicadoresClave) && (
+            <AccordionSection
+              icon={<Target className="w-4 h-4" />}
+              title="Objetivos"
+              open={abierto.objetivos}
+              onToggle={() => toggleAbierto('objetivos')}
+            >
+              {info?.objetivos && (
+                <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line">{info.objetivos}</p>
+              )}
+              {info?.indicadoresClave && (
+                <div className={info?.objetivos ? 'pt-4 mt-4 border-t border-gray-100' : ''}>
+                  <p className="text-xs font-bold text-[#052a18] mb-3">Indicadores Clave</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {info.indicadoresClave.split('\n').map((linea) => linea.trim()).filter(Boolean).map((linea, i) => {
+                      const match = linea.match(/^(\S+)\s+(.*)$/)
+                      return (
+                        <div key={i} className="bg-[#f3faf6] rounded-lg p-3 text-center">
+                          <p className="text-xl font-black text-[#052a18] leading-none">{match ? match[1] : linea}</p>
+                          {match && <p className="text-[10px] text-gray-500 mt-1">{match[2]}</p>}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </AccordionSection>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <FiltroChip active={anioFiltro === 'TODOS'} onClick={() => setAnioFiltro('TODOS')}>Todos los años</FiltroChip>
@@ -384,6 +403,25 @@ function Field({ label, children }) {
       <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+function AccordionSection({ icon, title, open, onToggle, children }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <div className="bg-[#0e6b3c] text-white p-2 rounded">{icon}</div>
+          <h2 className="text-sm font-bold text-[#052a18]">{title}</h2>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-5 pb-5 pt-1 border-t border-gray-100">{children}</div>}
+    </div>
   )
 }
 
