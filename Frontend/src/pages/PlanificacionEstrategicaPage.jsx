@@ -29,8 +29,9 @@ export default function PlanificacionEstrategicaPage() {
   const [infoForm, setInfoForm] = useState(INFO_INICIAL)
   const [editingInfo, setEditingInfo] = useState(false)
   const [savingInfo, setSavingInfo] = useState(false)
-  const [abierto, setAbierto] = useState({ misionVision: false, objetivos: false, documentos: false })
+  const [abierto, setAbierto] = useState({ misionVision: false, objetivos: false })
   const toggleAbierto = (key) => setAbierto((prev) => ({ ...prev, [key]: !prev[key] }))
+  const [tab, setTab] = useState('info')
 
   useEffect(() => {
     let cancelado = false
@@ -162,8 +163,19 @@ export default function PlanificacionEstrategicaPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader title="Planificación Estratégica" />
 
+      <div className="flex items-center gap-2 mb-5 border-b border-gray-200">
+        <TabButton active={tab === 'info'} onClick={() => setTab('info')} icon={Compass}>
+          Información
+        </TabButton>
+        <TabButton active={tab === 'documentos'} onClick={() => setTab('documentos')} icon={FileText}>
+          Documentos
+        </TabButton>
+      </div>
+
       <ErrorBanner message={error} />
 
+      {tab === 'info' && (
+      <>
       {isAdmin && (
         <div className="flex justify-end mb-2">
           <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
@@ -268,13 +280,11 @@ export default function PlanificacionEstrategicaPage() {
           )}
         </div>
       )}
+      </>
+      )}
 
-      <AccordionSection
-        icon={<FileText className="w-4 h-4" />}
-        title="Documentos"
-        open={abierto.documentos}
-        onToggle={() => toggleAbierto('documentos')}
-      >
+      {tab === 'documentos' && (
+      <div>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <FiltroChip active={anioFiltro === 'TODOS'} onClick={() => setAnioFiltro('TODOS')}>Todos los años</FiltroChip>
           {anios.map((a) => (
@@ -337,7 +347,8 @@ export default function PlanificacionEstrategicaPage() {
             </tr>
           ))}
         </Table>
-      </AccordionSection>
+      </div>
+      )}
 
       {showForm && (
         <Modal title={editingId ? 'Editar documento' : 'Nuevo documento de planificación estratégica'} onClose={() => setShowForm(false)}>
@@ -407,6 +418,18 @@ function Field({ label, children }) {
       <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+function TabButton({ active, onClick, icon: Icon, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors
+        ${active ? 'border-[#0e6b3c] text-[#052a18]' : 'border-transparent text-gray-500 hover:text-[#0e6b3c]'}`}
+    >
+      <Icon className="w-4 h-4" /> {children}
+    </button>
   )
 }
 
