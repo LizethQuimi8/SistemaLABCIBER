@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag } from 'lucide-react'
+import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag, FileText } from 'lucide-react'
 import { planificacionEstrategicaApi, informacionLaboratorioApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -29,7 +29,7 @@ export default function PlanificacionEstrategicaPage() {
   const [infoForm, setInfoForm] = useState(INFO_INICIAL)
   const [editingInfo, setEditingInfo] = useState(false)
   const [savingInfo, setSavingInfo] = useState(false)
-  const [abierto, setAbierto] = useState({ misionVision: false, objetivos: false })
+  const [abierto, setAbierto] = useState({ misionVision: false, objetivos: false, documentos: false })
   const toggleAbierto = (key) => setAbierto((prev) => ({ ...prev, [key]: !prev[key] }))
 
   useEffect(() => {
@@ -276,63 +276,70 @@ export default function PlanificacionEstrategicaPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <FiltroChip active={anioFiltro === 'TODOS'} onClick={() => setAnioFiltro('TODOS')}>Todos los años</FiltroChip>
-        {anios.map((a) => (
-          <FiltroChip key={a} active={anioFiltro === String(a)} onClick={() => setAnioFiltro(String(a))}>{a}</FiltroChip>
-        ))}
-        <div className="relative ml-auto w-full max-w-xs">
-          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por título o descripción..."
-            className="input pl-8 text-xs py-1.5 w-full"
-          />
+      <AccordionSection
+        icon={<FileText className="w-4 h-4" />}
+        title="Documentos"
+        open={abierto.documentos}
+        onToggle={() => toggleAbierto('documentos')}
+      >
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <FiltroChip active={anioFiltro === 'TODOS'} onClick={() => setAnioFiltro('TODOS')}>Todos los años</FiltroChip>
+          {anios.map((a) => (
+            <FiltroChip key={a} active={anioFiltro === String(a)} onClick={() => setAnioFiltro(String(a))}>{a}</FiltroChip>
+          ))}
+          <div className="relative ml-auto w-full max-w-xs">
+            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por título o descripción..."
+              className="input pl-8 text-xs py-1.5 w-full"
+            />
+          </div>
         </div>
-      </div>
 
-      <Table headers={isAdmin ? ['Título', 'Año', 'Descripción', 'Archivo', ''] : ['Título', 'Año', 'Descripción', 'Archivo']}>
-        {loading && <LoadingRow colSpan={isAdmin ? 5 : 4} />}
-        {!loading && filtrados.length === 0 && (
-          <EmptyRow colSpan={isAdmin ? 5 : 4} message={data.length === 0 ? 'No hay documentos de planificación estratégica cargados todavía' : 'Ningún documento coincide con los filtros aplicados'} />
-        )}
-        {!loading && filtrados.map((d) => (
-          <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
-            </td>
-            <td className="px-3 py-2 text-gray-600">{d.anio || '—'}</td>
-            <td className="px-3 py-2 text-gray-600 max-w-[280px] truncate" title={d.descripcion}>{d.descripcion || '—'}</td>
-            <td className="px-3 py-2">
-              {d.rutaArchivo ? (
-                <button
-                  onClick={() => handleVer(d)}
-                  disabled={viewingId === d.id}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
-                  title={d.nombreArchivo || 'Ver archivo'}
-                >
-                  <Eye className="w-3.5 h-3.5" /> {viewingId === d.id ? 'Abriendo...' : 'Ver'}
-                </button>
-              ) : (
-                <span className="text-gray-400 text-xs">Sin archivo</span>
-              )}
-            </td>
-            {isAdmin && (
-              <td className="px-3 py-2 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <button onClick={() => openEdit(d)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+        <Table headers={isAdmin ? ['Título', 'Año', 'Descripción', 'Archivo', ''] : ['Título', 'Año', 'Descripción', 'Archivo']}>
+          {loading && <LoadingRow colSpan={isAdmin ? 5 : 4} />}
+          {!loading && filtrados.length === 0 && (
+            <EmptyRow colSpan={isAdmin ? 5 : 4} message={data.length === 0 ? 'No hay documentos de planificación estratégica cargados todavía' : 'Ningún documento coincide con los filtros aplicados'} />
+          )}
+          {!loading && filtrados.map((d) => (
+            <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
+                <Target className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
               </td>
-            )}
-          </tr>
-        ))}
-      </Table>
+              <td className="px-3 py-2 text-gray-600">{d.anio || '—'}</td>
+              <td className="px-3 py-2 text-gray-600 max-w-[280px] truncate" title={d.descripcion}>{d.descripcion || '—'}</td>
+              <td className="px-3 py-2">
+                {d.rutaArchivo ? (
+                  <button
+                    onClick={() => handleVer(d)}
+                    disabled={viewingId === d.id}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                    title={d.nombreArchivo || 'Ver archivo'}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> {viewingId === d.id ? 'Abriendo...' : 'Ver'}
+                  </button>
+                ) : (
+                  <span className="text-gray-400 text-xs">Sin archivo</span>
+                )}
+              </td>
+              {isAdmin && (
+                <td className="px-3 py-2 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => openEdit(d)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              )}
+            </tr>
+          ))}
+        </Table>
+      </AccordionSection>
 
       {showForm && (
         <Modal title={editingId ? 'Editar documento' : 'Nuevo documento de planificación estratégica'} onClose={() => setShowForm(false)}>
