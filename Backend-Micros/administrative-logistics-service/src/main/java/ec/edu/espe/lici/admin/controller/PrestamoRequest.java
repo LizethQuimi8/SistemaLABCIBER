@@ -26,5 +26,8 @@ public class PrestamoRequest {
     @NotBlank
     private String motivo;
 
+    /** Proyecto asociado (Portafolio de Proyectos), opcional. */
+    private Long proyectoId;
+
     private String observaciones;
 }

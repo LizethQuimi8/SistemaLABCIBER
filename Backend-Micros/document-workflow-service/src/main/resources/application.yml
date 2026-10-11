@@ -30,6 +30,7 @@ lici:
   storage:
     documentos-dir: ${DOCUMENTOS_STORAGE_DIR:/data/documentos}
     manuales-dir: ${MANUALES_STORAGE_DIR:/data/manuales}
+    planificacion-dir: ${PLANIFICACION_STORAGE_DIR:/data/planificacion}
 
 management:
   endpoints:

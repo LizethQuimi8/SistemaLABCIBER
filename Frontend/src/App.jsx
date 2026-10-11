@@ -11,6 +11,7 @@ import InvestigadoresPage from './pages/InvestigadoresPage'
 import PublicacionesPage from './pages/PublicacionesPage'
 import DocumentosPage from './pages/DocumentosPage'
 import ManualesPage from './pages/ManualesPage'
+import PlanificacionEstrategicaPage from './pages/PlanificacionEstrategicaPage'
 import NotificacionesPage from './pages/NotificacionesPage'
 import InventarioPage from './pages/InventarioPage'
 import ComprasPage from './pages/ComprasPage'
@@ -25,6 +26,7 @@ const VIEWS = {
   publicaciones: PublicacionesPage,
   documentos: DocumentosPage,
   manuales: ManualesPage,
+  planificacion: PlanificacionEstrategicaPage,
   notificaciones: NotificacionesPage,
   inventario: InventarioPage,
   compras: ComprasPage,

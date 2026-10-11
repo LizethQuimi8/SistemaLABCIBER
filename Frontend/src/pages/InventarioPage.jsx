@@ -5,7 +5,7 @@ import {
   Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
   FileSignature, FileCheck2, FileX2,
 } from 'lucide-react'
-import { inventarioApi, prestamosApi, usuariosApi } from '../api/services'
+import { inventarioApi, prestamosApi, usuariosApi, proyectosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
@@ -30,7 +30,8 @@ const ESTADO_BADGE = {
 
 const PRESTAMO_ESTADO_LABEL = {
   PENDIENTE: 'Pendiente',
-  APROBADO_INFRAESTRUCTURA: 'Esperando confirmación',
+  APROBADO_INFRAESTRUCTURA: 'Esperando autorización',
+  AUTORIZADO: 'Autorizado, por entregar',
   ACTIVO: 'Activo',
   DEVOLUCION_PENDIENTE: 'Acta subida, por validar',
   DEVUELTO: 'Devuelto',
@@ -40,13 +41,14 @@ const PRESTAMO_ESTADO_LABEL = {
 const PRESTAMO_ESTADO_BADGE = {
   PENDIENTE: 'bg-amber-50 text-amber-700',
   APROBADO_INFRAESTRUCTURA: 'bg-sky-50 text-sky-700',
+  AUTORIZADO: 'bg-purple-50 text-purple-700',
   ACTIVO: 'bg-blue-50 text-blue-700',
   DEVOLUCION_PENDIENTE: 'bg-amber-50 text-amber-700',
   DEVUELTO: 'bg-green-50 text-green-700',
   RECHAZADO: 'bg-red-50 text-red-700',
 }
 
-const SOLICITUD_INICIAL = { fechaDesde: '', fechaHasta: '', motivo: '', observaciones: '' }
+const SOLICITUD_INICIAL = { fechaDesde: '', fechaHasta: '', motivo: '', proyectoId: '', observaciones: '' }
 
 const PAGE_SIZE = 12
 
@@ -86,6 +88,8 @@ export default function InventarioPage() {
   const { data: prestamos, loading: loadingPrestamos, reload: reloadPrestamos } = useList(prestamosFetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
   const { data: directorio } = useList(directorioFetcher)
+  const proyectosFetcher = useCallback(() => proyectosApi.list(), [])
+  const { data: proyectos } = useList(proyectosFetcher)
 
   const columnHeaders = canEditInventario
     ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', 'Acciones']
@@ -102,6 +106,9 @@ export default function InventarioPage() {
   const [solicitudBien, setSolicitudBien] = useState(null)
   const [solicitudForm, setSolicitudForm] = useState(SOLICITUD_INICIAL)
   const [solicitando, setSolicitando] = useState(false)
+  const [entregaPrestamo, setEntregaPrestamo] = useState(null)
+  const [actaEntregaArchivo, setActaEntregaArchivo] = useState(null)
+  const [subiendoActaEntrega, setSubiendoActaEntrega] = useState(false)
   const [devolucionPrestamo, setDevolucionPrestamo] = useState(null)
   const [actaArchivo, setActaArchivo] = useState(null)
   const [subiendoActa, setSubiendoActa] = useState(false)
@@ -117,11 +124,24 @@ export default function InventarioPage() {
     () => new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`])),
     [directorio]
   )
+  const nombrePorProyectoId = useMemo(
+    () => new Map(proyectos.map((p) => [p.id, p.nombre])),
+    [proyectos]
+  )
 
   // PENDIENTE: puede aprobar/rechazar Admin. Infraestructura o el Administrador.
-  // APROBADO_INFRAESTRUCTURA: solo el Administrador da la confirmacion final (o la rechaza).
-  const puedeAprobarORechazar = (p) =>
+  // APROBADO_INFRAESTRUCTURA: solo el Administrador da la autorizacion final.
+  const puedeAprobar = (p) =>
     (canEditInventario && p.estado === 'PENDIENTE') || (isAdmin && p.estado === 'APROBADO_INFRAESTRUCTURA')
+
+  // AUTORIZADO tambien se puede rechazar (p. ej. si el bien deja de estar disponible), solo el Administrador.
+  const puedeRechazarSolicitud = (p) =>
+    (canEditInventario && p.estado === 'PENDIENTE') ||
+    (isAdmin && (p.estado === 'APROBADO_INFRAESTRUCTURA' || p.estado === 'AUTORIZADO'))
+
+  // Custodio del Bien (Admin. Infraestructura) o el Administrador registran la
+  // entrega formal (Acta de Entrega, Formulario F-02) una vez autorizado.
+  const puedeEntregar = (p) => canEditInventario && p.estado === 'AUTORIZADO'
 
   // La devolucion exige AMBAS firmas (Admin. Infraestructura y Administrador),
   // sin orden fijo: cada quien firma por su lado y solo deja de poder hacerlo
@@ -230,7 +250,11 @@ export default function InventarioPage() {
     setSolicitando(true)
     setError(null)
     try {
-      await prestamosApi.solicitar({ bienId: solicitudBien.id, ...solicitudForm })
+      await prestamosApi.solicitar({
+        bienId: solicitudBien.id,
+        ...solicitudForm,
+        proyectoId: solicitudForm.proyectoId ? Number(solicitudForm.proyectoId) : null,
+      })
       setSolicitudBien(null)
       reloadTodo()
     } catch (err) {
@@ -284,6 +308,106 @@ export default function InventarioPage() {
       setError(err.message)
     } finally {
       setImporting(false)
+    }
+  }
+
+  const abrirEntrega = (prestamo) => {
+    setEntregaPrestamo(prestamo)
+    setActaEntregaArchivo(null)
+  }
+
+  const generarActaEntrega = (prestamo) => {
+    const bien = bienes.find((b) => b.id === prestamo.bienId)
+    const nombreBien = bien?.nombre || `#${prestamo.bienId}`
+    const usuarioResponsable = nombrePorUsuarioId.get(prestamo.usuarioId) || `#${prestamo.usuarioId}`
+    const proyecto = prestamo.proyectoId ? (nombrePorProyectoId.get(prestamo.proyectoId) || `#${prestamo.proyectoId}`) : null
+    const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}lici-sello.jpg`
+    const espeLogoUrl = `${window.location.origin}${import.meta.env.BASE_URL}espe-logo.png`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Acta de Entrega de Bienes Tecnológicos</title>
+      <style>
+        @page{margin:0}
+        body{font-family:'Segoe UI',Arial,sans-serif;padding:40px;color:#1a1a1a}
+        .encabezado{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #0e6b3c;padding-bottom:16px;margin-bottom:24px}
+        .encabezado .institucion{font-size:11px;letter-spacing:0.5px;color:#777;text-transform:uppercase;margin:0 0 6px}
+        .encabezado h1{font-size:21px;color:#052a18;margin:0}
+        .encabezado img{height:70px;width:auto;object-fit:contain;flex-shrink:0}
+        .encabezado .centro{flex:1;text-align:center}
+        p{font-size:12.5px;line-height:1.7;margin:0 0 10px}
+        .datos{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;background:#f3faf6;border:1px solid #d7ece1;border-radius:8px;padding:16px 18px;margin-bottom:18px}
+        .dato .etiqueta{display:block;font-size:10px;font-weight:700;color:#0e6b3c;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px}
+        .dato .valor{font-size:13px;color:#111}
+        .seccion-titulo{font-size:12.5px;font-weight:700;color:#052a18;margin:22px 0 8px}
+        table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;border-radius:6px;overflow:hidden}
+        th,td{border:1px solid #d7ece1;padding:9px 10px;text-align:left}
+        th{background:#0e6b3c;color:#fff;font-weight:600}
+        .nota{font-size:11.5px;color:#555;font-style:italic;margin-top:16px}
+        .firmas{margin-top:120px;display:flex;justify-content:space-between;gap:24px}
+        .firmas div{flex:1;text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333}
+        .pie{margin-top:40px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px}
+      </style></head><body>
+      <div class="encabezado">
+        <img src="${espeLogoUrl}" alt="Universidad de las Fuerzas Armadas ESPE" />
+        <div class="centro">
+          <p class="institucion">Universidad de las Fuerzas Armadas ESPE</p>
+          <h1>Acta de Entrega de Bienes Tecnológicos</h1>
+        </div>
+        <img src="${logoUrl}" alt="Laboratorio de Investigación de Ciberseguridad" />
+      </div>
+
+      <div class="datos">
+        <div class="dato"><span class="etiqueta">Usuario responsable</span><span class="valor">${usuarioResponsable}</span></div>
+        <div class="dato"><span class="etiqueta">Proyecto asociado</span><span class="valor">${proyecto || '—'}</span></div>
+        <div class="dato"><span class="etiqueta">Fecha de entrega</span><span class="valor">${new Date().toLocaleDateString()}</span></div>
+        <div class="dato"><span class="etiqueta">Fecha prevista de devolución</span><span class="valor">${prestamo.fechaHasta || '—'}</span></div>
+      </div>
+
+      <p class="seccion-titulo">Bien entregado:</p>
+      <table>
+        <thead><tr><th>Equipo</th><th>Código de bien</th><th>Estado del recurso</th></tr></thead>
+        <tbody><tr><td>${nombreBien}</td><td>${bien?.codigoIC || bien?.codigoInventario || '—'}</td><td>Entregado / En uso</td></tr></tbody>
+      </table>
+
+      <p class="nota"><strong>Constancia:</strong> El Custodio del Bien certifica la entrega y el usuario responsable certifica haber recibido el equipo descrito en condiciones de funcionamiento conformes.</p>
+
+      <div class="firmas">
+        <div>Firma de quien entrega (Custodio del Bien)</div>
+        <div>Firma de quien recibe (Usuario responsable)</div>
+      </div>
+
+      <p class="pie">Laboratorio de Investigación de Ciberseguridad — Departamento de Ciencias de la Computación — ESPE</p>
+      </body></html>`
+
+    const ventana = window.open('', '_blank')
+    if (!ventana) return
+    ventana.document.write(html)
+    ventana.document.close()
+    ventana.focus()
+    ventana.print()
+  }
+
+  const handleSubirActaEntrega = async (e) => {
+    e.preventDefault()
+    if (!actaEntregaArchivo || !entregaPrestamo) return
+    setSubiendoActaEntrega(true)
+    setError(null)
+    try {
+      await prestamosApi.subirActaEntrega(entregaPrestamo.id, actaEntregaArchivo)
+      setEntregaPrestamo(null)
+      setActaEntregaArchivo(null)
+      reloadTodo()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubiendoActaEntrega(false)
+    }
+  }
+
+  const handleVerActaEntrega = async (prestamo) => {
+    try {
+      const blob = await prestamosApi.verActaEntrega(prestamo.id)
+      window.open(URL.createObjectURL(blob), '_blank')
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -611,16 +735,17 @@ export default function InventarioPage() {
           {canEditInventario ? 'Prestamos' : 'Mis prestamos'}
         </h2>
         <Table headers={canEditInventario
-          ? ['Bien', 'Usuario', 'Periodo', 'Motivo', 'Estado', 'Devuelto', 'Acta / Observación', '']
-          : ['Bien', 'Periodo', 'Motivo', 'Estado', 'Devuelto', 'Acta / Observación', '']}>
-          {loadingPrestamos && <LoadingRow colSpan={canEditInventario ? 8 : 7} />}
-          {!loadingPrestamos && prestamos.length === 0 && <EmptyRow colSpan={canEditInventario ? 8 : 7} />}
+          ? ['Bien', 'Usuario', 'Proyecto', 'Periodo', 'Motivo', 'Estado', 'Devuelto', 'Actas / Observación', '']
+          : ['Bien', 'Proyecto', 'Periodo', 'Motivo', 'Estado', 'Devuelto', 'Actas / Observación', '']}>
+          {loadingPrestamos && <LoadingRow colSpan={canEditInventario ? 9 : 8} />}
+          {!loadingPrestamos && prestamos.length === 0 && <EmptyRow colSpan={canEditInventario ? 9 : 8} />}
           {!loadingPrestamos && prestamos.map((p) => (
             <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="px-3 py-2 font-medium text-gray-800">{nombrePorBienId.get(p.bienId) || `#${p.bienId}`}</td>
               {canEditInventario && (
                 <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioId) || `#${p.usuarioId}`}</td>
               )}
+              <td className="px-3 py-2 text-gray-600">{p.proyectoId ? (nombrePorProyectoId.get(p.proyectoId) || `#${p.proyectoId}`) : '—'}</td>
               <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{p.fechaDesde || '—'} a {p.fechaHasta || '—'}</td>
               <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={p.motivo}>{p.motivo || '—'}</td>
               <td className="px-3 py-2">
@@ -631,12 +756,20 @@ export default function InventarioPage() {
               <td className="px-3 py-2 text-gray-600">{p.fechaDevolucion ? new Date(p.fechaDevolucion).toLocaleString() : '—'}</td>
               <td className="px-3 py-2 text-gray-600 max-w-[200px]">
                 <div className="flex flex-col gap-1">
+                  {p.actaEntregaRuta && (
+                    <button
+                      onClick={() => handleVerActaEntrega(p)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18]"
+                    >
+                      <FileSignature className="w-3.5 h-3.5" /> Ver acta de entrega
+                    </button>
+                  )}
                   {p.actaRuta && (
                     <button
                       onClick={() => handleVerActa(p)}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18]"
                     >
-                      <FileSignature className="w-3.5 h-3.5" /> Ver acta
+                      <FileSignature className="w-3.5 h-3.5" /> Ver acta de devolución
                     </button>
                   )}
                   {p.estado === 'DEVOLUCION_PENDIENTE' && (
@@ -647,28 +780,38 @@ export default function InventarioPage() {
                   {p.observacionDevolucion && (
                     <span className="truncate" title={p.observacionDevolucion}>{p.observacionDevolucion}</span>
                   )}
-                  {!p.actaRuta && !p.observacionDevolucion && p.estado !== 'DEVOLUCION_PENDIENTE' && '—'}
+                  {!p.actaEntregaRuta && !p.actaRuta && !p.observacionDevolucion && p.estado !== 'DEVOLUCION_PENDIENTE' && '—'}
                 </div>
               </td>
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  {puedeAprobarORechazar(p) && (
+                  {puedeAprobar(p) && (
                     <button
                       onClick={() => handleAprobar(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
-                      title={p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Confirmar y activar el prestamo' : 'Aprobar (pasa a espera de confirmacion del administrador)'}
+                      title={p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Autorizar el prestamo (Jefe de Laboratorio)' : 'Aprobar (pasa a espera de autorizacion del administrador)'}
                     >
-                      {p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Confirmar' : 'Aprobar'}
+                      {p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Autorizar' : 'Aprobar'}
                     </button>
                   )}
-                  {puedeAprobarORechazar(p) && (
+                  {puedeRechazarSolicitud(p) && (
                     <button
                       onClick={() => handleRechazar(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="text-xs font-semibold text-red-600 hover:text-red-800 disabled:text-gray-300"
                     >
                       Rechazar
+                    </button>
+                  )}
+                  {puedeEntregar(p) && (
+                    <button
+                      onClick={() => abrirEntrega(p)}
+                      disabled={busyId === `p-${p.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                      title="Registrar la entrega (Custodio del Bien) con el Acta de Entrega firmada"
+                    >
+                      <FileCheck2 className="w-3.5 h-3.5" /> Registrar entrega
                     </button>
                   )}
                   {p.estado === 'ACTIVO' && p.usuarioId === usuario?.id && (
@@ -770,6 +913,16 @@ export default function InventarioPage() {
                 onChange={(e) => setSolicitudForm({ ...solicitudForm, motivo: e.target.value })}
               />
             </Field>
+            <Field label="Proyecto asociado (opcional)">
+              <select
+                className="input"
+                value={solicitudForm.proyectoId}
+                onChange={(e) => setSolicitudForm({ ...solicitudForm, proyectoId: e.target.value })}
+              >
+                <option value="">Sin proyecto asociado</option>
+                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+            </Field>
             <Field label="Observaciones (opcional)">
               <textarea
                 rows={2} className="input"
@@ -779,6 +932,33 @@ export default function InventarioPage() {
             </Field>
             <PrimaryButton type="submit" disabled={solicitando} className="w-full justify-center">
               {solicitando ? 'Enviando...' : 'Enviar solicitud'}
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
+
+      {entregaPrestamo && (
+        <Modal title={`Registrar entrega: ${nombrePorBienId.get(entregaPrestamo.bienId) || ''}`} onClose={() => setEntregaPrestamo(null)}>
+          <form onSubmit={handleSubirActaEntrega} className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Genera el Acta de Entrega, fírmala junto al usuario responsable y súbela aquí para activar el préstamo (el bien pasará a "En uso").
+            </p>
+            <button
+              type="button"
+              onClick={() => generarActaEntrega(entregaPrestamo)}
+              className="flex items-center gap-2 w-full justify-center bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] text-xs font-semibold px-4 py-2 rounded transition-colors"
+            >
+              <FileSignature className="w-4 h-4" /> Generar acta imprimible
+            </button>
+            <Field label="Acta de entrega firmada (PDF o imagen)">
+              <input
+                required type="file" accept=".pdf,.jpg,.jpeg,.png"
+                className="input"
+                onChange={(e) => setActaEntregaArchivo(e.target.files?.[0] || null)}
+              />
+            </Field>
+            <PrimaryButton type="submit" disabled={subiendoActaEntrega || !actaEntregaArchivo} className="w-full justify-center">
+              {subiendoActaEntrega ? 'Subiendo...' : 'Subir acta y activar préstamo'}
             </PrimaryButton>
           </form>
         </Modal>

@@ -54,10 +54,24 @@ public class Prestamo {
     @Column(nullable = false, length = 500)
     private String motivo;
 
+    /** Id del Proyecto (core-academic-research-service) asociado a la
+     * solicitud, segun el Formulario F-01; opcional. */
+    private Long proyectoId;
+
+    private LocalDateTime fechaEntrega;
+
     private LocalDateTime fechaDevolucion;
 
     @Column(length = 500)
     private String observaciones;
+
+    /** Nombre del archivo del Acta de Entrega firmada (Formulario F-02),
+     * guardado en el volumen de almacenamiento (ver PrestamoController). */
+    private String actaEntregaRuta;
+
+    private String actaEntregaNombreArchivo;
+
+    private String actaEntregaContentType;
 
     /** Nombre del archivo del acta de devolucion firmada tal como quedo
      * guardado en el volumen de almacenamiento (ver PrestamoController). */

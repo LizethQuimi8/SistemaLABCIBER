@@ -15,6 +15,7 @@ volumes:
   manuales_files:
   prestamos_files:
   proyectos_files:
+  planificacion_files:
 
 x-mysql-common: &mysql-common
   image: mysql:8.0
@@ -163,6 +164,7 @@ services:
     volumes:
       - documentos_files:/data/documentos
       - manuales_files:/data/manuales
+      - planificacion_files:/data/planificacion
     expose:
       - "8083"
 

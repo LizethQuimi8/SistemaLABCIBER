@@ -64,6 +64,14 @@ export const manualesApi = {
   remove: (id) => apiFetch(`/api/manuales/${id}`, { method: 'DELETE' }),
 }
 
+export const planificacionEstrategicaApi = {
+  list: () => apiFetch('/api/planificacion-estrategica'),
+  crear: (titulo, descripcion, archivo) => apiUpload('/api/planificacion-estrategica', archivo, { fields: { titulo, descripcion } }),
+  actualizar: (id, titulo, descripcion, archivo) => apiUpload(`/api/planificacion-estrategica/${id}`, archivo, { method: 'PUT', fields: { titulo, descripcion } }),
+  verArchivo: (id) => apiFetchBlob(`/api/planificacion-estrategica/${id}/archivo`),
+  remove: (id) => apiFetch(`/api/planificacion-estrategica/${id}`, { method: 'DELETE' }),
+}
+
 export const notificacionesApi = {
   list: () => apiFetch('/api/notificaciones'),
   marcarLeida: (id) => apiFetch(`/api/notificaciones/${id}/leer`, { method: 'PATCH' }),
@@ -85,6 +93,8 @@ export const prestamosApi = {
   solicitar: (data) => apiFetch('/api/prestamos', { method: 'POST', body: data }),
   aprobar: (id) => apiFetch(`/api/prestamos/${id}/aprobar`, { method: 'PATCH' }),
   rechazar: (id) => apiFetch(`/api/prestamos/${id}/rechazar`, { method: 'PATCH' }),
+  subirActaEntrega: (id, archivo) => apiUpload(`/api/prestamos/${id}/entrega`, archivo),
+  verActaEntrega: (id) => apiFetchBlob(`/api/prestamos/${id}/acta-entrega`),
   subirActaDevolucion: (id, archivo) => apiUpload(`/api/prestamos/${id}/devolucion`, archivo),
   aprobarDevolucion: (id) => apiFetch(`/api/prestamos/${id}/aprobar-devolucion`, { method: 'PATCH' }),
   rechazarDevolucion: (id, observacion) => apiFetch(

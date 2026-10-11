@@ -30,28 +30,36 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Proceso de prestamo de bienes de inventario, en dos etapas de aprobacion:
+ * Proceso de prestamo de bienes de inventario, segun el procedimiento
+ * institucional UPDI-FOR-2024-V2-062 (Gestion, Asignacion, Uso y Control de
+ * la Infraestructura Tecnologica del LICI). Roles del documento mapeados a
+ * roles del sistema: "Responsable de Infraestructura Tecnologica" y
+ * "Custodio del Bien" = ADMIN_INFRAESTRUCTURA; "Jefe de Laboratorio" =
+ * ADMINISTRADOR.
  * <p>
- * 1) Un docente solicita un bien DISPONIBLE (desde/hasta/motivo); queda
- * PENDIENTE. Admin. Infraestructura recibe la notificacion y puede aprobar
- * (pasa a APROBADO_INFRAESTRUCTURA, el bien sigue DISPONIBLE) o rechazar
- * (RECHAZADO, fin del proceso).
+ * 1) Solicitud: un docente solicita un bien DISPONIBLE (desde/hasta/motivo/
+ * proyecto asociado opcional); queda PENDIENTE. Admin. Infraestructura
+ * recibe la notificacion (evaluacion tecnica) y puede aprobar (pasa a
+ * APROBADO_INFRAESTRUCTURA) o rechazar (RECHAZADO, fin del proceso).
  * <p>
- * 2) Cuando Admin. Infraestructura aprueba, el ADMINISTRADOR recibe la
- * notificacion de confirmacion final y puede aceptar (ACTIVO, el bien pasa
- * a EN_USO) o rechazar (RECHAZADO) esa solicitud pre-aprobada.
+ * 2) Autorizacion: cuando Admin. Infraestructura aprueba, el ADMINISTRADOR
+ * recibe la notificacion de autorizacion final y puede autorizar (pasa a
+ * AUTORIZADO, el bien sigue DISPONIBLE) o rechazar (RECHAZADO) esa solicitud
+ * pre-aprobada. Si el propio ADMINISTRADOR aprueba una solicitud PENDIENTE
+ * (sin pasar primero por Infraestructura), pasa directo a AUTORIZADO: no
+ * tiene sentido pedirle confirmacion a si mismo.
  * <p>
- * Si el propio ADMINISTRADOR aprueba una solicitud PENDIENTE (sin pasar
- * primero por Infraestructura), se activa de inmediato: no tiene sentido
- * pedirle confirmacion a si mismo.
+ * 3) Entrega: con el prestamo AUTORIZADO, Admin. Infraestructura (como
+ * Custodio del Bien) genera y sube el Acta de Entrega firmada (Formulario
+ * F-02); solo entonces el prestamo pasa a ACTIVO y el bien a EN_USO.
  * <p>
- * La devolucion exige AMBAS firmas, sin orden fijo: el solicitante (solo el,
- * nadie mas) sube el acta de entrega/devolucion firmada (DEVOLUCION_PENDIENTE)
- * y tanto Admin. Infraestructura como el ADMINISTRADOR reciben la
- * notificacion de inmediato. Cada uno valida por su lado (se registra su
- * firma por separado); en cuanto firma uno, se le avisa al otro que falta su
- * firma. Solo cuando AMBOS validaron se cierra la devolucion (DEVUELTO, el
- * bien vuelve a DISPONIBLE). Cualquiera de los dos puede rechazar el acta en
+ * 4) Devolucion: exige AMBAS firmas, sin orden fijo: el solicitante (solo
+ * el, nadie mas) sube el acta de devolucion firmada (DEVOLUCION_PENDIENTE) y
+ * tanto Admin. Infraestructura como el ADMINISTRADOR reciben la notificacion
+ * de inmediato. Cada uno valida por su lado (se registra su firma por
+ * separado); en cuanto firma uno, se le avisa al otro que falta su firma.
+ * Solo cuando AMBOS validaron se cierra la devolucion (DEVUELTO, el bien
+ * vuelve a DISPONIBLE). Cualquiera de los dos puede rechazar el acta en
  * cualquier momento mientras este pendiente ("archivo incorrecto"): vuelve a
  * ACTIVO, se reinician ambas firmas y el solicitante debe subir una nueva.
  */
@@ -110,6 +118,7 @@ public class PrestamoController {
                 .fechaDesde(request.getFechaDesde())
                 .fechaHasta(request.getFechaHasta())
                 .motivo(request.getMotivo())
+                .proyectoId(request.getProyectoId())
                 .observaciones(request.getObservaciones())
                 .build();
         prestamo = prestamoRepository.save(prestamo);
@@ -122,12 +131,13 @@ public class PrestamoController {
     }
 
     /**
-     * Aprueba un prestamo. Si esta PENDIENTE: Admin. Infraestructura o el
-     * ADMINISTRADOR pueden aprobar; si aprueba Infraestructura queda
-     * APROBADO_INFRAESTRUCTURA (a la espera de confirmacion), y si aprueba
-     * el propio ADMINISTRADOR se activa de una vez. Si ya esta
-     * APROBADO_INFRAESTRUCTURA, solo el ADMINISTRADOR puede dar la
-     * confirmacion final (pasa a ACTIVO, el bien a EN_USO).
+     * Aprueba/autoriza un prestamo. Si esta PENDIENTE: Admin. Infraestructura
+     * o el ADMINISTRADOR pueden aprobar (evaluacion tecnica); si aprueba
+     * Infraestructura queda APROBADO_INFRAESTRUCTURA (a la espera de
+     * autorizacion), y si aprueba el propio ADMINISTRADOR pasa directo a
+     * AUTORIZADO. Si ya esta APROBADO_INFRAESTRUCTURA, solo el ADMINISTRADOR
+     * puede dar la autorizacion final (pasa a AUTORIZADO). El bien sigue
+     * DISPONIBLE hasta que se cargue el Acta de Entrega (ver {@link #entregar}).
      */
     @PatchMapping("/{id}/aprobar")
     public Prestamo aprobar(@PathVariable Long id) {
@@ -139,7 +149,7 @@ public class PrestamoController {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para aprobar prestamos");
             }
             if (CurrentUser.isAdministrador()) {
-                return activar(prestamo, token);
+                return autorizar(prestamo, token);
             }
 
             BienInventario bien = bienDelPrestamo(prestamo);
@@ -150,44 +160,44 @@ public class PrestamoController {
                     "Tu solicitud de prestamo de " + bien.getNombre() + " fue aprobada por Infraestructura y esta en revision final.",
                     prestamo.getId(), token);
             notificacionClient.notificarPorRol("ADMINISTRADOR",
-                    "Prestamo de " + bien.getNombre() + " aprobado por Infraestructura: requiere tu confirmacion final.",
+                    "Prestamo de " + bien.getNombre() + " aprobado por Infraestructura: requiere tu autorizacion final.",
                     prestamo.getId(), token);
             return prestamo;
         }
 
         if (prestamo.getEstado() == EstadoPrestamo.APROBADO_INFRAESTRUCTURA) {
             if (!CurrentUser.isAdministrador()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede dar la confirmacion final");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede dar la autorizacion final");
             }
-            return activar(prestamo, token);
+            return autorizar(prestamo, token);
         }
 
         throw new ResponseStatusException(HttpStatus.CONFLICT, "El prestamo no esta pendiente de aprobacion");
     }
 
-    private Prestamo activar(Prestamo prestamo, String token) {
+    private Prestamo autorizar(Prestamo prestamo, String token) {
         BienInventario bien = bienDelPrestamo(prestamo);
         if (bien.getEstado() != EstadoBien.DISPONIBLE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "El bien ya no esta disponible (estado actual: " + bien.getEstado() + ")");
         }
 
-        bien.setEstado(EstadoBien.EN_USO);
-        bienInventarioRepository.save(bien);
-
-        prestamo.setEstado(EstadoPrestamo.ACTIVO);
+        prestamo.setEstado(EstadoPrestamo.AUTORIZADO);
         prestamoRepository.save(prestamo);
 
         notificacionClient.notificarUsuario(prestamo.getUsuarioId(),
-                "Tu prestamo de " + bien.getNombre() + " fue aprobado.", prestamo.getId(), token);
+                "Tu prestamo de " + bien.getNombre() + " fue autorizado: espera el Acta de Entrega del Custodio del Bien.",
+                prestamo.getId(), token);
+        notificacionClient.notificarPorRol("ADMIN_INFRAESTRUCTURA",
+                "Prestamo de " + bien.getNombre() + " autorizado: genera y sube el Acta de Entrega.",
+                prestamo.getId(), token);
         return prestamo;
     }
 
     /**
      * Rechaza un prestamo. Si esta PENDIENTE, puede rechazar Admin.
-     * Infraestructura o el ADMINISTRADOR. Si ya esta
-     * APROBADO_INFRAESTRUCTURA (pendiente de confirmacion final), solo el
-     * ADMINISTRADOR puede rechazarlo.
+     * Infraestructura o el ADMINISTRADOR. Si ya esta APROBADO_INFRAESTRUCTURA
+     * o AUTORIZADO, solo el ADMINISTRADOR puede rechazarlo.
      */
     @PatchMapping("/{id}/rechazar")
     public Prestamo rechazar(@PathVariable Long id) {
@@ -197,9 +207,9 @@ public class PrestamoController {
             if (!puedeGestionarSolicitudes()) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para rechazar prestamos");
             }
-        } else if (prestamo.getEstado() == EstadoPrestamo.APROBADO_INFRAESTRUCTURA) {
+        } else if (prestamo.getEstado() == EstadoPrestamo.APROBADO_INFRAESTRUCTURA || prestamo.getEstado() == EstadoPrestamo.AUTORIZADO) {
             if (!CurrentUser.isAdministrador()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede rechazar la confirmacion final");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede rechazar en esta etapa");
             }
         } else {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El prestamo no esta pendiente de aprobacion");
@@ -218,6 +228,61 @@ public class PrestamoController {
     private BienInventario bienDelPrestamo(Prestamo prestamo) {
         return bienInventarioRepository.findById(prestamo.getBienId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El bien no esta inventariado"));
+    }
+
+    /**
+     * Registra la entrega formal del bien (Formulario F-02): exclusivo de
+     * Admin. Infraestructura (Custodio del Bien) o el ADMINISTRADOR, y solo
+     * cuando el prestamo ya esta AUTORIZADO. Exige subir el Acta de Entrega
+     * firmada; solo entonces el bien pasa a EN_USO y el prestamo a ACTIVO.
+     */
+    @PostMapping(value = "/{id}/entrega", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Prestamo entregar(@PathVariable Long id, @RequestParam("archivo") MultipartFile archivo) throws IOException {
+        Prestamo prestamo = buscar(id);
+        if (!puedeGestionarSolicitudes()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para registrar la entrega del bien");
+        }
+        if (prestamo.getEstado() != EstadoPrestamo.AUTORIZADO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El prestamo no esta autorizado para su entrega");
+        }
+        if (archivo.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes adjuntar el Acta de Entrega firmada");
+        }
+
+        BienInventario bien = bienDelPrestamo(prestamo);
+        if (bien.getEstado() != EstadoBien.DISPONIBLE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El bien ya no esta disponible (estado actual: " + bien.getEstado() + ")");
+        }
+
+        String nombreAlmacenado = "entrega-" + id + "-" + System.currentTimeMillis() + extensionSegura(archivo.getOriginalFilename());
+        Files.createDirectories(storageDir);
+        Path destino = storageDir.resolve(nombreAlmacenado);
+        try (InputStream in = archivo.getInputStream()) {
+            Files.copy(in, destino, StandardCopyOption.REPLACE_EXISTING);
+        }
+        prestamo.setActaEntregaRuta(nombreAlmacenado);
+        prestamo.setActaEntregaNombreArchivo(archivo.getOriginalFilename());
+        prestamo.setActaEntregaContentType(archivo.getContentType());
+        prestamo.setFechaEntrega(LocalDateTime.now());
+        prestamo.setEstado(EstadoPrestamo.ACTIVO);
+        prestamoRepository.save(prestamo);
+
+        bien.setEstado(EstadoBien.EN_USO);
+        bienInventarioRepository.save(bien);
+
+        notificacionClient.notificarUsuario(prestamo.getUsuarioId(),
+                "Se registro la entrega de " + bien.getNombre() + ": tu prestamo esta activo.",
+                prestamo.getId(), CurrentUser.rawToken());
+        return prestamo;
+    }
+
+    /** Sirve el Acta de Entrega para previsualizacion/descarga. */
+    @GetMapping("/{id}/acta-entrega")
+    public ResponseEntity<Resource> descargarActaEntrega(@PathVariable Long id) throws MalformedURLException {
+        Prestamo prestamo = buscar(id);
+        verificarPropiedad(prestamo);
+        return servirArchivo(prestamo.getActaEntregaRuta(), prestamo.getActaEntregaContentType(), prestamo.getActaEntregaNombreArchivo(), "acta-entrega.pdf");
     }
 
     /**
@@ -358,20 +423,21 @@ public class PrestamoController {
     public ResponseEntity<Resource> descargarActa(@PathVariable Long id) throws MalformedURLException {
         Prestamo prestamo = buscar(id);
         verificarPropiedad(prestamo);
+        return servirArchivo(prestamo.getActaRuta(), prestamo.getActaContentType(), prestamo.getActaNombreArchivo(), "acta.pdf");
+    }
 
-        if (prestamo.getActaRuta() == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Este prestamo no tiene un acta cargada");
+    private ResponseEntity<Resource> servirArchivo(String ruta, String contentType, String nombreOriginal, String nombrePorDefecto) throws MalformedURLException {
+        if (ruta == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Este prestamo no tiene ese archivo cargado");
         }
-        Path archivo = storageDir.resolve(prestamo.getActaRuta());
+        Path archivo = storageDir.resolve(ruta);
         if (!Files.exists(archivo)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Archivo no encontrado en el almacenamiento");
         }
 
         Resource recurso = new UrlResource(archivo.toUri());
-        MediaType tipo = prestamo.getActaContentType() != null
-                ? MediaType.parseMediaType(prestamo.getActaContentType())
-                : MediaType.APPLICATION_PDF;
-        String nombre = prestamo.getActaNombreArchivo() != null ? prestamo.getActaNombreArchivo() : "acta.pdf";
+        MediaType tipo = contentType != null ? MediaType.parseMediaType(contentType) : MediaType.APPLICATION_PDF;
+        String nombre = nombreOriginal != null ? nombreOriginal : nombrePorDefecto;
         return ResponseEntity.ok()
                 .contentType(tipo)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nombre.replace("\"", "") + "\"")

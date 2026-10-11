@@ -183,20 +183,21 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void administradorConfirmaUnPrestamoAprobadoPorInfraestructuraYActivaElBien() {
+    void administradorConfirmaUnPrestamoAprobadoPorInfraestructuraYQuedaAutorizado() {
         authenticateAs(1L, "ADMINISTRADOR");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.APROBADO_INFRAESTRUCTURA);
         BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
         when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Prestamo aprobado = controller.aprobar(1L);
 
-        assertThat(aprobado.getEstado()).isEqualTo(EstadoPrestamo.ACTIVO);
-        assertThat(bien.getEstado()).isEqualTo(EstadoBien.EN_USO);
+        assertThat(aprobado.getEstado()).isEqualTo(EstadoPrestamo.AUTORIZADO);
+        assertThat(bien.getEstado()).isEqualTo(EstadoBien.DISPONIBLE);
+        verify(bienInventarioRepository, never()).save(any());
         verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+        verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any(), any());
     }
 
     @Test
@@ -213,18 +214,20 @@ class PrestamoControllerTest {
     }
 
     @Test
-    void administradorApruebaSinAvisarseASiMismo() {
+    void administradorApruebaDirectoQuedaAutorizadoSinAvisarseASiMismo() {
         authenticateAs(1L, "ADMINISTRADOR");
         Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE);
         BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
         when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
         when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        controller.aprobar(1L);
+        Prestamo aprobado = controller.aprobar(1L);
 
+        assertThat(aprobado.getEstado()).isEqualTo(EstadoPrestamo.AUTORIZADO);
+        assertThat(bien.getEstado()).isEqualTo(EstadoBien.DISPONIBLE);
         verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+        verify(notificacionClient).notificarPorRol(eq("ADMIN_INFRAESTRUCTURA"), any(), any(), any());
         verify(notificacionClient, never()).notificarPorRol(eq("ADMINISTRADOR"), any(), any(), any());
     }
 
@@ -320,6 +323,96 @@ class PrestamoControllerTest {
                         .isEqualTo(HttpStatus.CONFLICT));
 
         verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void adminInfraestructuraNoPuedeRechazarUnPrestamoAutorizado() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.AUTORIZADO)));
+
+        assertThatThrownBy(() -> controller.rechazar(1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void administradorPuedeRechazarUnPrestamoAutorizado() {
+        authenticateAs(1L, "ADMINISTRADOR");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.AUTORIZADO);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.DISPONIBLE)));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo rechazado = controller.rechazar(1L);
+
+        assertThat(rechazado.getEstado()).isEqualTo(EstadoPrestamo.RECHAZADO);
+    }
+
+    @Test
+    void unDocenteNoPuedeRegistrarLaEntrega() {
+        authenticateAs(5L, "DOCENTE_INVESTIGADOR");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.AUTORIZADO)));
+
+        assertThatThrownBy(() -> controller.entregar(1L, actaFirmada()))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void entregarRechazaSiElPrestamoNoEstaAutorizado() {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamoDe(1L, 1L, 5L, EstadoPrestamo.PENDIENTE)));
+
+        assertThatThrownBy(() -> controller.entregar(1L, actaFirmada()))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+
+        verify(prestamoRepository, never()).save(any());
+    }
+
+    @Test
+    void adminInfraestructuraRegistraLaEntregaYActivaElPrestamo() throws IOException {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.AUTORIZADO);
+        BienInventario bien = bienDe(1L, EstadoBien.DISPONIBLE);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bien));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Prestamo actualizado = controller.entregar(1L, actaFirmada());
+
+        assertThat(actualizado.getEstado()).isEqualTo(EstadoPrestamo.ACTIVO);
+        assertThat(actualizado.getActaEntregaNombreArchivo()).isEqualTo("acta.pdf");
+        assertThat(actualizado.getActaEntregaRuta()).endsWith(".pdf");
+        assertThat(actualizado.getFechaEntrega()).isNotNull();
+        assertThat(bien.getEstado()).isEqualTo(EstadoBien.EN_USO);
+        assertThat(storageDir.resolve(actualizado.getActaEntregaRuta())).exists();
+        verify(notificacionClient).notificarUsuario(eq(5L), any(), any(), any());
+    }
+
+    @Test
+    void descargarActaEntregaDevuelveElRecurso() throws IOException {
+        authenticateAs(7L, "ADMIN_INFRAESTRUCTURA");
+        Prestamo prestamo = prestamoDe(1L, 1L, 5L, EstadoPrestamo.AUTORIZADO);
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(prestamo));
+        when(bienInventarioRepository.findById(1L)).thenReturn(Optional.of(bienDe(1L, EstadoBien.DISPONIBLE)));
+        when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bienInventarioRepository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+        Prestamo entregado = controller.entregar(1L, actaFirmada());
+        when(prestamoRepository.findById(1L)).thenReturn(Optional.of(entregado));
+
+        ResponseEntity<Resource> respuesta = controller.descargarActaEntrega(1L);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respuesta.getBody().exists()).isTrue();
     }
 
     @Test
