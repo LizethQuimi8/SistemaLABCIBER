@@ -45,6 +45,7 @@ public class InformacionLaboratorioController {
         info.setMision(request.getMision());
         info.setVision(request.getVision());
         info.setObjetivos(request.getObjetivos());
+        info.setIndicadoresClave(request.getIndicadoresClave());
         return repository.save(info);
     }
 }

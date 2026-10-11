@@ -37,6 +37,9 @@ public class InformacionLaboratorio {
     @Column(length = 4000)
     private String objetivos;
 
+    @Column(length = 2000)
+    private String indicadoresClave;
+
     private LocalDateTime fechaActualizacion;
 
     @PrePersist

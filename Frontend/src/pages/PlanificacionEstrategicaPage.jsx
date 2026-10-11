@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 const ANIO_INICIAL = 2026
 const anioActual = new Date().getFullYear()
 const FORM_INICIAL = { titulo: '', anio: String(Math.max(ANIO_INICIAL, anioActual)), descripcion: '' }
-const INFO_INICIAL = { queEsElLaboratorio: '', mision: '', vision: '', objetivos: '' }
+const INFO_INICIAL = { queEsElLaboratorio: '', mision: '', vision: '', objetivos: '', indicadoresClave: '' }
 
 export default function PlanificacionEstrategicaPage() {
   const { isAdmin } = useAuth()
@@ -128,6 +128,7 @@ export default function PlanificacionEstrategicaPage() {
       mision: info?.mision || '',
       vision: info?.vision || '',
       objetivos: info?.objetivos || '',
+      indicadoresClave: info?.indicadoresClave || '',
     })
     setEditingInfo(true)
   }
@@ -147,7 +148,7 @@ export default function PlanificacionEstrategicaPage() {
     }
   }
 
-  const infoVacia = info && !info.queEsElLaboratorio && !info.mision && !info.vision && !info.objetivos
+  const infoVacia = info && !info.queEsElLaboratorio && !info.mision && !info.vision && !info.objetivos && !info.indicadoresClave
 
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
@@ -197,6 +198,22 @@ export default function PlanificacionEstrategicaPage() {
                 <p className="text-gray-700 text-xs whitespace-pre-line">{info?.objetivos || '—'}</p>
               </div>
             </div>
+            {info?.indicadoresClave && (
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-2">Indicadores Clave</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {info.indicadoresClave.split('\n').map((linea) => linea.trim()).filter(Boolean).map((linea, i) => {
+                    const match = linea.match(/^(\S+)\s+(.*)$/)
+                    return (
+                      <div key={i} className="bg-[#f3faf6] rounded-lg p-3 text-center">
+                        <p className="text-xl font-black text-[#052a18] leading-none">{match ? match[1] : linea}</p>
+                        {match && <p className="text-[10px] text-gray-500 mt-1">{match[2]}</p>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -298,7 +315,10 @@ export default function PlanificacionEstrategicaPage() {
               <textarea className="input" rows={2} value={infoForm.vision} onChange={(e) => setInfoForm({ ...infoForm, vision: e.target.value })} />
             </Field>
             <Field label="Objetivos">
-              <textarea className="input" rows={3} value={infoForm.objetivos} onChange={(e) => setInfoForm({ ...infoForm, objetivos: e.target.value })} />
+              <textarea className="input" rows={5} value={infoForm.objetivos} onChange={(e) => setInfoForm({ ...infoForm, objetivos: e.target.value })} />
+            </Field>
+            <Field label="Indicadores Clave (uno por línea, ej. '2+ Proyectos activos')">
+              <textarea className="input" rows={4} value={infoForm.indicadoresClave} onChange={(e) => setInfoForm({ ...infoForm, indicadoresClave: e.target.value })} />
             </Field>
             <PrimaryButton type="submit" disabled={savingInfo} className="w-full justify-center">
               {savingInfo ? 'Guardando...' : 'Guardar cambios'}
