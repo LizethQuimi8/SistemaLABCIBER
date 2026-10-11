@@ -160,14 +160,7 @@ export default function PlanificacionEstrategicaPage() {
 
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
-      <PageHeader
-        title="Planificación Estratégica"
-        action={isAdmin && (
-          <PrimaryButton onClick={openCreate}>
-            <Plus className="w-4 h-4" /> Nuevo documento
-          </PrimaryButton>
-        )}
-      />
+      <PageHeader title="Planificación Estratégica" />
 
       <ErrorBanner message={error} />
 
@@ -296,6 +289,11 @@ export default function PlanificacionEstrategicaPage() {
               className="input pl-8 text-xs py-1.5 w-full"
             />
           </div>
+          {isAdmin && (
+            <PrimaryButton onClick={openCreate}>
+              <Plus className="w-4 h-4" /> Nuevo documento
+            </PrimaryButton>
+          )}
         </div>
 
         <Table headers={isAdmin ? ['Título', 'Año', 'Descripción', 'Archivo', ''] : ['Título', 'Año', 'Descripción', 'Archivo']}>
