@@ -6,14 +6,31 @@ import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } f
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
 
-const TIPOS = ['MEMORANDO', 'INFORME', 'OTRO']
+const TIPOS = [
+  'MEMORANDO', 'INFORME',
+  'ACUERDO_CONFIDENCIALIDAD_CLIENTES', 'COMPROMISO_CONFIDENCIALIDAD_PERSONAL',
+  'COMPROMISO_IMPARCIALIDAD', 'ORGANIGRAMA', 'OTRO',
+]
+const TIPO_LABEL = {
+  MEMORANDO: 'Memorando',
+  INFORME: 'Informe',
+  ACUERDO_CONFIDENCIALIDAD_CLIENTES: 'Acuerdo de Confidencialidad - Usuarios/Clientes',
+  COMPROMISO_CONFIDENCIALIDAD_PERSONAL: 'Acta de Compromiso de Confidencialidad - Persona y Colaboradores',
+  COMPROMISO_IMPARCIALIDAD: 'Compromiso de Imparcialidad',
+  ORGANIGRAMA: 'Organigrama',
+  OTRO: 'Otro',
+}
 const ESTADOS = ['BORRADOR', 'PENDIENTE_FIRMA', 'FIRMADO', 'ARCHIVADO']
 const FORM_INICIAL = { titulo: '', asunto: '', tipo: 'MEMORANDO', firmanteId: '', estado: 'BORRADOR' }
 
 const FILTROS = [
   { id: 'TODOS', label: 'Todos' },
-  { id: 'MEMORANDO', label: 'Documentos' },
+  { id: 'MEMORANDO', label: 'Memorandos' },
   { id: 'INFORME', label: 'Informes' },
+  { id: 'ACUERDO_CONFIDENCIALIDAD_CLIENTES', label: 'Acuerdo Confidencialidad Usuarios/Clientes' },
+  { id: 'COMPROMISO_CONFIDENCIALIDAD_PERSONAL', label: 'Compromiso Confidencialidad Personal' },
+  { id: 'COMPROMISO_IMPARCIALIDAD', label: 'Compromiso de Imparcialidad' },
+  { id: 'ORGANIGRAMA', label: 'Organigrama' },
 ]
 
 export default function DocumentosPage() {
@@ -161,7 +178,7 @@ export default function DocumentosPage() {
               <FileText className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
             </td>
             <td className="px-3 py-2 text-gray-600 max-w-[220px] truncate" title={d.asunto}>{d.asunto || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{d.tipo}</td>
+            <td className="px-3 py-2 text-gray-600">{TIPO_LABEL[d.tipo] || d.tipo}</td>
             <td className="px-3 py-2">
               <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold">{d.estado}</span>
             </td>
@@ -211,7 +228,7 @@ export default function DocumentosPage() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo">
                 <select className="input" value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
-                  {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {TIPOS.map((t) => <option key={t} value={t}>{TIPO_LABEL[t] || t}</option>)}
                 </select>
               </Field>
               <Field label="Estado">

@@ -1,12 +1,15 @@
-import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Target, Eye, Upload, Search } from 'lucide-react'
-import { planificacionEstrategicaApi } from '../api/services'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass } from 'lucide-react'
+import { planificacionEstrategicaApi, informacionLaboratorioApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
 
-const FORM_INICIAL = { titulo: '', descripcion: '' }
+const ANIO_INICIAL = 2026
+const anioActual = new Date().getFullYear()
+const FORM_INICIAL = { titulo: '', anio: String(Math.max(ANIO_INICIAL, anioActual)), descripcion: '' }
+const INFO_INICIAL = { queEsElLaboratorio: '', mision: '', vision: '', objetivos: '' }
 
 export default function PlanificacionEstrategicaPage() {
   const { isAdmin } = useAuth()
@@ -20,19 +23,41 @@ export default function PlanificacionEstrategicaPage() {
   const [saving, setSaving] = useState(false)
   const [viewingId, setViewingId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [anioFiltro, setAnioFiltro] = useState('TODOS')
+
+  const [info, setInfo] = useState(null)
+  const [infoForm, setInfoForm] = useState(INFO_INICIAL)
+  const [editingInfo, setEditingInfo] = useState(false)
+  const [savingInfo, setSavingInfo] = useState(false)
+
+  useEffect(() => {
+    let cancelado = false
+    informacionLaboratorioApi.obtener()
+      .then((data) => { if (!cancelado) setInfo(data || {}) })
+      .catch(() => { if (!cancelado) setInfo({}) })
+    return () => { cancelado = true }
+  }, [])
+
+  const anios = useMemo(() => {
+    const maxAnio = Math.max(ANIO_INICIAL, anioActual, ...data.map((d) => d.anio || 0))
+    const lista = []
+    for (let a = ANIO_INICIAL; a <= maxAnio; a++) lista.push(a)
+    return lista.sort((a, b) => b - a)
+  }, [data])
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase()
-    if (!termino) return data
-    return data.filter((d) =>
-      (d.titulo || '').toLowerCase().includes(termino) || (d.descripcion || '').toLowerCase().includes(termino)
-    )
-  }, [data, busqueda])
+    return data.filter((d) => {
+      if (anioFiltro !== 'TODOS' && String(d.anio) !== anioFiltro) return false
+      if (!termino) return true
+      return (d.titulo || '').toLowerCase().includes(termino) || (d.descripcion || '').toLowerCase().includes(termino)
+    })
+  }, [data, busqueda, anioFiltro])
 
   const openCreate = () => {
     setEditingId(null)
     setEditingDocumento(null)
-    setForm(FORM_INICIAL)
+    setForm({ ...FORM_INICIAL, anio: anioFiltro !== 'TODOS' ? anioFiltro : FORM_INICIAL.anio })
     setArchivo(null)
     setShowForm(true)
   }
@@ -40,7 +65,7 @@ export default function PlanificacionEstrategicaPage() {
   const openEdit = (d) => {
     setEditingId(d.id)
     setEditingDocumento(d)
-    setForm({ titulo: d.titulo || '', descripcion: d.descripcion || '' })
+    setForm({ titulo: d.titulo || '', anio: String(d.anio || anioActual), descripcion: d.descripcion || '' })
     setArchivo(null)
     setShowForm(true)
   }
@@ -50,13 +75,14 @@ export default function PlanificacionEstrategicaPage() {
     setSaving(true)
     setError(null)
     try {
+      const anio = Number(form.anio) || anioActual
       if (editingId) {
-        await planificacionEstrategicaApi.actualizar(editingId, form.titulo, form.descripcion, archivo)
+        await planificacionEstrategicaApi.actualizar(editingId, form.titulo, anio, form.descripcion, archivo)
       } else {
         if (!archivo) {
           throw new Error('Selecciona el archivo PDF del documento')
         }
-        await planificacionEstrategicaApi.crear(form.titulo, form.descripcion, archivo)
+        await planificacionEstrategicaApi.crear(form.titulo, anio, form.descripcion, archivo)
       }
       setShowForm(false)
       setEditingId(null)
@@ -96,6 +122,33 @@ export default function PlanificacionEstrategicaPage() {
     }
   }
 
+  const abrirEditarInfo = () => {
+    setInfoForm({
+      queEsElLaboratorio: info?.queEsElLaboratorio || '',
+      mision: info?.mision || '',
+      vision: info?.vision || '',
+      objetivos: info?.objetivos || '',
+    })
+    setEditingInfo(true)
+  }
+
+  const handleGuardarInfo = async (e) => {
+    e.preventDefault()
+    setSavingInfo(true)
+    setError(null)
+    try {
+      const actualizado = await informacionLaboratorioApi.actualizar(infoForm)
+      setInfo(actualizado)
+      setEditingInfo(false)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingInfo(false)
+    }
+  }
+
+  const infoVacia = info && !info.queEsElLaboratorio && !info.mision && !info.vision && !info.objetivos
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
@@ -109,27 +162,73 @@ export default function PlanificacionEstrategicaPage() {
 
       <ErrorBanner message={error} />
 
-      <div className="relative mb-3 max-w-xs">
-        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-        <input
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por título o descripción..."
-          className="input pl-8 text-xs py-1.5 w-full"
-        />
+      <div className="bg-white rounded-lg border border-gray-200 p-5 mb-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#0e6b3c] text-white p-2 rounded">
+              <Compass className="w-4 h-4" />
+            </div>
+            <h2 className="text-sm font-bold text-[#052a18]">¿Qué es el Laboratorio?</h2>
+          </div>
+          {isAdmin && (
+            <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          )}
+        </div>
+        {infoVacia ? (
+          <p className="text-xs text-gray-400">
+            {isAdmin ? 'Aún no se ha redactado esta sección. Usa "Editar" para completarla.' : 'Esta sección todavía no ha sido completada.'}
+          </p>
+        ) : (
+          <div className="space-y-3 text-sm">
+            {info?.queEsElLaboratorio && <p className="text-gray-700 whitespace-pre-line">{info.queEsElLaboratorio}</p>}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-gray-100">
+              <div>
+                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-1">Misión</p>
+                <p className="text-gray-700 text-xs whitespace-pre-line">{info?.mision || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-1">Visión</p>
+                <p className="text-gray-700 text-xs whitespace-pre-line">{info?.vision || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-1">Objetivos</p>
+                <p className="text-gray-700 text-xs whitespace-pre-line">{info?.objetivos || '—'}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <Table headers={isAdmin ? ['Título', 'Descripción', 'Archivo', ''] : ['Título', 'Descripción', 'Archivo']}>
-        {loading && <LoadingRow colSpan={isAdmin ? 4 : 3} />}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <FiltroChip active={anioFiltro === 'TODOS'} onClick={() => setAnioFiltro('TODOS')}>Todos los años</FiltroChip>
+        {anios.map((a) => (
+          <FiltroChip key={a} active={anioFiltro === String(a)} onClick={() => setAnioFiltro(String(a))}>{a}</FiltroChip>
+        ))}
+        <div className="relative ml-auto w-full max-w-xs">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por título o descripción..."
+            className="input pl-8 text-xs py-1.5 w-full"
+          />
+        </div>
+      </div>
+
+      <Table headers={isAdmin ? ['Título', 'Año', 'Descripción', 'Archivo', ''] : ['Título', 'Año', 'Descripción', 'Archivo']}>
+        {loading && <LoadingRow colSpan={isAdmin ? 5 : 4} />}
         {!loading && filtrados.length === 0 && (
-          <EmptyRow colSpan={isAdmin ? 4 : 3} message={data.length === 0 ? 'No hay documentos de planificación estratégica cargados todavía' : 'Ningún documento coincide con la búsqueda'} />
+          <EmptyRow colSpan={isAdmin ? 5 : 4} message={data.length === 0 ? 'No hay documentos de planificación estratégica cargados todavía' : 'Ningún documento coincide con los filtros aplicados'} />
         )}
         {!loading && filtrados.map((d) => (
           <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
             <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
               <Target className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
             </td>
-            <td className="px-3 py-2 text-gray-600 max-w-[320px] truncate" title={d.descripcion}>{d.descripcion || '—'}</td>
+            <td className="px-3 py-2 text-gray-600">{d.anio || '—'}</td>
+            <td className="px-3 py-2 text-gray-600 max-w-[280px] truncate" title={d.descripcion}>{d.descripcion || '—'}</td>
             <td className="px-3 py-2">
               {d.rutaArchivo ? (
                 <button
@@ -166,6 +265,9 @@ export default function PlanificacionEstrategicaPage() {
             <Field label="Título">
               <input required className="input" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ej. Plan Estratégico 2026-2030" />
             </Field>
+            <Field label="Año">
+              <input required type="number" min={ANIO_INICIAL} className="input" value={form.anio} onChange={(e) => setForm({ ...form, anio: e.target.value })} />
+            </Field>
             <Field label="Descripción (opcional)">
               <textarea className="input" rows={2} value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
             </Field>
@@ -182,6 +284,28 @@ export default function PlanificacionEstrategicaPage() {
           </form>
         </Modal>
       )}
+
+      {editingInfo && (
+        <Modal title="Editar: ¿Qué es el Laboratorio?" onClose={() => setEditingInfo(false)}>
+          <form onSubmit={handleGuardarInfo} className="space-y-3">
+            <Field label="¿Qué es el laboratorio?">
+              <textarea className="input" rows={3} value={infoForm.queEsElLaboratorio} onChange={(e) => setInfoForm({ ...infoForm, queEsElLaboratorio: e.target.value })} />
+            </Field>
+            <Field label="Misión">
+              <textarea className="input" rows={2} value={infoForm.mision} onChange={(e) => setInfoForm({ ...infoForm, mision: e.target.value })} />
+            </Field>
+            <Field label="Visión">
+              <textarea className="input" rows={2} value={infoForm.vision} onChange={(e) => setInfoForm({ ...infoForm, vision: e.target.value })} />
+            </Field>
+            <Field label="Objetivos">
+              <textarea className="input" rows={3} value={infoForm.objetivos} onChange={(e) => setInfoForm({ ...infoForm, objetivos: e.target.value })} />
+            </Field>
+            <PrimaryButton type="submit" disabled={savingInfo} className="w-full justify-center">
+              {savingInfo ? 'Guardando...' : 'Guardar cambios'}
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
     </main>
   )
 }
@@ -192,5 +316,16 @@ function Field({ label, children }) {
       <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+function FiltroChip({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${active ? 'bg-[#0e6b3c] text-white border-[#0e6b3c]' : 'bg-white text-gray-600 border-gray-300 hover:border-[#0e6b3c]'}`}
+    >
+      {children}
+    </button>
   )
 }

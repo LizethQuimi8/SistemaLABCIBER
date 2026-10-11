@@ -9,9 +9,9 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/** Documento de planificacion estrategica del laboratorio (PDF). Solo el
- * ADMINISTRADOR puede cargar, editar o eliminar; el resto de roles solo
- * puede ver/descargar (ver PlanificacionEstrategicaController). */
+/** Documento de planificacion estrategica del laboratorio (PDF), agrupado por
+ * anio. Solo el ADMINISTRADOR puede cargar, editar o eliminar; el resto de
+ * roles solo puede ver/descargar (ver PlanificacionEstrategicaController). */
 @Entity
 @Table(name = "planificacion_estrategica")
 @Getter
@@ -27,6 +27,10 @@ public class PlanificacionEstrategica {
 
     @Column(nullable = false, length = 250)
     private String titulo;
+
+    /** Anio al que pertenece el documento (subseccion de la pantalla), desde 2026 en adelante. */
+    @Column(nullable = false)
+    private Integer anio;
 
     @Column(length = 2000)
     private String descripcion;
@@ -53,5 +57,8 @@ public class PlanificacionEstrategica {
     @PrePersist
     void prePersist() {
         this.fechaCarga = LocalDateTime.now();
+        if (this.anio == null) {
+            this.anio = LocalDateTime.now().getYear();
+        }
     }
 }

@@ -16,6 +16,9 @@ volumes:
   prestamos_files:
   proyectos_files:
   planificacion_files:
+  mantenimientos_files:
+  cyberrange_files:
+  practicas_files:
 
 x-mysql-common: &mysql-common
   image: mysql:8.0
@@ -165,6 +168,8 @@ services:
       - documentos_files:/data/documentos
       - manuales_files:/data/manuales
       - planificacion_files:/data/planificacion
+      - cyberrange_files:/data/cyberrange
+      - practicas_files:/data/practicas
     expose:
       - "8083"
 
@@ -190,6 +195,7 @@ services:
     volumes:
       - compras_files:/data/compras
       - prestamos_files:/data/prestamos
+      - mantenimientos_files:/data/mantenimientos
     expose:
       - "8084"
 

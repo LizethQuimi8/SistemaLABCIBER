@@ -66,10 +66,32 @@ export const manualesApi = {
 
 export const planificacionEstrategicaApi = {
   list: () => apiFetch('/api/planificacion-estrategica'),
-  crear: (titulo, descripcion, archivo) => apiUpload('/api/planificacion-estrategica', archivo, { fields: { titulo, descripcion } }),
-  actualizar: (id, titulo, descripcion, archivo) => apiUpload(`/api/planificacion-estrategica/${id}`, archivo, { method: 'PUT', fields: { titulo, descripcion } }),
+  crear: (titulo, anio, descripcion, archivo) => apiUpload('/api/planificacion-estrategica', archivo, { fields: { titulo, anio, descripcion } }),
+  actualizar: (id, titulo, anio, descripcion, archivo) => apiUpload(`/api/planificacion-estrategica/${id}`, archivo, { method: 'PUT', fields: { titulo, anio, descripcion } }),
   verArchivo: (id) => apiFetchBlob(`/api/planificacion-estrategica/${id}/archivo`),
   remove: (id) => apiFetch(`/api/planificacion-estrategica/${id}`, { method: 'DELETE' }),
+}
+
+export const informacionLaboratorioApi = {
+  obtener: () => apiFetch('/api/planificacion-estrategica/info'),
+  actualizar: (data) => apiFetch('/api/planificacion-estrategica/info', { method: 'PUT', body: data }),
+}
+
+export const cyberRangeApi = {
+  list: () => apiFetch('/api/cyberrange'),
+  crear: (titulo, descripcion, archivo) => apiUpload('/api/cyberrange', archivo, { fields: { titulo, descripcion } }),
+  actualizar: (id, titulo, descripcion, archivo) => apiUpload(`/api/cyberrange/${id}`, archivo, { method: 'PUT', fields: { titulo, descripcion } }),
+  verArchivo: (id) => apiFetchBlob(`/api/cyberrange/${id}/archivo`),
+  remove: (id) => apiFetch(`/api/cyberrange/${id}`, { method: 'DELETE' }),
+}
+
+export const practicasApi = {
+  list: () => apiFetch('/api/practicas'),
+  crear: (data) => apiFetch('/api/practicas', { method: 'POST', body: data }),
+  actualizar: (id, data) => apiFetch(`/api/practicas/${id}`, { method: 'PUT', body: data }),
+  subirArchivo: (id, archivo) => apiUpload(`/api/practicas/${id}/archivo`, archivo),
+  verArchivo: (id) => apiFetchBlob(`/api/practicas/${id}/archivo`),
+  remove: (id) => apiFetch(`/api/practicas/${id}`, { method: 'DELETE' }),
 }
 
 export const notificacionesApi = {
@@ -102,6 +124,15 @@ export const prestamosApi = {
     { method: 'PATCH' },
   ),
   verActa: (id) => apiFetchBlob(`/api/prestamos/${id}/acta`),
+}
+
+export const mantenimientosApi = {
+  list: (bienId) => apiFetch(`/api/mantenimientos${bienId ? `?bienId=${bienId}` : ''}`),
+  crear: (data) => apiFetch('/api/mantenimientos', { method: 'POST', body: data }),
+  actualizar: (id, data) => apiFetch(`/api/mantenimientos/${id}`, { method: 'PUT', body: data }),
+  subirArchivo: (id, archivo) => apiUpload(`/api/mantenimientos/${id}/archivo`, archivo),
+  verArchivo: (id) => apiFetchBlob(`/api/mantenimientos/${id}/archivo`),
+  remove: (id) => apiFetch(`/api/mantenimientos/${id}`, { method: 'DELETE' }),
 }
 
 export const comprasApi = {

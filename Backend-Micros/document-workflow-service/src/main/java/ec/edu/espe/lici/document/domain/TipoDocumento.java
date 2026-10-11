@@ -3,5 +3,9 @@ package ec.edu.espe.lici.document.domain;
 public enum TipoDocumento {
     MEMORANDO,
     INFORME,
+    ACUERDO_CONFIDENCIALIDAD_CLIENTES,
+    COMPROMISO_CONFIDENCIALIDAD_PERSONAL,
+    COMPROMISO_IMPARCIALIDAD,
+    ORGANIGRAMA,
     OTRO
 }

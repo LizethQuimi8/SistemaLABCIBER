@@ -12,6 +12,7 @@ import PublicacionesPage from './pages/PublicacionesPage'
 import DocumentosPage from './pages/DocumentosPage'
 import ManualesPage from './pages/ManualesPage'
 import PlanificacionEstrategicaPage from './pages/PlanificacionEstrategicaPage'
+import CyberRangePracticasPage from './pages/CyberRangePracticasPage'
 import NotificacionesPage from './pages/NotificacionesPage'
 import InventarioPage from './pages/InventarioPage'
 import ComprasPage from './pages/ComprasPage'
@@ -27,6 +28,7 @@ const VIEWS = {
   documentos: DocumentosPage,
   manuales: ManualesPage,
   planificacion: PlanificacionEstrategicaPage,
+  cyberrange: CyberRangePracticasPage,
   notificaciones: NotificacionesPage,
   inventario: InventarioPage,
   compras: ComprasPage,

@@ -11,6 +11,7 @@ import {
   BarChart2,
   BookMarked,
   Target,
+  FlaskConical,
   X,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -23,6 +24,7 @@ const menuItems = [
   { id: 'documentos', label: 'Documentos y Correspondencia', icon: FileText },
   { id: 'manuales', label: 'Manuales y Procesos', icon: BookMarked },
   { id: 'planificacion', label: 'Planificación Estratégica', icon: Target },
+  { id: 'cyberrange', label: 'CyberRange y Prácticas-Ensayos', icon: FlaskConical },
   { id: 'inventario', label: 'Inventario', icon: Package },
   { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },
   { id: 'usuarios', label: 'Gestión de Usuarios', icon: Users, adminOnly: true },

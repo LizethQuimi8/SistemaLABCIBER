@@ -48,6 +48,7 @@ public class PlanificacionEstrategicaController {
     /** Crea el documento y guarda su archivo en un solo paso (siempre requiere archivo). */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PlanificacionEstrategica> crear(@RequestParam String titulo,
+                                                           @RequestParam(required = false) Integer anio,
                                                            @RequestParam(required = false) String descripcion,
                                                            @RequestParam("archivo") MultipartFile archivo) throws IOException {
         exigirAdministrador();
@@ -57,6 +58,7 @@ public class PlanificacionEstrategicaController {
 
         PlanificacionEstrategica documento = PlanificacionEstrategica.builder()
                 .titulo(titulo)
+                .anio(anio)
                 .descripcion(descripcion)
                 .usuarioId(CurrentUser.id())
                 .build();
@@ -68,16 +70,20 @@ public class PlanificacionEstrategicaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(documento);
     }
 
-    /** Edita titulo/descripcion y, opcionalmente, reemplaza el archivo. */
+    /** Edita titulo/anio/descripcion y, opcionalmente, reemplaza el archivo. */
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PlanificacionEstrategica actualizar(@PathVariable Long id,
                                                 @RequestParam String titulo,
+                                                @RequestParam(required = false) Integer anio,
                                                 @RequestParam(required = false) String descripcion,
                                                 @RequestParam(value = "archivo", required = false) MultipartFile archivo) throws IOException {
         exigirAdministrador();
         PlanificacionEstrategica documento = buscar(id);
 
         documento.setTitulo(titulo);
+        if (anio != null) {
+            documento.setAnio(anio);
+        }
         documento.setDescripcion(descripcion);
         documento.setUsuarioId(CurrentUser.id());
 

@@ -73,7 +73,7 @@ class PlanificacionEstrategicaControllerTest {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
         MockMultipartFile archivo = new MockMultipartFile("archivo", "plan.pdf", "application/pdf", "contenido".getBytes());
 
-        assertThatThrownBy(() -> controller.crear("Plan", null, archivo))
+        assertThatThrownBy(() -> controller.crear("Plan", 2026, null, archivo))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -87,11 +87,12 @@ class PlanificacionEstrategicaControllerTest {
         when(planificacionEstrategicaRepository.save(any(PlanificacionEstrategica.class))).thenAnswer(inv -> inv.getArgument(0));
         MockMultipartFile archivo = new MockMultipartFile("archivo", "plan.pdf", "application/pdf", "contenido".getBytes());
 
-        var response = controller.crear("Plan Estrategico 2026-2030", "Descripcion", archivo);
+        var response = controller.crear("Plan Estrategico 2026-2030", 2026, "Descripcion", archivo);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         PlanificacionEstrategica creado = response.getBody();
         assertThat(creado.getTitulo()).isEqualTo("Plan Estrategico 2026-2030");
+        assertThat(creado.getAnio()).isEqualTo(2026);
         assertThat(creado.getNombreArchivo()).isEqualTo("plan.pdf");
         assertThat(creado.getContentType()).isEqualTo("application/pdf");
         assertThat(creado.getRutaArchivo()).endsWith(".pdf");
@@ -102,7 +103,7 @@ class PlanificacionEstrategicaControllerTest {
     void unDocenteNoPuedeActualizarUnDocumento() {
         authenticateAs(5L, "DOCENTE_INVESTIGADOR");
 
-        assertThatThrownBy(() -> controller.actualizar(1L, "Nuevo titulo", null, null))
+        assertThatThrownBy(() -> controller.actualizar(1L, "Nuevo titulo", null, null, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -118,7 +119,7 @@ class PlanificacionEstrategicaControllerTest {
         when(planificacionEstrategicaRepository.findById(1L)).thenReturn(Optional.of(existente));
         when(planificacionEstrategicaRepository.save(any(PlanificacionEstrategica.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        PlanificacionEstrategica actualizado = controller.actualizar(1L, "Titulo actualizado", "Nueva descripcion", null);
+        PlanificacionEstrategica actualizado = controller.actualizar(1L, "Titulo actualizado", 2027, "Nueva descripcion", null);
 
         assertThat(actualizado.getTitulo()).isEqualTo("Titulo actualizado");
         assertThat(actualizado.getRutaArchivo()).isEqualTo("planificacion-1-viejo.pdf");
@@ -152,7 +153,7 @@ class PlanificacionEstrategicaControllerTest {
         authenticateAs(1L, "ADMINISTRADOR");
         when(planificacionEstrategicaRepository.save(any(PlanificacionEstrategica.class))).thenAnswer(inv -> inv.getArgument(0));
         MockMultipartFile archivo = new MockMultipartFile("archivo", "plan.pdf", "application/pdf", "contenido".getBytes());
-        PlanificacionEstrategica creado = controller.crear("Plan", null, archivo).getBody();
+        PlanificacionEstrategica creado = controller.crear("Plan", 2026, null, archivo).getBody();
         when(planificacionEstrategicaRepository.findById(creado.getId())).thenReturn(Optional.of(creado));
 
         ResponseEntity<Resource> respuesta = controller.descargarArchivo(creado.getId());

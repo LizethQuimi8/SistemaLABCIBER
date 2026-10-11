@@ -31,6 +31,8 @@ lici:
     documentos-dir: ${DOCUMENTOS_STORAGE_DIR:/data/documentos}
     manuales-dir: ${MANUALES_STORAGE_DIR:/data/manuales}
     planificacion-dir: ${PLANIFICACION_STORAGE_DIR:/data/planificacion}
+    cyberrange-dir: ${CYBERRANGE_STORAGE_DIR:/data/cyberrange}
+    practicas-dir: ${PRACTICAS_STORAGE_DIR:/data/practicas}
 
 management:
   endpoints:

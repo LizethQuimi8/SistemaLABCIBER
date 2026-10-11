@@ -5,7 +5,7 @@ import {
   Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
   FileSignature, FileCheck2, FileX2,
 } from 'lucide-react'
-import { inventarioApi, prestamosApi, usuariosApi, proyectosApi } from '../api/services'
+import { inventarioApi, prestamosApi, usuariosApi, proyectosApi, mantenimientosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
@@ -90,6 +90,8 @@ export default function InventarioPage() {
   const { data: directorio } = useList(directorioFetcher)
   const proyectosFetcher = useCallback(() => proyectosApi.list(), [])
   const { data: proyectos } = useList(proyectosFetcher)
+  const mantenimientosFetcher = useCallback(() => mantenimientosApi.list(), [])
+  const { data: mantenimientos, loading: loadingMantenimientos, reload: reloadMantenimientos } = useList(mantenimientosFetcher)
 
   const columnHeaders = canEditInventario
     ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', 'Acciones']
@@ -118,6 +120,11 @@ export default function InventarioPage() {
   const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS')
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS')
   const [pagina, setPagina] = useState(1)
+  const [showMantenimientoForm, setShowMantenimientoForm] = useState(false)
+  const [mantenimientoForm, setMantenimientoForm] = useState({ bienId: '', tipo: 'PREVENTIVO', fecha: '', descripcion: '' })
+  const [mantenimientoArchivo, setMantenimientoArchivo] = useState(null)
+  const [savingMantenimiento, setSavingMantenimiento] = useState(false)
+  const [viewingMantenimientoId, setViewingMantenimientoId] = useState(null)
 
   const nombrePorBienId = useMemo(() => new Map(bienes.map((b) => [b.id, b.nombre])), [bienes])
   const nombrePorUsuarioId = useMemo(
@@ -308,6 +315,59 @@ export default function InventarioPage() {
       setError(err.message)
     } finally {
       setImporting(false)
+    }
+  }
+
+  const abrirMantenimiento = (bien) => {
+    setMantenimientoForm({ bienId: bien ? String(bien.id) : '', tipo: 'PREVENTIVO', fecha: new Date().toISOString().slice(0, 10), descripcion: '' })
+    setMantenimientoArchivo(null)
+    setShowMantenimientoForm(true)
+  }
+
+  const handleSubmitMantenimiento = async (e) => {
+    e.preventDefault()
+    setSavingMantenimiento(true)
+    setError(null)
+    try {
+      const creado = await mantenimientosApi.crear({
+        bienId: Number(mantenimientoForm.bienId),
+        tipo: mantenimientoForm.tipo,
+        fecha: mantenimientoForm.fecha,
+        descripcion: mantenimientoForm.descripcion,
+      })
+      if (mantenimientoArchivo) {
+        await mantenimientosApi.subirArchivo(creado.id, mantenimientoArchivo)
+      }
+      setShowMantenimientoForm(false)
+      setMantenimientoArchivo(null)
+      reloadMantenimientos()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingMantenimiento(false)
+    }
+  }
+
+  const handleDeleteMantenimiento = async (id) => {
+    if (!confirm('¿Eliminar este registro de mantenimiento?')) return
+    try {
+      await mantenimientosApi.remove(id)
+      reloadMantenimientos()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleVerMantenimientoArchivo = async (mantenimiento) => {
+    setViewingMantenimientoId(mantenimiento.id)
+    setError(null)
+    try {
+      const blob = await mantenimientosApi.verArchivo(mantenimiento.id)
+      window.open(URL.createObjectURL(blob), '_blank')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setViewingMantenimientoId(null)
     }
   }
 
@@ -849,6 +909,57 @@ export default function InventarioPage() {
         </Table>
       </div>
 
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-bold text-gray-700">Mantenimientos Correctivos y Preventivos</h2>
+          {canEditInventario && (
+            <button
+              onClick={() => abrirMantenimiento(null)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18]"
+            >
+              <Plus className="w-3.5 h-3.5" /> Registrar mantenimiento
+            </button>
+          )}
+        </div>
+        <Table headers={['Bien', 'Tipo', 'Fecha', 'Descripción', 'Archivo', canEditInventario ? '' : undefined].filter(Boolean)}>
+          {loadingMantenimientos && <LoadingRow colSpan={canEditInventario ? 6 : 5} />}
+          {!loadingMantenimientos && mantenimientos.length === 0 && <EmptyRow colSpan={canEditInventario ? 6 : 5} message="Sin mantenimientos registrados todavía" />}
+          {!loadingMantenimientos && mantenimientos.map((m) => (
+            <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="px-3 py-2 font-medium text-gray-800">{nombrePorBienId.get(m.bienId) || `#${m.bienId}`}</td>
+              <td className="px-3 py-2">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${m.tipo === 'CORRECTIVO' ? 'bg-red-50 text-red-700' : 'bg-sky-50 text-sky-700'}`}>
+                  {m.tipo === 'CORRECTIVO' ? 'Correctivo' : 'Preventivo'}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{m.fecha || '—'}</td>
+              <td className="px-3 py-2 text-gray-600 max-w-[280px] truncate" title={m.descripcion}>{m.descripcion || '—'}</td>
+              <td className="px-3 py-2">
+                {m.archivoRuta ? (
+                  <button
+                    onClick={() => handleVerMantenimientoArchivo(m)}
+                    disabled={viewingMantenimientoId === m.id}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
+                    title={m.archivoNombreArchivo || 'Ver archivo'}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> {viewingMantenimientoId === m.id ? 'Abriendo...' : 'Ver'}
+                  </button>
+                ) : (
+                  <span className="text-gray-400 text-xs">Sin archivo</span>
+                )}
+              </td>
+              {canEditInventario && (
+                <td className="px-3 py-2 text-right">
+                  <button onClick={() => handleDeleteMantenimiento(m.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </Table>
+      </div>
+
       {showForm && (
         <Modal title="Nuevo bien de inventario" onClose={() => setShowForm(false)}>
           <form onSubmit={handleCreate} className="space-y-3">
@@ -1004,6 +1115,59 @@ export default function InventarioPage() {
             </Field>
             <PrimaryButton type="submit" disabled={busyId === `p-${rechazoDevolucion.id}`} className="w-full justify-center">
               Rechazar acta
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
+
+      {showMantenimientoForm && (
+        <Modal title="Registrar mantenimiento" onClose={() => setShowMantenimientoForm(false)}>
+          <form onSubmit={handleSubmitMantenimiento} className="space-y-3">
+            <Field label="Bien">
+              <select
+                required className="input"
+                value={mantenimientoForm.bienId}
+                onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, bienId: e.target.value })}
+              >
+                <option value="" disabled>Seleccionar bien...</option>
+                {bienes.map((b) => <option key={b.id} value={b.id}>{b.nombre} {b.codigoIC ? `(${b.codigoIC})` : ''}</option>)}
+              </select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Tipo">
+                <select
+                  className="input"
+                  value={mantenimientoForm.tipo}
+                  onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, tipo: e.target.value })}
+                >
+                  <option value="PREVENTIVO">Preventivo</option>
+                  <option value="CORRECTIVO">Correctivo</option>
+                </select>
+              </Field>
+              <Field label="Fecha">
+                <input
+                  required type="date" className="input"
+                  value={mantenimientoForm.fecha}
+                  onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, fecha: e.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="Descripción">
+              <textarea
+                required rows={3} className="input"
+                value={mantenimientoForm.descripcion}
+                onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, descripcion: e.target.value })}
+              />
+            </Field>
+            <Field label="Documento de respaldo (opcional)">
+              <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
+                <Upload className="w-4 h-4 flex-shrink-0" />
+                {mantenimientoArchivo ? mantenimientoArchivo.name : 'Subir informe, factura o bitácora'}
+                <input type="file" className="hidden" onChange={(e) => setMantenimientoArchivo(e.target.files?.[0] || null)} />
+              </label>
+            </Field>
+            <PrimaryButton type="submit" disabled={savingMantenimiento} className="w-full justify-center">
+              {savingMantenimiento ? 'Guardando...' : 'Registrar mantenimiento'}
             </PrimaryButton>
           </form>
         </Modal>
