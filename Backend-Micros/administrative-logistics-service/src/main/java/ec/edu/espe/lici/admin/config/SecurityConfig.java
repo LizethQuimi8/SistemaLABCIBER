@@ -60,15 +60,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/inventario/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/inventario/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers(HttpMethod.GET, "/api/mantenimientos/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/mantenimientos/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers("/api/prestamos/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/compras/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

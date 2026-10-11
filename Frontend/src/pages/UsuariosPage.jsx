@@ -6,7 +6,14 @@ import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } f
 import Modal from '../components/ui/Modal'
 import { nombreRol } from '../constants/roles'
 
-const ROLES = ['ADMINISTRADOR', 'DOCENTE_INVESTIGADOR', 'ADMIN_INFRAESTRUCTURA', 'RESPONSABLE_COMPRAS']
+const ROLES = [
+  'ADMINISTRADOR',
+  'DOCENTE_INVESTIGADOR',
+  'INVESTIGADOR_COLABORADOR',
+  'ESTUDIANTE',
+  'ADMIN_INFRAESTRUCTURA',
+  'RESPONSABLE_COMPRAS',
+]
 const FORM_INICIAL = { nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' }
 
 /** Contraseña temporal aleatoria: la persona la cambia en su primer ingreso. */

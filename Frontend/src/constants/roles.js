@@ -2,8 +2,10 @@
 // rol tal como vive en el JWT y la base de datos — esto es solo de visualizacion.
 export const ROL_LABEL = {
   ADMINISTRADOR: 'Jefe de Laboratorio',
+  DOCENTE_INVESTIGADOR: 'Miembros Investigadores',
+  INVESTIGADOR_COLABORADOR: 'Investigadores Colaboradores',
+  ESTUDIANTE: 'Estudiantes de Pregrado y Posgrado',
   ADMIN_INFRAESTRUCTURA: 'Admin. Infraestructura',
-  DOCENTE_INVESTIGADOR: 'Docente Investigador',
   RESPONSABLE_COMPRAS: 'Responsable Compras',
 }
 
