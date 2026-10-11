@@ -246,33 +246,32 @@ export default function PlanificacionEstrategicaPage() {
             </AccordionSection>
           )}
 
-          {(info?.objetivos || info?.indicadoresClave) && (
+          {info?.objetivos && (
             <AccordionSection
               icon={<Target className="w-4 h-4" />}
               title="Objetivos"
               open={abierto.objetivos}
               onToggle={() => toggleAbierto('objetivos')}
             >
-              {info?.objetivos && (
-                <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line">{info.objetivos}</p>
-              )}
-              {info?.indicadoresClave && (
-                <div className={info?.objetivos ? 'pt-4 mt-4 border-t border-gray-100' : ''}>
-                  <p className="text-xs font-bold text-[#052a18] mb-3">Indicadores Clave</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {info.indicadoresClave.split('\n').map((linea) => linea.trim()).filter(Boolean).map((linea, i) => {
-                      const match = linea.match(/^(\S+)\s+(.*)$/)
-                      return (
-                        <div key={i} className="bg-[#f3faf6] rounded-lg p-3 text-center">
-                          <p className="text-xl font-black text-[#052a18] leading-none">{match ? match[1] : linea}</p>
-                          {match && <p className="text-[10px] text-gray-500 mt-1">{match[2]}</p>}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+              <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line">{info.objetivos}</p>
             </AccordionSection>
+          )}
+
+          {info?.indicadoresClave && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <p className="text-sm font-bold text-[#052a18] mb-3">Indicadores Clave</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {info.indicadoresClave.split('\n').map((linea) => linea.trim()).filter(Boolean).map((linea, i) => {
+                  const match = linea.match(/^(\S+)\s+(.*)$/)
+                  return (
+                    <div key={i} className="bg-[#f3faf6] rounded-lg p-3 text-center">
+                      <p className="text-xl font-black text-[#052a18] leading-none">{match ? match[1] : linea}</p>
+                      {match && <p className="text-[10px] text-gray-500 mt-1">{match[2]}</p>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
