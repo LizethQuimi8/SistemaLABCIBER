@@ -27,12 +27,12 @@ spring:
         - id: document-workflow-service
           uri: ${DOCUMENT_SERVICE_URL:http://localhost:8083}
           predicates:
-            - Path=/api/documentos/**,/api/notificaciones/**,/api/manuales/**
+            - Path=/api/documentos/**,/api/notificaciones/**,/api/manuales/**,/api/planificacion-estrategica/**,/api/cyberrange/**,/api/practicas/**
 
         - id: administrative-logistics-service
           uri: ${ADMIN_SERVICE_URL:http://localhost:8084}
           predicates:
-            - Path=/api/inventario/**,/api/prestamos/**,/api/compras/**
+            - Path=/api/inventario/**,/api/prestamos/**,/api/compras/**,/api/mantenimientos/**
 
         - id: reporting-service
           uri: ${REPORTING_SERVICE_URL:http://localhost:8085}
