@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass } from 'lucide-react'
+import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight } from 'lucide-react'
 import { planificacionEstrategicaApi, informacionLaboratorioApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 const ANIO_INICIAL = 2026
 const anioActual = new Date().getFullYear()
 const FORM_INICIAL = { titulo: '', anio: String(Math.max(ANIO_INICIAL, anioActual)), descripcion: '' }
-const INFO_INICIAL = { queEsElLaboratorio: '', mision: '', vision: '', objetivos: '', indicadoresClave: '' }
+const INFO_INICIAL = { queEsElLaboratorio: '', ambitosActuacion: '', mision: '', vision: '', objetivos: '', indicadoresClave: '' }
 
 export default function PlanificacionEstrategicaPage() {
   const { isAdmin } = useAuth()
@@ -125,6 +125,7 @@ export default function PlanificacionEstrategicaPage() {
   const abrirEditarInfo = () => {
     setInfoForm({
       queEsElLaboratorio: info?.queEsElLaboratorio || '',
+      ambitosActuacion: info?.ambitosActuacion || '',
       mision: info?.mision || '',
       vision: info?.vision || '',
       objetivos: info?.objetivos || '',
@@ -148,7 +149,12 @@ export default function PlanificacionEstrategicaPage() {
     }
   }
 
-  const infoVacia = info && !info.queEsElLaboratorio && !info.mision && !info.vision && !info.objetivos && !info.indicadoresClave
+  const infoVacia = info && !info.queEsElLaboratorio && !info.ambitosActuacion && !info.mision && !info.vision && !info.objetivos && !info.indicadoresClave
+
+  const ambitos = (info?.ambitosActuacion || '').split('\n').map((l) => l.trim()).filter(Boolean).map((linea) => {
+    const [titulo, ...resto] = linea.split('||')
+    return { titulo: titulo.trim(), descripcion: resto.join('||').trim() }
+  })
 
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
@@ -163,13 +169,13 @@ export default function PlanificacionEstrategicaPage() {
 
       <ErrorBanner message={error} />
 
-      <div className="bg-white rounded-lg border border-gray-200 p-5 mb-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-5">
+        <div className="flex items-center justify-between gap-3 px-5 pt-5">
           <div className="flex items-center gap-2">
             <div className="bg-[#0e6b3c] text-white p-2 rounded">
               <Compass className="w-4 h-4" />
             </div>
-            <h2 className="text-sm font-bold text-[#052a18]">¿Qué es el Laboratorio?</h2>
+            <h2 className="text-base font-bold text-[#052a18]">¿Qué es el Laboratorio?</h2>
           </div>
           {isAdmin && (
             <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
@@ -177,30 +183,64 @@ export default function PlanificacionEstrategicaPage() {
             </button>
           )}
         </div>
+
         {infoVacia ? (
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 px-5 pb-5 pt-3">
             {isAdmin ? 'Aún no se ha redactado esta sección. Usa "Editar" para completarla.' : 'Esta sección todavía no ha sido completada.'}
           </p>
         ) : (
-          <div className="space-y-3 text-sm">
-            {info?.queEsElLaboratorio && <p className="text-gray-700 whitespace-pre-line">{info.queEsElLaboratorio}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-gray-100">
-              <div>
-                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-1">Misión</p>
-                <p className="text-gray-700 text-xs whitespace-pre-line">{info?.mision || '—'}</p>
+          <div className="p-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="bg-[#052a18] text-white rounded-xl p-5 space-y-5">
+                {info?.queEsElLaboratorio && (
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-wide mb-1">Definición</p>
+                    <p className="text-xs leading-relaxed text-gray-200 whitespace-pre-line">{info.queEsElLaboratorio}</p>
+                  </div>
+                )}
+                {info?.mision && (
+                  <div className="pt-3 border-t border-white/10">
+                    <p className="text-sm font-bold uppercase tracking-wide mb-1">Misión</p>
+                    <p className="text-xs leading-relaxed text-gray-200 whitespace-pre-line">{info.mision}</p>
+                  </div>
+                )}
+                {info?.vision && (
+                  <div className="pt-3 border-t border-white/10">
+                    <p className="text-sm font-bold uppercase tracking-wide mb-1">Visión</p>
+                    <p className="text-xs leading-relaxed text-gray-200 whitespace-pre-line">{info.vision}</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-1">Visión</p>
-                <p className="text-gray-700 text-xs whitespace-pre-line">{info?.vision || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-1">Objetivos</p>
-                <p className="text-gray-700 text-xs whitespace-pre-line">{info?.objetivos || '—'}</p>
+
+              <div className="space-y-5">
+                {ambitos.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#052a18] mb-2">Ámbitos de actuación</p>
+                    <div className="space-y-3">
+                      {ambitos.map((a, i) => (
+                        <div key={i} className="flex gap-2">
+                          <ArrowRight className="w-4 h-4 text-[#0e6b3c] flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-bold text-[#052a18]">{a.titulo}</p>
+                            {a.descripcion && <p className="text-xs text-gray-600 mt-0.5">{a.descripcion}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {info?.objetivos && (
+                  <div className={ambitos.length > 0 ? 'pt-3 border-t border-gray-100' : ''}>
+                    <p className="text-sm font-bold text-[#052a18] mb-1">Objetivos</p>
+                    <p className="text-gray-700 text-xs leading-relaxed whitespace-pre-line">{info.objetivos}</p>
+                  </div>
+                )}
               </div>
             </div>
+
             {info?.indicadoresClave && (
-              <div className="pt-3 border-t border-gray-100">
-                <p className="text-[11px] font-semibold text-[#0e6b3c] uppercase tracking-wide mb-2">Indicadores Clave</p>
+              <div className="pt-5 mt-5 border-t border-gray-100">
+                <p className="text-sm font-bold text-[#052a18] mb-3">Indicadores Clave</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {info.indicadoresClave.split('\n').map((linea) => linea.trim()).filter(Boolean).map((linea, i) => {
                     const match = linea.match(/^(\S+)\s+(.*)$/)
@@ -305,8 +345,16 @@ export default function PlanificacionEstrategicaPage() {
       {editingInfo && (
         <Modal title="Editar: ¿Qué es el Laboratorio?" onClose={() => setEditingInfo(false)}>
           <form onSubmit={handleGuardarInfo} className="space-y-3">
-            <Field label="¿Qué es el laboratorio?">
-              <textarea className="input" rows={3} value={infoForm.queEsElLaboratorio} onChange={(e) => setInfoForm({ ...infoForm, queEsElLaboratorio: e.target.value })} />
+            <Field label="Definición (¿qué es el laboratorio?)">
+              <textarea className="input" rows={4} value={infoForm.queEsElLaboratorio} onChange={(e) => setInfoForm({ ...infoForm, queEsElLaboratorio: e.target.value })} />
+            </Field>
+            <Field label="Ámbitos de actuación (uno por línea, formato 'Título||Descripción')">
+              <textarea
+                className="input" rows={4}
+                value={infoForm.ambitosActuacion}
+                onChange={(e) => setInfoForm({ ...infoForm, ambitosActuacion: e.target.value })}
+                placeholder="Investigación aplicada||Soluciones reales a problemas de seguridad digital..."
+              />
             </Field>
             <Field label="Misión">
               <textarea className="input" rows={2} value={infoForm.mision} onChange={(e) => setInfoForm({ ...infoForm, mision: e.target.value })} />

@@ -42,6 +42,7 @@ public class InformacionLaboratorioController {
         List<InformacionLaboratorio> todos = repository.findAll();
         InformacionLaboratorio info = todos.isEmpty() ? new InformacionLaboratorio() : todos.get(0);
         info.setQueEsElLaboratorio(request.getQueEsElLaboratorio());
+        info.setAmbitosActuacion(request.getAmbitosActuacion());
         info.setMision(request.getMision());
         info.setVision(request.getVision());
         info.setObjetivos(request.getObjetivos());

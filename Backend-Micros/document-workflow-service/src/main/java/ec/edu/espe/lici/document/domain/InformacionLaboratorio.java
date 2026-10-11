@@ -28,6 +28,10 @@ public class InformacionLaboratorio {
     @Column(length = 4000)
     private String queEsElLaboratorio;
 
+    /** Lista de ambitos de actuacion, una por linea, formato "Titulo||Descripcion". */
+    @Column(length = 2000)
+    private String ambitosActuacion;
+
     @Column(length = 2000)
     private String mision;
 
