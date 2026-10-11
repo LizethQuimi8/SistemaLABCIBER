@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Home, FolderOpen, FileText, Users, Bell, User, LogOut, Menu } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { notificacionesApi } from '../api/services'
+import { nombreRol } from '../constants/roles'
 
 const tabs = [
   { label: 'Inicio', icon: Home, view: 'dashboard' },
@@ -88,7 +89,7 @@ export default function SubNav({ currentView, onNavigate, onToggleMenu }) {
                   <p className="text-sm font-semibold text-gray-800">{usuario?.nombres} {usuario?.apellidos}</p>
                   <p className="text-xs text-gray-500 break-all">{usuario?.email}</p>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold">
-                    {usuario?.rol}
+                    {nombreRol(usuario?.rol)}
                   </span>
                 </div>
                 <button

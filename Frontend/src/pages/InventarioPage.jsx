@@ -774,7 +774,7 @@ export default function InventarioPage() {
                   )}
                   {p.estado === 'DEVOLUCION_PENDIENTE' && (
                     <span className="text-[10px] text-gray-500">
-                      Infraestructura: {p.devolucionFirmaInfraestructura ? '✓ firmado' : 'pendiente'} · Administrador: {p.devolucionFirmaAdministrador ? '✓ firmado' : 'pendiente'}
+                      Infraestructura: {p.devolucionFirmaInfraestructura ? '✓ firmado' : 'pendiente'} · Jefe de Laboratorio: {p.devolucionFirmaAdministrador ? '✓ firmado' : 'pendiente'}
                     </span>
                   )}
                   {p.observacionDevolucion && (
@@ -790,7 +790,7 @@ export default function InventarioPage() {
                       onClick={() => handleAprobar(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
-                      title={p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Autorizar el prestamo (Jefe de Laboratorio)' : 'Aprobar (pasa a espera de autorizacion del administrador)'}
+                      title={p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Autorizar el prestamo (Jefe de Laboratorio)' : 'Aprobar (pasa a espera de autorizacion del Jefe de Laboratorio)'}
                     >
                       {p.estado === 'APROBADO_INFRAESTRUCTURA' ? 'Autorizar' : 'Aprobar'}
                     </button>
@@ -828,7 +828,7 @@ export default function InventarioPage() {
                       onClick={() => handleAprobarDevolucion(p)}
                       disabled={busyId === `p-${p.id}`}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] disabled:text-gray-300"
-                      title="Firmar la devolucion (se cierra cuando ambos, Administrador e Infraestructura, hayan firmado)"
+                      title="Firmar la devolucion (se cierra cuando ambos, Jefe de Laboratorio e Infraestructura, hayan firmado)"
                     >
                       <FileCheck2 className="w-3.5 h-3.5" /> Firmar devolución
                     </button>
@@ -968,7 +968,7 @@ export default function InventarioPage() {
         <Modal title={`Devolver: ${nombrePorBienId.get(devolucionPrestamo.bienId) || ''}`} onClose={() => setDevolucionPrestamo(null)}>
           <form onSubmit={handleSubirActa} className="space-y-3">
             <p className="text-xs text-gray-500">
-              Genera el acta de entrega/devolución, fírmala junto al Jefe de Laboratorio y súbela aquí para que Admin. Infraestructura y el Administrador validen la devolución.
+              Genera el acta de entrega/devolución, fírmala junto al Jefe de Laboratorio y súbela aquí para que Admin. Infraestructura y el Jefe de Laboratorio validen la devolución.
             </p>
             <button
               type="button"

@@ -4,6 +4,7 @@ import { usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
+import { nombreRol } from '../constants/roles'
 
 const ROLES = ['ADMINISTRADOR', 'DOCENTE_INVESTIGADOR', 'ADMIN_INFRAESTRUCTURA', 'RESPONSABLE_COMPRAS']
 const FORM_INICIAL = { nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' }
@@ -109,7 +110,7 @@ export default function UsuariosPage() {
             </td>
             <td className="px-3 py-2 text-gray-600">{u.email}</td>
             <td className="px-3 py-2">
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold">{u.rol}</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold">{nombreRol(u.rol)}</span>
             </td>
             <td className="px-3 py-2">
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${u.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -177,7 +178,7 @@ export default function UsuariosPage() {
               </Field>
               <Field label="Rol">
                 <select className="input" value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value })}>
-                  {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {ROLES.map((r) => <option key={r} value={r}>{nombreRol(r)}</option>)}
                 </select>
               </Field>
             </div>

@@ -4,6 +4,7 @@ import { reportesApi, comprasApi, usuariosApi, publicacionesApi, investigadoresA
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner } from '../components/ui/PageShell'
 import { useAuth } from '../context/AuthContext'
+import { nombreRol } from '../constants/roles'
 
 const FASES = ['PREPARATORIA', 'PRECONTRACTUAL', 'CONTRACTUAL', 'ENTREGA_BIENES', 'PAGO_PROVEEDOR']
 
@@ -387,7 +388,7 @@ function ReporteISO27001() {
         <td>${escapeHtml(c.estado)}</td>
       </tr>`).join('')
 
-    const filasRoles = Object.entries(porRol).map(([rol, n]) => `<tr><td>${escapeHtml(rol)}</td><td>${n}</td></tr>`).join('')
+    const filasRoles = Object.entries(porRol).map(([rol, n]) => `<tr><td>${escapeHtml(nombreRol(rol))}</td><td>${n}</td></tr>`).join('')
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Cumplimiento ISO 27001</title>
       <style>
@@ -541,7 +542,7 @@ export default function ReportesPage() {
             <div>
               <p className="text-sm font-bold text-[#052a18]">Generado para {resumen?.generadoPara}</p>
               <p className="text-xs text-gray-500">
-                Rol: {resumen?.rol} — {usuario?.rol === 'ADMINISTRADOR' ? 'dashboard global' : 'limitado a tu actividad'}
+                Rol: {nombreRol(resumen?.rol)} — {usuario?.rol === 'ADMINISTRADOR' ? 'dashboard global' : 'limitado a tu actividad'}
               </p>
             </div>
           </div>

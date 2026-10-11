@@ -167,7 +167,7 @@ public class PrestamoController {
 
         if (prestamo.getEstado() == EstadoPrestamo.APROBADO_INFRAESTRUCTURA) {
             if (!CurrentUser.isAdministrador()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede dar la autorizacion final");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el Jefe de Laboratorio puede dar la autorizacion final");
             }
             return autorizar(prestamo, token);
         }
@@ -209,7 +209,7 @@ public class PrestamoController {
             }
         } else if (prestamo.getEstado() == EstadoPrestamo.APROBADO_INFRAESTRUCTURA || prestamo.getEstado() == EstadoPrestamo.AUTORIZADO) {
             if (!CurrentUser.isAdministrador()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el administrador puede rechazar en esta etapa");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el Jefe de Laboratorio puede rechazar en esta etapa");
             }
         } else {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El prestamo no esta pendiente de aprobacion");
@@ -316,7 +316,7 @@ public class PrestamoController {
 
         BienInventario bien = bienDelPrestamo(prestamo);
         String token = CurrentUser.rawToken();
-        String mensaje = "Acta de devolucion subida para " + bien.getNombre() + ": requiere la firma de Admin. Infraestructura y del Administrador.";
+        String mensaje = "Acta de devolucion subida para " + bien.getNombre() + ": requiere la firma de Admin. Infraestructura y del Jefe de Laboratorio.";
         notificacionClient.notificarPorRol("ADMIN_INFRAESTRUCTURA", mensaje, prestamo.getId(), token);
         notificacionClient.notificarPorRol("ADMINISTRADOR", mensaje, prestamo.getId(), token);
 
@@ -344,7 +344,7 @@ public class PrestamoController {
             prestamo.setDevolucionFirmaAdministrador(true);
         } else if (CurrentUser.isAdminInfraestructura()) {
             if (Boolean.TRUE.equals(prestamo.getDevolucionFirmaInfraestructura())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya registraste tu firma; falta la firma del Administrador");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya registraste tu firma; falta la firma del Jefe de Laboratorio");
             }
             prestamo.setDevolucionFirmaInfraestructura(true);
         } else {
@@ -359,7 +359,7 @@ public class PrestamoController {
         prestamoRepository.save(prestamo);
         BienInventario bien = bienDelPrestamo(prestamo);
         String rolFaltante = CurrentUser.isAdministrador() ? "ADMIN_INFRAESTRUCTURA" : "ADMINISTRADOR";
-        String quienFirmo = CurrentUser.isAdministrador() ? "el Administrador" : "Admin. Infraestructura";
+        String quienFirmo = CurrentUser.isAdministrador() ? "el Jefe de Laboratorio" : "Admin. Infraestructura";
         notificacionClient.notificarPorRol(rolFaltante,
                 "Ya firmo " + quienFirmo + " la devolucion de " + bien.getNombre() + ": falta tu firma.",
                 prestamo.getId(), token);
