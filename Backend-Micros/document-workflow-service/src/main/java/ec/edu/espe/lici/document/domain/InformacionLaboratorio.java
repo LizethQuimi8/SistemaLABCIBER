@@ -44,6 +44,13 @@ public class InformacionLaboratorio {
     @Column(length = 2000)
     private String indicadoresClave;
 
+    /** Composicion del Consejo Cientifico del laboratorio, texto libre.
+     * Usa TEXT (no varchar) porque la tabla ya esta cerca del limite de
+     * tamano de fila de MySQL (65535 bytes) por sus otras columnas varchar grandes. */
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String consejoCientifico;
+
     private LocalDateTime fechaActualizacion;
 
     @PrePersist

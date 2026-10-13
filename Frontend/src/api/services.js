@@ -77,6 +77,13 @@ export const informacionLaboratorioApi = {
   actualizar: (data) => apiFetch('/api/planificacion-estrategica/info', { method: 'PUT', body: data }),
 }
 
+export const estructuraOrganizacionalApi = {
+  list: () => apiFetch('/api/estructura-organizacional'),
+  crear: (data) => apiFetch('/api/estructura-organizacional', { method: 'POST', body: data }),
+  actualizar: (id, data) => apiFetch(`/api/estructura-organizacional/${id}`, { method: 'PUT', body: data }),
+  remove: (id) => apiFetch(`/api/estructura-organizacional/${id}`, { method: 'DELETE' }),
+}
+
 export const cyberRangeApi = {
   list: () => apiFetch('/api/cyberrange'),
   crear: (titulo, descripcion, archivo) => apiUpload('/api/cyberrange', archivo, { fields: { titulo, descripcion } }),

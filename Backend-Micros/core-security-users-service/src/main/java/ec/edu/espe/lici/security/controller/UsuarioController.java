@@ -83,6 +83,7 @@ public class UsuarioController {
         usuario.setRol(request.rol());
         if (request.password() != null && !request.password().isBlank()) {
             usuario.setPasswordHash(passwordEncoder.encode(request.password()));
+            usuario.setPrimerIngresoPendiente(true);
         }
         return UsuarioResponse.from(usuarioRepository.save(usuario));
     }

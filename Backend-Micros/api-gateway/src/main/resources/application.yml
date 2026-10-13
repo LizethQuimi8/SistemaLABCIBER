@@ -27,7 +27,7 @@ spring:
         - id: document-workflow-service
           uri: ${DOCUMENT_SERVICE_URL:http://localhost:8083}
           predicates:
-            - Path=/api/documentos/**,/api/notificaciones/**,/api/manuales/**,/api/planificacion-estrategica/**,/api/cyberrange/**,/api/practicas/**
+            - Path=/api/documentos/**,/api/notificaciones/**,/api/manuales/**,/api/planificacion-estrategica/**,/api/cyberrange/**,/api/practicas/**,/api/estructura-organizacional/**
 
         - id: administrative-logistics-service
           uri: ${ADMIN_SERVICE_URL:http://localhost:8084}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag, FileText } from 'lucide-react'
-import { planificacionEstrategicaApi, informacionLaboratorioApi } from '../api/services'
+import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag, FileText, Network } from 'lucide-react'
+import { planificacionEstrategicaApi, informacionLaboratorioApi, estructuraOrganizacionalApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
@@ -9,7 +9,9 @@ import { useAuth } from '../context/AuthContext'
 const ANIO_INICIAL = 2026
 const anioActual = new Date().getFullYear()
 const FORM_INICIAL = { titulo: '', anio: String(Math.max(ANIO_INICIAL, anioActual)), descripcion: '' }
-const INFO_INICIAL = { queEsElLaboratorio: '', ambitosActuacion: '', mision: '', vision: '', objetivos: '', indicadoresClave: '' }
+const INFO_INICIAL = { queEsElLaboratorio: '', ambitosActuacion: '', mision: '', vision: '', objetivos: '', indicadoresClave: '', consejoCientifico: '' }
+const CATEGORIA_LABEL = { COORDINADOR_AREA: 'Coordinador de Área', COMISION: 'Comisión', MACRO_AREA: 'Macro-área' }
+const GRUPO_FORM_INICIAL = { categoria: 'COORDINADOR_AREA', sigla: '', nombre: '', observacion: '', orden: '' }
 
 export default function PlanificacionEstrategicaPage() {
   const { isAdmin } = useAuth()
@@ -32,6 +34,16 @@ export default function PlanificacionEstrategicaPage() {
   const [abierto, setAbierto] = useState({ misionVision: false, objetivos: false })
   const toggleAbierto = (key) => setAbierto((prev) => ({ ...prev, [key]: !prev[key] }))
   const [tab, setTab] = useState('info')
+
+  const gruposFetcher = useCallback(() => estructuraOrganizacionalApi.list(), [])
+  const { data: grupos, loading: loadingGrupos, reload: reloadGrupos } = useList(gruposFetcher)
+  const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
+  const { data: directorio } = useList(directorioFetcher)
+  const [showGrupoForm, setShowGrupoForm] = useState(false)
+  const [editingGrupoId, setEditingGrupoId] = useState(null)
+  const [grupoForm, setGrupoForm] = useState(GRUPO_FORM_INICIAL)
+  const [responsableIdsGrupo, setResponsableIdsGrupo] = useState([])
+  const [savingGrupo, setSavingGrupo] = useState(false)
 
   useEffect(() => {
     let cancelado = false
@@ -133,8 +145,70 @@ export default function PlanificacionEstrategicaPage() {
       vision: info?.vision || '',
       objetivos: info?.objetivos || '',
       indicadoresClave: info?.indicadoresClave || '',
+      consejoCientifico: info?.consejoCientifico || '',
     })
     setEditingInfo(true)
+  }
+
+  const toggleResponsableGrupo = (id) => {
+    setResponsableIdsGrupo((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const openCreateGrupo = (categoria) => {
+    setEditingGrupoId(null)
+    setGrupoForm({ ...GRUPO_FORM_INICIAL, categoria })
+    setResponsableIdsGrupo([])
+    setShowGrupoForm(true)
+  }
+
+  const openEditGrupo = (g) => {
+    setEditingGrupoId(g.id)
+    setGrupoForm({ categoria: g.categoria, sigla: g.sigla || '', nombre: g.nombre || '', observacion: g.observacion || '', orden: String(g.orden ?? '') })
+    setResponsableIdsGrupo((g.responsableIds || '').split(',').map((s) => s.trim()).filter(Boolean).map(Number))
+    setShowGrupoForm(true)
+  }
+
+  const handleSubmitGrupo = async (e) => {
+    e.preventDefault()
+    setSavingGrupo(true)
+    setError(null)
+    try {
+      const nombrePorId = new Map(directorio.map((u) => [u.id, `${u.nombres} ${u.apellidos}`]))
+      const responsables = responsableIdsGrupo.map((id) => nombrePorId.get(id)).filter(Boolean).join(', ')
+      const payload = {
+        categoria: grupoForm.categoria,
+        sigla: grupoForm.sigla || null,
+        nombre: grupoForm.nombre,
+        observacion: grupoForm.observacion || null,
+        orden: grupoForm.orden ? Number(grupoForm.orden) : null,
+        responsables,
+        responsableIds: responsableIdsGrupo.join(','),
+      }
+      if (editingGrupoId) {
+        await estructuraOrganizacionalApi.actualizar(editingGrupoId, payload)
+      } else {
+        await estructuraOrganizacionalApi.crear(payload)
+      }
+      setShowGrupoForm(false)
+      setEditingGrupoId(null)
+      setGrupoForm(GRUPO_FORM_INICIAL)
+      setResponsableIdsGrupo([])
+      reloadGrupos()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingGrupo(false)
+    }
+  }
+
+  const handleDeleteGrupo = async (id) => {
+    if (!confirm('¿Eliminar este grupo de la estructura organizacional?')) return
+    try {
+      await estructuraOrganizacionalApi.remove(id)
+      reloadGrupos()
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   const handleGuardarInfo = async (e) => {
@@ -159,6 +233,10 @@ export default function PlanificacionEstrategicaPage() {
     return { titulo: titulo.trim(), descripcion: resto.join('||').trim() }
   })
 
+  const coordinadores = useMemo(() => grupos.filter((g) => g.categoria === 'COORDINADOR_AREA'), [grupos])
+  const comisiones = useMemo(() => grupos.filter((g) => g.categoria === 'COMISION'), [grupos])
+  const macroAreas = useMemo(() => grupos.filter((g) => g.categoria === 'MACRO_AREA'), [grupos])
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader title="Planificación Estratégica" />
@@ -169,6 +247,9 @@ export default function PlanificacionEstrategicaPage() {
         </TabButton>
         <TabButton active={tab === 'documentos'} onClick={() => setTab('documentos')} icon={FileText}>
           Documentos
+        </TabButton>
+        <TabButton active={tab === 'estructura'} onClick={() => setTab('estructura')} icon={Network}>
+          Estructura Organizacional
         </TabButton>
       </div>
 
@@ -350,6 +431,56 @@ export default function PlanificacionEstrategicaPage() {
       </div>
       )}
 
+      {tab === 'estructura' && (
+      <div className="space-y-5">
+        <GrupoSeccion
+          titulo="Coordinadores de Áreas de Trabajo de Investigación del Laboratorio"
+          grupos={coordinadores}
+          loading={loadingGrupos}
+          isAdmin={isAdmin}
+          onNuevo={() => openCreateGrupo('COORDINADOR_AREA')}
+          onEditar={openEditGrupo}
+          onEliminar={handleDeleteGrupo}
+        />
+        <GrupoSeccion
+          titulo="Comisiones de Operatividad del Laboratorio"
+          grupos={comisiones}
+          loading={loadingGrupos}
+          isAdmin={isAdmin}
+          numerado
+          onNuevo={() => openCreateGrupo('COMISION')}
+          onEditar={openEditGrupo}
+          onEliminar={handleDeleteGrupo}
+        />
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <h2 className="text-sm font-bold text-[#052a18]">Consejo Científico del Laboratorio</h2>
+            {isAdmin && (
+              <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
+                <Pencil className="w-3.5 h-3.5" /> Editar
+              </button>
+            )}
+          </div>
+          {info?.consejoCientifico ? (
+            <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line mb-4">{info.consejoCientifico}</p>
+          ) : (
+            <p className="text-xs text-gray-400 mb-4">{isAdmin ? 'Aún no se ha descrito su composición. Usa "Editar" para completarla.' : 'Esta sección todavía no ha sido completada.'}</p>
+          )}
+          <GrupoSeccion
+            titulo="Macro-áreas de trabajo"
+            subtitulo
+            grupos={macroAreas}
+            loading={loadingGrupos}
+            isAdmin={isAdmin}
+            onNuevo={() => openCreateGrupo('MACRO_AREA')}
+            onEditar={openEditGrupo}
+            onEliminar={handleDeleteGrupo}
+          />
+        </div>
+      </div>
+      )}
+
       {showForm && (
         <Modal title={editingId ? 'Editar documento' : 'Nuevo documento de planificación estratégica'} onClose={() => setShowForm(false)}>
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -402,8 +533,54 @@ export default function PlanificacionEstrategicaPage() {
             <Field label="Indicadores Clave (uno por línea, ej. '2+ Proyectos activos')">
               <textarea className="input" rows={4} value={infoForm.indicadoresClave} onChange={(e) => setInfoForm({ ...infoForm, indicadoresClave: e.target.value })} />
             </Field>
+            <Field label="Composición del Consejo Científico (texto libre)">
+              <textarea
+                className="input" rows={3}
+                value={infoForm.consejoCientifico}
+                onChange={(e) => setInfoForm({ ...infoForm, consejoCientifico: e.target.value })}
+                placeholder="Jefe de laboratorio, Coordinadores de área de investigación del lab, ..."
+              />
+            </Field>
             <PrimaryButton type="submit" disabled={savingInfo} className="w-full justify-center">
               {savingInfo ? 'Guardando...' : 'Guardar cambios'}
+            </PrimaryButton>
+          </form>
+        </Modal>
+      )}
+
+      {showGrupoForm && (
+        <Modal title={editingGrupoId ? 'Editar grupo de trabajo' : 'Nuevo grupo de trabajo'} onClose={() => setShowGrupoForm(false)}>
+          <form onSubmit={handleSubmitGrupo} className="space-y-3">
+            <Field label="Categoría">
+              <select className="input" value={grupoForm.categoria} onChange={(e) => setGrupoForm({ ...grupoForm, categoria: e.target.value })}>
+                {Object.entries(CATEGORIA_LABEL).map(([valor, label]) => <option key={valor} value={valor}>{label}</option>)}
+              </select>
+            </Field>
+            <Field label="Sigla (opcional, ej. 'GASI')">
+              <input className="input" value={grupoForm.sigla} onChange={(e) => setGrupoForm({ ...grupoForm, sigla: e.target.value })} />
+            </Field>
+            <Field label="Nombre completo">
+              <input required className="input" value={grupoForm.nombre} onChange={(e) => setGrupoForm({ ...grupoForm, nombre: e.target.value })} placeholder="Ej. Gobernanza y Auditoría de Sistemas de la Información" />
+            </Field>
+            <Field label="Responsable(s)">
+              <div className="border border-gray-300 rounded max-h-32 overflow-y-auto divide-y divide-gray-100">
+                {directorio.length === 0 && <p className="px-3 py-2 text-xs text-gray-400">Cargando usuarios...</p>}
+                {directorio.map((u) => (
+                  <label key={u.id} className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" checked={responsableIdsGrupo.includes(u.id)} onChange={() => toggleResponsableGrupo(u.id)} />
+                    {u.nombres} {u.apellidos}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field label="Observación (opcional)">
+              <input className="input" value={grupoForm.observacion} onChange={(e) => setGrupoForm({ ...grupoForm, observacion: e.target.value })} placeholder="Ej. (componente forense operativo)" />
+            </Field>
+            <Field label="Orden de aparición (opcional)">
+              <input type="number" min={1} className="input" value={grupoForm.orden} onChange={(e) => setGrupoForm({ ...grupoForm, orden: e.target.value })} />
+            </Field>
+            <PrimaryButton type="submit" disabled={savingGrupo} className="w-full justify-center">
+              {savingGrupo ? 'Guardando...' : editingGrupoId ? 'Guardar cambios' : 'Crear'}
             </PrimaryButton>
           </form>
         </Modal>
@@ -448,6 +625,54 @@ function AccordionSection({ icon, title, open, onToggle, children }) {
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <div className="px-5 pb-5 pt-1 border-t border-gray-100">{children}</div>}
+    </div>
+  )
+}
+
+function GrupoSeccion({ titulo, subtitulo, grupos, loading, isAdmin, numerado, onNuevo, onEditar, onEliminar }) {
+  return (
+    <div className={subtitulo ? '' : 'bg-white rounded-xl border border-gray-200 shadow-sm p-5'}>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className={subtitulo ? 'text-xs font-bold uppercase tracking-wide text-[#0e6b3c]' : 'text-sm font-bold text-[#052a18]'}>{titulo}</h2>
+        {isAdmin && (
+          <button onClick={onNuevo} className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] flex items-center gap-1">
+            <Plus className="w-3.5 h-3.5" /> Agregar
+          </button>
+        )}
+      </div>
+      {loading && <p className="text-xs text-gray-400">Cargando...</p>}
+      {!loading && grupos.length === 0 && (
+        <p className="text-xs text-gray-400">{isAdmin ? 'Aún no hay registros. Usa "Agregar" para añadir el primero.' : 'Sin registros todavía.'}</p>
+      )}
+      {!loading && grupos.length > 0 && (
+        <div className="space-y-2.5">
+          {grupos.map((g, i) => (
+            <div key={g.id} className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2.5 last:border-b-0 last:pb-0">
+              <div className="text-xs">
+                <p className="font-bold text-[#052a18]">
+                  {numerado && <span>{i + 1}. </span>}
+                  {g.sigla && <span>{g.sigla} — </span>}
+                  {g.nombre}
+                </p>
+                <p className="text-gray-600 mt-0.5">
+                  {g.responsables ? <><span className="font-semibold">Responsable(s):</span> {g.responsables}</> : <span className="text-gray-400">Sin responsable asignado</span>}
+                  {g.observacion && <span className="text-gray-400"> {g.observacion}</span>}
+                </p>
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => onEditar(g)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => onEliminar(g.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
