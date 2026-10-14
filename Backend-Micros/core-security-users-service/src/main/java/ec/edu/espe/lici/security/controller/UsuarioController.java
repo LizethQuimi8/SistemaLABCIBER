@@ -88,6 +88,18 @@ public class UsuarioController {
         return UsuarioResponse.from(usuarioRepository.save(usuario));
     }
 
+    /** Fuerza a TODOS los usuarios a pasar de nuevo por "primer ingreso" (aceptar
+     * politicas y definir una contraseña propia) en su proximo login, sin tocar
+     * la contraseña actual de nadie. Pensado para usarse una vez, tras migrar el
+     * sistema a un servidor nuevo. */
+    @PatchMapping("/primer-ingreso-todos")
+    public ResponseEntity<Void> forzarPrimerIngresoATodos() {
+        List<Usuario> usuarios = usuarioRepository.findAll();
+        usuarios.forEach(u -> u.setPrimerIngresoPendiente(true));
+        usuarioRepository.saveAll(usuarios);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{id}/estado")
     public UsuarioResponse cambiarEstado(@PathVariable Long id, @RequestParam boolean activo) {
         Usuario usuario = usuarioRepository.findById(id)

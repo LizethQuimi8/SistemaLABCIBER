@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Plus, Pencil, Trash2, Users, Power, Wand2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Users, Power, Wand2, ShieldAlert } from 'lucide-react'
 import { usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -34,6 +34,8 @@ export default function UsuariosPage() {
   const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [forzandoTodos, setForzandoTodos] = useState(false)
+  const [avisoExito, setAvisoExito] = useState(null)
 
   const handleGenerarPassword = () => {
     setForm((f) => ({ ...f, password: generarPasswordPredeterminada() }))
@@ -94,18 +96,54 @@ export default function UsuariosPage() {
     }
   }
 
+  const handleForzarPrimerIngresoATodos = async () => {
+    const confirmado = confirm(
+      '¿Forzar a TODOS los usuarios a pasar de nuevo por "Primer ingreso"?\n\n' +
+      'Nadie pierde su contraseña actual: van a poder iniciar sesión normalmente, ' +
+      'pero antes de ver el sistema tendrán que aceptar las políticas del laboratorio ' +
+      'y definir una contraseña propia nueva.'
+    )
+    if (!confirmado) return
+    setForzandoTodos(true)
+    setError(null)
+    setAvisoExito(null)
+    try {
+      await usuariosApi.forzarPrimerIngresoATodos()
+      setAvisoExito('Listo: todos los usuarios deberán aceptar las políticas y definir una nueva contraseña en su próximo ingreso.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setForzandoTodos(false)
+    }
+  }
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Gestión de Usuarios"
         action={
-          <PrimaryButton onClick={openCreate}>
-            <Plus className="w-4 h-4" /> Nuevo usuario
-          </PrimaryButton>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleForzarPrimerIngresoATodos}
+              disabled={forzandoTodos}
+              title="Obliga a todos a aceptar las políticas y definir una contraseña nueva en su próximo ingreso"
+              className="flex items-center gap-2 bg-white hover:bg-amber-50 text-amber-700 border border-amber-300 text-xs font-semibold px-4 py-2 rounded transition-colors disabled:opacity-50"
+            >
+              <ShieldAlert className="w-4 h-4" /> {forzandoTodos ? 'Aplicando...' : 'Forzar cambio de contraseña a todos'}
+            </button>
+            <PrimaryButton onClick={openCreate}>
+              <Plus className="w-4 h-4" /> Nuevo usuario
+            </PrimaryButton>
+          </div>
         }
       />
 
       <ErrorBanner message={error} />
+      {avisoExito && (
+        <div className="bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg px-4 py-2 mb-4">
+          {avisoExito}
+        </div>
+      )}
 
       <Table headers={['Nombre', 'Email', 'Rol', 'Estado', '']}>
         {loading && <LoadingRow colSpan={5} />}

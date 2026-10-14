@@ -140,6 +140,23 @@ class UsuarioControllerTest {
     }
 
     @Test
+    void forzarPrimerIngresoATodosMarcaATodosLosUsuariosSinTocarSuContrasena() {
+        Usuario uno = aUsuario();
+        Usuario otro = Usuario.builder().id(2L).nombres("Grace").apellidos("Hopper").email("grace@espe.edu.ec")
+                .passwordHash("otro-hash").rol(Rol.ADMINISTRADOR).activo(true).primerIngresoPendiente(false).build();
+        when(usuarioRepository.findAll()).thenReturn(List.of(uno, otro));
+
+        ResponseEntity<Void> response = controller.forzarPrimerIngresoATodos();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(uno.isPrimerIngresoPendiente()).isTrue();
+        assertThat(otro.isPrimerIngresoPendiente()).isTrue();
+        assertThat(uno.getPasswordHash()).isEqualTo("hashed");
+        assertThat(otro.getPasswordHash()).isEqualTo("otro-hash");
+        verify(usuarioRepository).saveAll(List.of(uno, otro));
+    }
+
+    @Test
     void eliminarThrowsNotFoundInsteadOfDeletingAMissingUser() {
         when(usuarioRepository.existsById(5L)).thenReturn(false);
 

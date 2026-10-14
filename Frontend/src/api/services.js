@@ -15,6 +15,8 @@ export const usuariosApi = {
   create: (data) => apiFetch('/api/usuarios', { method: 'POST', body: data }),
   update: (id, data) => apiFetch(`/api/usuarios/${id}`, { method: 'PUT', body: data }),
   setEstado: (id, activo) => apiFetch(`/api/usuarios/${id}/estado?activo=${activo}`, { method: 'PATCH' }),
+  /** Fuerza a todos los usuarios a pasar de nuevo por "primer ingreso" en su proximo login, sin tocar sus contraseñas actuales. */
+  forzarPrimerIngresoATodos: () => apiFetch('/api/usuarios/primer-ingreso-todos', { method: 'PATCH' }),
   remove: (id) => apiFetch(`/api/usuarios/${id}`, { method: 'DELETE' }),
 }
 
