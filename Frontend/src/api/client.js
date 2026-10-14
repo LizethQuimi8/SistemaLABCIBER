@@ -1,6 +1,11 @@
 // Cliente HTTP hacia el API Gateway. Todo el trafico del frontend pasa por
 // el Gateway (puerto 8080), nunca directo a un microservicio.
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+// Si VITE_API_BASE_URL no se fijo al compilar (como en la imagen Docker del
+// contenedor 'frontend', pensada para correr en cualquier servidor), se
+// calcula en el navegador a partir de donde se esta sirviendo la pagina
+// (mismo host, puerto 8080) en vez de dejar 'localhost' fijo - eso solo
+// apuntaria a la maquina de quien mira la pagina, no al servidor real.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}:8080`
 
 const TOKEN_KEY = 'lici_token'
 const USER_KEY = 'lici_user'
