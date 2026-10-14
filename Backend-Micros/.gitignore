@@ -5,3 +5,4 @@ target/
 .env
 secrets/
 backups/
+image-exports/

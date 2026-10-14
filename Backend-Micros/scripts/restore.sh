@@ -91,8 +91,19 @@ for servicio in "${!DBS[@]}"; do
   fi
 done
 
-echo "== Construyendo y levantando todos los servicios =="
-docker compose build
+echo "== Levantando todos los servicios =="
+IMAGENES_FALTANTES=0
+for img in lici-backend-core-security-users-service lici-backend-core-academic-research-service \
+           lici-backend-document-workflow-service lici-backend-administrative-logistics-service \
+           lici-backend-reporting-service lici-backend-api-gateway lici-backend-frontend; do
+  docker image inspect "${img}:latest" >/dev/null 2>&1 || IMAGENES_FALTANTES=1
+done
+if [ "$IMAGENES_FALTANTES" = "1" ]; then
+  echo "  (no estan todas las imagenes ya cargadas, se construyen desde el codigo fuente)"
+  docker compose build
+else
+  echo "  (las imagenes ya estan cargadas, por ejemplo via import-images.sh; no se reconstruyen)"
+fi
 docker compose up -d
 
 echo ""
