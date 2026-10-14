@@ -95,7 +95,7 @@ export default function PlanificacionEstrategicaPage() {
         await planificacionEstrategicaApi.actualizar(editingId, form.titulo, anio, form.descripcion, archivo)
       } else {
         if (!archivo) {
-          throw new Error('Selecciona el archivo PDF del documento')
+          throw new Error('Selecciona el archivo del documento (PDF o Excel)')
         }
         await planificacionEstrategicaApi.crear(form.titulo, anio, form.descripcion, archivo)
       }
@@ -493,11 +493,16 @@ export default function PlanificacionEstrategicaPage() {
             <Field label="Descripción (opcional)">
               <textarea className="input" rows={2} value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
             </Field>
-            <Field label={editingDocumento?.rutaArchivo ? 'Reemplazar archivo PDF (opcional)' : 'Archivo PDF'}>
+            <Field label={editingDocumento?.rutaArchivo ? 'Reemplazar archivo (opcional)' : 'Archivo (PDF o Excel)'}>
               <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
                 <Upload className="w-4 h-4 flex-shrink-0" />
-                {archivo ? archivo.name : (editingDocumento?.nombreArchivo || 'Subir archivo PDF')}
-                <input type="file" accept="application/pdf" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] || null)} />
+                {archivo ? archivo.name : (editingDocumento?.nombreArchivo || 'Subir archivo PDF o Excel')}
+                <input
+                  type="file"
+                  accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  className="hidden"
+                  onChange={(e) => setArchivo(e.target.files?.[0] || null)}
+                />
               </label>
             </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
