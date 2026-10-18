@@ -3,6 +3,7 @@ package ec.edu.espe.lici.admin.controller;
 import ec.edu.espe.lici.admin.domain.BienInventario;
 import ec.edu.espe.lici.admin.domain.EstadoBien;
 import ec.edu.espe.lici.admin.repository.BienInventarioRepository;
+import ec.edu.espe.lici.admin.security.CurrentUser;
 import ec.edu.espe.lici.admin.service.InventarioImportService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -95,6 +96,21 @@ public class BienInventarioController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Bien no encontrado");
         }
         bienInventarioRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Elimina TODO el inventario de bienes, para reimportar una matriz desde
+     * cero. Exclusivo de ADMINISTRADOR y ADMIN_INFRAESTRUCTURA (los mismos
+     * roles que ya gestionan el inventario). No toca prestamos ni
+     * mantenimientos ya registrados: sus bienId quedan apuntando a bienes
+     * que ya no existen. */
+    @DeleteMapping
+    public ResponseEntity<Void> eliminarTodo() {
+        if (!CurrentUser.isAdministrador() && !CurrentUser.isAdminInfraestructura()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo el Jefe de Laboratorio o Admin. Infraestructura pueden vaciar el inventario");
+        }
+        bienInventarioRepository.deleteAll();
         return ResponseEntity.noContent().build();
     }
 

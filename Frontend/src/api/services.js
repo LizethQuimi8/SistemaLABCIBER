@@ -116,6 +116,8 @@ export const inventarioApi = {
   /** Importa/actualiza en bloque la matriz institucional de inventario (Excel .xlsx). */
   importar: (file) => apiUpload('/api/inventario/importar', file),
   remove: (id) => apiFetch(`/api/inventario/${id}`, { method: 'DELETE' }),
+  /** Elimina TODO el inventario, para reimportar una matriz desde cero. */
+  removeTodo: () => apiFetch('/api/inventario', { method: 'DELETE' }),
 }
 
 export const prestamosApi = {

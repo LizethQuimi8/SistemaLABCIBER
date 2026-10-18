@@ -101,6 +101,7 @@ export default function InventarioPage() {
   const [form, setForm] = useState({ nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
+  const [eliminandoTodo, setEliminandoTodo] = useState(false)
   const [detalle, setDetalle] = useState(null)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -299,6 +300,25 @@ export default function InventarioPage() {
   }
 
   const handleImportarClick = () => importInputRef.current?.click()
+
+  const handleEliminarTodoElInventario = async () => {
+    const confirmado = confirm(
+      `¿Eliminar TODO el inventario (${bienes.length} bienes)?\n\n` +
+      'Esta acción no se puede deshacer. Úsala solo si vas a volver a importar la matriz completa desde cero. ' +
+      'Los préstamos y mantenimientos ya registrados no se eliminan, pero quedarán referenciando bienes que ya no existen.'
+    )
+    if (!confirmado) return
+    setEliminandoTodo(true)
+    setError(null)
+    try {
+      await inventarioApi.removeTodo()
+      reload()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setEliminandoTodo(false)
+    }
+  }
 
   const handleImportarFile = async (e) => {
     const file = e.target.files?.[0]
@@ -614,6 +634,14 @@ export default function InventarioPage() {
               className="flex items-center gap-2 bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
             >
               <Upload className="w-4 h-4" /> {importing ? 'Importando...' : 'Importar matriz Excel'}
+            </button>
+            <button
+              onClick={handleEliminarTodoElInventario}
+              disabled={eliminandoTodo || bienes.length === 0}
+              title="Elimina todo el inventario, para reimportar la matriz desde cero"
+              className="flex items-center gap-2 bg-white hover:bg-red-50 text-red-600 border border-red-300 disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
+            >
+              <Trash2 className="w-4 h-4" /> {eliminandoTodo ? 'Eliminando...' : 'Eliminar todo'}
             </button>
             <PrimaryButton onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4" /> Nuevo bien

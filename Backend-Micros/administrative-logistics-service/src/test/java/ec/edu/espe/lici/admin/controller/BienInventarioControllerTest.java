@@ -6,14 +6,20 @@ import ec.edu.espe.lici.admin.repository.BienInventarioRepository;
 import ec.edu.espe.lici.admin.service.InventarioImportService;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +36,21 @@ class BienInventarioControllerTest {
     void setUp() {
         repository = mock(BienInventarioRepository.class);
         controller = new BienInventarioController(repository, new InventarioImportService(repository));
+    }
+
+    @AfterEach
+    void clearContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticateAs(long userId, String rol) {
+        Jwt jwt = new Jwt(
+                "token",
+                Instant.now(),
+                Instant.now().plusSeconds(60),
+                Map.of("alg", "RS256"),
+                Map.of("sub", String.valueOf(userId), "roles", List.of(rol)));
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
     }
 
     private BienInventario bienDe(Long id) {
@@ -264,5 +285,35 @@ class BienInventarioControllerTest {
         assertThatThrownBy(() -> controller.eliminar(1L)).isInstanceOf(ResponseStatusException.class);
 
         verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void eliminarTodoLoRechazaUnDocenteInvestigador() {
+        authenticateAs(1L, "DOCENTE_INVESTIGADOR");
+
+        assertThatThrownBy(() -> controller.eliminarTodo())
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(repository, never()).deleteAll();
+    }
+
+    @Test
+    void eliminarTodoLoPermiteElAdministrador() {
+        authenticateAs(1L, "ADMINISTRADOR");
+
+        controller.eliminarTodo();
+
+        verify(repository).deleteAll();
+    }
+
+    @Test
+    void eliminarTodoLoPermiteAdminInfraestructura() {
+        authenticateAs(2L, "ADMIN_INFRAESTRUCTURA");
+
+        controller.eliminarTodo();
+
+        verify(repository).deleteAll();
     }
 }
