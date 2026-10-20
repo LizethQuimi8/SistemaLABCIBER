@@ -11,8 +11,7 @@ function logosReporte() {
 export function estiloEncabezadoReporte() {
   return `
     @page{margin:0}
-    html,body{height:100%}
-    body{font-family:'Segoe UI',Arial,sans-serif;padding:32px;color:#1a1a1a;display:flex;flex-direction:column;min-height:100vh;box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;padding:32px 32px 110px;color:#1a1a1a}
     .encabezado-reporte{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #0e6b3c;padding-bottom:14px;margin-bottom:20px}
     .encabezado-reporte .institucion{font-size:10.5px;letter-spacing:0.4px;color:#777;text-transform:uppercase;margin:0 0 4px}
     .encabezado-reporte h1{font-size:19px;color:#052a18;margin:0}
@@ -20,7 +19,7 @@ export function estiloEncabezadoReporte() {
     .encabezado-reporte .logo-lici{height:120px;border-radius:50%}
     .encabezado-reporte .centro{flex:1;text-align:center}
     .subinfo-reporte{font-size:11.5px;color:#555;margin:0 0 18px;text-align:center}
-    .firmas-reporte{margin-top:auto;padding-top:60px;display:flex;justify-content:center;gap:60px;page-break-inside:avoid}
+    .firmas-reporte{position:fixed;bottom:40px;left:32px;right:32px;display:flex;justify-content:center;gap:60px;page-break-inside:avoid}
     .firmas-reporte div{text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333;min-width:200px}
   `
 }
