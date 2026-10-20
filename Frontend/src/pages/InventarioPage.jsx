@@ -803,6 +803,14 @@ export default function InventarioPage() {
             {canEditInventario ? (
               <td className="px-3 py-2 text-right">
                 <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => abrirSolicitud(b)}
+                    disabled={b.estado !== 'DISPONIBLE'}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#052a18] disabled:text-gray-300 disabled:cursor-not-allowed hover:text-[#0e6b3c]"
+                    title={b.estado !== 'DISPONIBLE' ? 'Este equipo no esta disponible' : 'Solicitar en prestamo'}
+                  >
+                    <HandHelping className="w-3.5 h-3.5" /> Solicitar
+                  </button>
                   <select
                     className="input py-1 text-xs"
                     value={b.estado}
