@@ -99,9 +99,14 @@ export default function InventarioPage() {
   const mantenimientosFetcher = useCallback(() => mantenimientosApi.list(), [])
   const { data: mantenimientos, loading: loadingMantenimientos, reload: reloadMantenimientos } = useList(mantenimientosFetcher)
 
+  // Mismos nombres y orden de columnas que la matriz institucional de inventario.
+  const COLUMNAS_MATRIZ = [
+    'Nombre del Item', 'Marca', 'Descripción', 'Código de Bien ESPE', 'Número de Serie',
+    'Código Laboratorio', 'Detalles técnicos', 'Estado', 'Custodio', 'Observación',
+  ]
   const columnHeaders = canEditInventario
-    ? ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', 'Acciones']
-    : ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', '']
+    ? [...COLUMNAS_MATRIZ, '', 'Acciones']
+    : [...COLUMNAS_MATRIZ, '', '']
 
   const [showForm, setShowForm] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
@@ -835,15 +840,19 @@ export default function InventarioPage() {
               </span>
               {b.nombre}
             </td>
-            <td className="px-3 py-2 text-gray-600">{b.codigoIC || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{b.codigoInventario || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{b.marca || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{b.custodio || '—'}</td>
+            <td className="px-3 py-2 text-gray-600 max-w-[220px] truncate" title={b.descripcion}>{b.descripcion || '—'}</td>
+            <td className="px-3 py-2 text-gray-600">{b.codigoIC || '—'}</td>
+            <td className="px-3 py-2 text-gray-600">{b.numeroSerie || '—'}</td>
+            <td className="px-3 py-2 text-gray-600">{b.codigoInventario || '—'}</td>
+            <td className="px-3 py-2 text-gray-600 max-w-[220px] truncate" title={b.detallesTecnicos}>{b.detallesTecnicos || '—'}</td>
             <td className="px-3 py-2">
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${ESTADO_BADGE[b.estado]}`}>
                 {ESTADO_LABEL[b.estado] || b.estado}
               </span>
             </td>
+            <td className="px-3 py-2 text-gray-600">{b.custodio || '—'}</td>
+            <td className="px-3 py-2 text-gray-600 max-w-[180px] truncate" title={b.observaciones}>{b.observaciones || '—'}</td>
             <td className="px-3 py-2">
               <button onClick={() => setDetalle(b)} className="text-gray-400 hover:text-[#0e6b3c]" title="Ver detalle">
                 <Eye className="w-3.5 h-3.5" />
@@ -1096,36 +1105,36 @@ export default function InventarioPage() {
       {showForm && (
         <Modal title={editandoId ? 'Editar bien de inventario' : 'Nuevo bien de inventario'} onClose={() => { setShowForm(false); setEditandoId(null) }}>
           <form onSubmit={handleCreate} className="space-y-3">
-            <Field label="Nombre (equipo)">
+            <Field label="Nombre del Item">
               <input required className="input" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Marca">
                 <input className="input" value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
               </Field>
-              <Field label="Numero de serie">
+              <Field label="Número de Serie">
                 <input className="input" value={form.numeroSerie} onChange={(e) => setForm({ ...form, numeroSerie: e.target.value })} />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Codigo de Bien ESPE (Codigo IC)">
+              <Field label="Código de Bien ESPE">
                 <input className="input" value={form.codigoIC} onChange={(e) => setForm({ ...form, codigoIC: e.target.value })} />
               </Field>
-              <Field label="Codigo Laboratorio (interno)">
+              <Field label="Código Laboratorio">
                 <input className="input" value={form.codigoInventario} onChange={(e) => setForm({ ...form, codigoInventario: e.target.value })} />
               </Field>
             </div>
-            <Field label="Descripcion">
+            <Field label="Descripción">
               <textarea rows={2} className="input" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
             </Field>
-            <Field label="Detalles tecnicos">
+            <Field label="Detalles técnicos">
               <textarea rows={3} className="input" value={form.detallesTecnicos} onChange={(e) => setForm({ ...form, detallesTecnicos: e.target.value })} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Cantidad">
                 <input type="number" className="input" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} />
               </Field>
-              <Field label="Categoria">
+              <Field label="Categoría">
                 <input className="input" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
               </Field>
             </div>
@@ -1135,14 +1144,14 @@ export default function InventarioPage() {
                   {ESTADOS.map((s) => <option key={s} value={s} disabled={s === 'EN_USO'}>{ESTADO_LABEL[s]}</option>)}
                 </select>
               </Field>
-              <Field label="Ubicacion">
+              <Field label="Ubicación">
                 <input className="input" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} />
               </Field>
             </div>
             <Field label="Custodio">
               <input className="input" value={form.custodio} onChange={(e) => setForm({ ...form, custodio: e.target.value })} />
             </Field>
-            <Field label="Observaciones">
+            <Field label="Observación">
               <textarea rows={2} className="input" value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} />
             </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
@@ -1332,18 +1341,18 @@ export default function InventarioPage() {
         <Modal title={detalle.nombre} onClose={() => setDetalle(null)}>
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-2 gap-3">
-              <DetalleCampo label="Codigo IC" valor={detalle.codigoIC} />
-              <DetalleCampo label="Codigo interno" valor={detalle.codigoInventario} />
+              <DetalleCampo label="Código de Bien ESPE" valor={detalle.codigoIC} />
+              <DetalleCampo label="Código Laboratorio" valor={detalle.codigoInventario} />
               <DetalleCampo label="Marca" valor={detalle.marca} />
-              <DetalleCampo label="Numero de serie" valor={detalle.numeroSerie} />
-              <DetalleCampo label="Categoria" valor={detalle.categoria} />
+              <DetalleCampo label="Número de Serie" valor={detalle.numeroSerie} />
+              <DetalleCampo label="Categoría" valor={detalle.categoria} />
               <DetalleCampo label="Cantidad" valor={detalle.cantidad} />
-              <DetalleCampo label="Ubicacion" valor={detalle.ubicacion} />
+              <DetalleCampo label="Ubicación" valor={detalle.ubicacion} />
               <DetalleCampo label="Custodio" valor={detalle.custodio} />
             </div>
-            <DetalleCampo label="Descripcion" valor={detalle.descripcion} bloque />
-            <DetalleCampo label="Detalles tecnicos" valor={detalle.detallesTecnicos} bloque />
-            <DetalleCampo label="Observaciones" valor={detalle.observaciones} bloque />
+            <DetalleCampo label="Descripción" valor={detalle.descripcion} bloque />
+            <DetalleCampo label="Detalles técnicos" valor={detalle.detallesTecnicos} bloque />
+            <DetalleCampo label="Observación" valor={detalle.observaciones} bloque />
           </div>
         </Modal>
       )}
