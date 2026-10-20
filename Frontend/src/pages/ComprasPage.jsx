@@ -5,7 +5,7 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
-import { estiloEncabezadoReporte, htmlEncabezadoReporte } from '../utils/reportePlantilla'
+import { estiloEncabezadoReporte, htmlEncabezadoReporte, htmlFirmasReporte } from '../utils/reportePlantilla'
 
 const TIPOS_CONTRATACION = ['Ínfima Cuantía', 'Subasta Inversa']
 
@@ -253,6 +253,7 @@ export default function ComprasPage() {
         <thead><tr><th>Objeto de contratación</th><th>N° proceso</th><th>Tipo</th><th>Fase</th><th>Responsables</th><th>Monto</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="6">Sin registros</td></tr>'}</tbody>
       </table>
+      ${htmlFirmasReporte(['Jefe de Laboratorio', 'Responsable de Compras Públicas'])}
       </body></html>`
 
     const ventana = window.open('', '_blank')

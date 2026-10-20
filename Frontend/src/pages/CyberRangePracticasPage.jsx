@@ -5,7 +5,7 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
-import { estiloEncabezadoReporte, htmlEncabezadoReporte } from '../utils/reportePlantilla'
+import { estiloEncabezadoReporte, htmlEncabezadoReporte, htmlFirmasReporte } from '../utils/reportePlantilla'
 
 export default function CyberRangePracticasPage() {
   const [tab, setTab] = useState('cyberrange')
@@ -331,6 +331,7 @@ function PracticasTab() {
         <thead><tr><th>Título</th><th>Fecha</th><th>Responsable</th><th>Descripción</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="4">Sin registros</td></tr>'}</tbody>
       </table>
+      ${htmlFirmasReporte(['Jefe de Laboratorio'])}
       </body></html>`
 
     const ventana = window.open('', '_blank')

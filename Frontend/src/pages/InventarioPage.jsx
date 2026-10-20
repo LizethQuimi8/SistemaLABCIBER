@@ -3,13 +3,14 @@ import {
   Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye, Search, X,
   Monitor, Cpu, Keyboard, Mouse, Printer, Armchair, Router, Camera,
   Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
-  FileSignature, FileCheck2, FileX2,
+  FileSignature, FileCheck2, FileX2, FileDown,
 } from 'lucide-react'
 import { inventarioApi, prestamosApi, usuariosApi, proyectosApi, mantenimientosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
+import { estiloEncabezadoReporte, htmlEncabezadoReporte, htmlFirmasReporte } from '../utils/reportePlantilla'
 
 const ESTADOS = ['DISPONIBLE', 'EN_USO', 'MANTENIMIENTO', 'DE_BAJA']
 const ESTADOS_EDITABLES = ['DISPONIBLE', 'MANTENIMIENTO', 'DE_BAJA']
@@ -612,6 +613,40 @@ export default function InventarioPage() {
     }
   }
 
+  const generarReporteInventario = () => {
+    const filas = bienesFiltrados.map((b) => `
+      <tr>
+        <td>${escapeHtml(b.nombre)}</td>
+        <td>${escapeHtml(b.codigoIC || '—')}</td>
+        <td>${escapeHtml(b.codigoInventario || '—')}</td>
+        <td>${escapeHtml(b.marca || '—')}</td>
+        <td>${escapeHtml(b.custodio || '—')}</td>
+        <td>${ESTADO_LABEL[b.estado] || b.estado}</td>
+      </tr>`).join('')
+
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte de Inventario</title>
+      <style>
+        ${estiloEncabezadoReporte()}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
+        th{background:#0e6b3c;color:#fff}
+      </style></head><body>
+      ${htmlEncabezadoReporte('Reporte de Inventario', `Generado: ${new Date().toLocaleString()} — Total de bienes: ${bienesFiltrados.length}`)}
+      <table>
+        <thead><tr><th>Nombre (equipo)</th><th>Código IC</th><th>Código interno</th><th>Marca</th><th>Custodio</th><th>Estado</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="6">Sin registros</td></tr>'}</tbody>
+      </table>
+      ${htmlFirmasReporte(['Jefe de Laboratorio', 'Admin. Infraestructura'])}
+      </body></html>`
+
+    const ventana = window.open('', '_blank')
+    if (!ventana) return
+    ventana.document.write(html)
+    ventana.document.close()
+    ventana.focus()
+    ventana.print()
+  }
+
   const handleVerActa = async (prestamo) => {
     try {
       const blob = await prestamosApi.verActa(prestamo.id)
@@ -625,27 +660,37 @@ export default function InventarioPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Inventario"
-        action={canEditInventario && (
+        action={(
           <div className="flex items-center gap-2">
-            <input ref={importInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportarFile} />
             <button
-              onClick={handleImportarClick}
-              disabled={importing}
-              className="flex items-center gap-2 bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
+              onClick={generarReporteInventario}
+              className="flex items-center gap-2 bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] text-xs font-semibold px-4 py-2 rounded transition-colors"
             >
-              <Upload className="w-4 h-4" /> {importing ? 'Importando...' : 'Importar matriz Excel'}
+              <FileDown className="w-4 h-4" /> Generar reporte
             </button>
-            <button
-              onClick={handleEliminarTodoElInventario}
-              disabled={eliminandoTodo || bienes.length === 0}
-              title="Elimina todo el inventario, para reimportar la matriz desde cero"
-              className="flex items-center gap-2 bg-white hover:bg-red-50 text-red-600 border border-red-300 disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> {eliminandoTodo ? 'Eliminando...' : 'Eliminar todo'}
-            </button>
-            <PrimaryButton onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4" /> Nuevo bien
-            </PrimaryButton>
+            {canEditInventario && (
+              <>
+                <input ref={importInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportarFile} />
+                <button
+                  onClick={handleImportarClick}
+                  disabled={importing}
+                  className="flex items-center gap-2 bg-white hover:bg-[#f3faf6] text-[#0e6b3c] border border-[#0e6b3c] disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
+                >
+                  <Upload className="w-4 h-4" /> {importing ? 'Importando...' : 'Importar matriz Excel'}
+                </button>
+                <button
+                  onClick={handleEliminarTodoElInventario}
+                  disabled={eliminandoTodo || bienes.length === 0}
+                  title="Elimina todo el inventario, para reimportar la matriz desde cero"
+                  className="flex items-center gap-2 bg-white hover:bg-red-50 text-red-600 border border-red-300 disabled:opacity-50 text-xs font-semibold px-4 py-2 rounded transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> {eliminandoTodo ? 'Eliminando...' : 'Eliminar todo'}
+                </button>
+                <PrimaryButton onClick={() => setShowForm(true)}>
+                  <Plus className="w-4 h-4" /> Nuevo bien
+                </PrimaryButton>
+              </>
+            )}
           </div>
         )}
       />
@@ -1254,6 +1299,10 @@ function StatCard({ icon: Icon, label, value, color }) {
       </div>
     </div>
   )
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 }
 
 function FiltroChip({ active, onClick, children, small }) {

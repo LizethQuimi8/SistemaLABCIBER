@@ -19,6 +19,8 @@ export function estiloEncabezadoReporte() {
     .encabezado-reporte .logo-lici{height:120px;border-radius:50%}
     .encabezado-reporte .centro{flex:1;text-align:center}
     .subinfo-reporte{font-size:11.5px;color:#555;margin:0 0 18px;text-align:center}
+    .firmas-reporte{margin-top:90px;display:flex;justify-content:center;gap:60px;page-break-inside:avoid}
+    .firmas-reporte div{text-align:center;border-top:1px solid #333;padding-top:8px;font-size:11px;color:#333;min-width:200px}
   `
 }
 
@@ -36,5 +38,15 @@ export function htmlEncabezadoReporte(titulo, subinfo) {
       <img class="logo-lici" src="${liciLogoUrl}" alt="Laboratorio de Investigación de Ciberseguridad" />
     </div>
     ${subinfo ? `<p class="subinfo-reporte">${subinfo}</p>` : ''}
+  `
+}
+
+/** Pie de firmas al final del reporte. `firmantes` es un arreglo de etiquetas
+ * (ej. ['Jefe de Laboratorio'] o ['Jefe de Laboratorio', 'Admin. Infraestructura']). */
+export function htmlFirmasReporte(firmantes) {
+  return `
+    <div class="firmas-reporte">
+      ${firmantes.map((f) => `<div>${f}</div>`).join('')}
+    </div>
   `
 }

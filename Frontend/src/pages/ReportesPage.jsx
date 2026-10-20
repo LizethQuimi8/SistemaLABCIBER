@@ -5,7 +5,7 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner } from '../components/ui/PageShell'
 import { useAuth } from '../context/AuthContext'
 import { nombreRol } from '../constants/roles'
-import { estiloEncabezadoReporte, htmlEncabezadoReporte } from '../utils/reportePlantilla'
+import { estiloEncabezadoReporte, htmlEncabezadoReporte, htmlFirmasReporte } from '../utils/reportePlantilla'
 
 const FASES = ['PREPARATORIA', 'PRECONTRACTUAL', 'CONTRACTUAL', 'ENTREGA_BIENES', 'PAGO_PROVEEDOR']
 
@@ -98,6 +98,7 @@ function ReporteComprasPublicas() {
         <thead><tr><th>Objeto de contratación</th><th>Año</th><th>Etapa</th><th>Responsables</th><th>Monto</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody>
       </table>
+      ${htmlFirmasReporte(['Jefe de Laboratorio', 'Responsable de Compras Públicas'])}
       </body></html>`
 
     const ventana = window.open('', '_blank')
@@ -259,6 +260,7 @@ function ReportePublicaciones() {
         <thead><tr><th>Titulo</th><th>Revista</th><th>Año</th><th>DOI</th><th>Investigador</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody>
       </table>
+      ${htmlFirmasReporte(['Jefe de Laboratorio'])}
       </body></html>`
 
     const ventana = window.open('', '_blank')
@@ -432,6 +434,7 @@ function ReporteISO27001() {
           <tr><td>Compras públicas</td><td>${resumen?.totalComprasPublicas ?? '—'}</td></tr>
         </tbody>
       </table>
+      ${htmlFirmasReporte(['Jefe de Laboratorio'])}
       </body></html>`
 
     const ventana = window.open('', '_blank')
