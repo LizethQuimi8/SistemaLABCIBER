@@ -94,7 +94,7 @@ public class InventarioImportService {
                 String codigoLab = valor(row, colCodigoLab, formatter);
 
                 BienInventario bien = null;
-                if (!codigoIC.isBlank()) {
+                if (!codigoIC.isBlank() && !esCodigoPlaceholder(codigoIC)) {
                     bien = bienInventarioRepository.findByCodigoIC(codigoIC).orElse(null);
                 }
                 if (bien == null && !codigoLab.isBlank()) {
@@ -197,6 +197,18 @@ public class InventarioImportService {
         return valor.isBlank() ? null : valor;
     }
 
+    /** Valores que la matriz institucional usa como marcador de "todavia no tiene
+     * codigo" en vez de dejar la celda vacia (p. ej. "Por asignar", "Bien fungible").
+     * Si se usaran como codigo real, todas las filas que comparten el mismo
+     * marcador se emparejarian entre si y se sobrescribirian unas a otras. */
+    private static final Set<String> CODIGOS_PLACEHOLDER = Set.of(
+            "por asignar", "sin asignar", "pendiente", "bien fungible", "bien externo",
+            "n/a", "s/n", "ninguno", "no aplica");
+
+    private boolean esCodigoPlaceholder(String valor) {
+        return CODIGOS_PLACEHOLDER.contains(normalizar(valor));
+    }
+
     /** Heuristica de texto libre -> EstadoBien; null si no se reconoce ningun termino conocido. */
     private EstadoBien mapearEstado(String textoOriginal) {
         String texto = normalizar(textoOriginal);
@@ -210,7 +222,8 @@ public class InventarioImportService {
         if (texto.contains("uso") || texto.contains("asignado") || texto.contains("ocupado") || texto.contains("prestamo")) {
             return EstadoBien.EN_USO;
         }
-        if (texto.contains("disponible") || texto.contains("bueno") || texto.contains("operativo") || texto.contains("activo")) {
+        if (texto.contains("disponible") || texto.contains("bueno") || texto.contains("operativo")
+                || texto.contains("activo") || texto.contains("excelente") || texto.contains("regular")) {
             return EstadoBien.DISPONIBLE;
         }
         return null;

@@ -193,6 +193,40 @@ class BienInventarioControllerTest {
     }
 
     @Test
+    void importarNoConfundeBienesDistintosQueComparteElMismoCodigoPlaceholder() throws Exception {
+        // La matriz institucional usa "Por asignar" / "Bien fungible" como marcador de
+        // "todavia no tiene codigo" en vez de dejar la celda vacia; si se usara como
+        // codigo real, cada fila con el mismo marcador sobreescribiria a la anterior.
+        when(repository.findByCodigoIC(any())).thenReturn(Optional.empty());
+        when(repository.findByCodigoInventario(any())).thenReturn(List.of());
+        when(repository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "matriz.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", matrizConCodigoPlaceholderRepetido());
+
+        InventarioImportService.ImportResult resultado = controller.importar(archivo);
+
+        assertThat(resultado.errores()).isEmpty();
+        assertThat(resultado.creados()).isEqualTo(3);
+        assertThat(resultado.actualizados()).isZero();
+        verify(repository, times(3)).save(any(BienInventario.class));
+    }
+
+    @Test
+    void importarReconoceExcelenteYRegularComoDisponible() throws Exception {
+        when(repository.findByCodigoIC(any())).thenReturn(Optional.empty());
+        when(repository.findByCodigoInventario(any())).thenReturn(List.of());
+        when(repository.save(any(BienInventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "matriz.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", matrizConEstadosExcelenteYRegular());
+
+        InventarioImportService.ImportResult resultado = controller.importar(archivo);
+
+        assertThat(resultado.estadosNoReconocidos()).isEmpty();
+    }
+
+    @Test
     void importarToleraUnaFilaDeTituloAntesDelEncabezado() throws Exception {
         when(repository.findByCodigoIC(any())).thenReturn(Optional.empty());
         when(repository.findByCodigoInventario(any())).thenReturn(List.of());
@@ -239,6 +273,33 @@ class BienInventarioControllerTest {
             escribirFila(sheet, 0, "Ord", "Nombre del Item", "Marca", "Descripcion", "Codigo de Bien ESPE",
                     "Numero de Serie", "Codigo Laboratorio", "Detalles tecnicos", "Estado", "Custodio", "Observacion");
             escribirFila(sheet, 1, "1", "Teclado", "Logitech", "", "", "", "PCLC-3", "", "Disponible", "Ing. Gancino", "");
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private byte[] matrizConCodigoPlaceholderRepetido() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            XSSFSheet sheet = workbook.createSheet("Inventario");
+            escribirFila(sheet, 0, "Ord", "Nombre del Item", "Marca", "Descripcion", "Codigo de Bien ESPE",
+                    "Numero de Serie", "Codigo Laboratorio", "Detalles tecnicos", "Estado", "Custodio", "Observacion");
+            escribirFila(sheet, 1, "1", "Teclado", "Dell", "", "Por asignar", "S/N", "PCLC-1", "", "Bueno", "Ing. Gancino", "");
+            escribirFila(sheet, 2, "2", "Mouse", "Dell", "", "Por asignar", "S/N", "PCLC-2", "", "Bueno", "Ing. Gancino", "");
+            escribirFila(sheet, 3, "3", "Cable de red", "Generico", "", "BIEN FUNGIBLE", "S/N", "PCLC-3", "", "Bueno", "Ing. Gancino", "");
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private byte[] matrizConEstadosExcelenteYRegular() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            XSSFSheet sheet = workbook.createSheet("Inventario");
+            escribirFila(sheet, 0, "Ord", "Nombre del Item", "Marca", "Descripcion", "Codigo de Bien ESPE",
+                    "Numero de Serie", "Codigo Laboratorio", "Detalles tecnicos", "Estado", "Custodio", "Observacion");
+            escribirFila(sheet, 1, "1", "Monitor", "Dell", "", "ESPE-020", "SN1", "PCLC-20", "", "Excelente", "Ing. Gancino", "");
+            escribirFila(sheet, 2, "2", "CPU", "HP", "", "ESPE-021", "SN2", "PCLC-21", "", "Regular", "Ing. Gancino", "");
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
             return out.toByteArray();
