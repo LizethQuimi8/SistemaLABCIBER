@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye, Search, X,
+  Plus, Trash2, Package, HandHelping, Undo2, Upload, Eye, Search, X, Pencil,
   Monitor, Cpu, Keyboard, Mouse, Printer, Armchair, Router, Camera,
   Projector, HardDrive, Server, Laptop, Headphones, Boxes, CheckCircle2, Wrench, Ban,
   FileSignature, FileCheck2, FileX2, FileDown,
@@ -51,6 +51,11 @@ const PRESTAMO_ESTADO_BADGE = {
 
 const SOLICITUD_INICIAL = { fechaDesde: '', fechaHasta: '', motivo: '', proyectoId: '', observaciones: '' }
 
+const FORM_INICIAL = {
+  nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '',
+  marca: '', descripcion: '', numeroSerie: '', detallesTecnicos: '', custodio: '', observaciones: '',
+}
+
 const PAGE_SIZE = 12
 
 // Normaliza el nombre del equipo a una categoria legible (p. ej. "monitor dell " -> "Monitor").
@@ -99,7 +104,8 @@ export default function InventarioPage() {
     : ['Nombre (equipo)', 'Codigo IC', 'Codigo interno', 'Marca', 'Custodio', 'Estado', '', '']
 
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
+  const [editandoId, setEditandoId] = useState(null)
+  const [form, setForm] = useState(FORM_INICIAL)
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [eliminandoTodo, setEliminandoTodo] = useState(false)
@@ -214,15 +220,47 @@ export default function InventarioPage() {
     setSaving(true)
     setError(null)
     try {
-      await inventarioApi.create({ ...form, cantidad: Number(form.cantidad) || 1 })
+      const payload = { ...form, cantidad: Number(form.cantidad) || 1 }
+      if (editandoId) {
+        await inventarioApi.update(editandoId, payload)
+      } else {
+        await inventarioApi.create(payload)
+      }
       setShowForm(false)
-      setForm({ nombre: '', codigoIC: '', codigoInventario: '', categoria: '', cantidad: 1, estado: 'DISPONIBLE', ubicacion: '' })
+      setEditandoId(null)
+      setForm(FORM_INICIAL)
       reload()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
     }
+  }
+
+  const abrirNuevoBien = () => {
+    setEditandoId(null)
+    setForm(FORM_INICIAL)
+    setShowForm(true)
+  }
+
+  const abrirEditarBien = (bien) => {
+    setEditandoId(bien.id)
+    setForm({
+      nombre: bien.nombre || '',
+      codigoIC: bien.codigoIC || '',
+      codigoInventario: bien.codigoInventario || '',
+      categoria: bien.categoria || '',
+      cantidad: bien.cantidad ?? 1,
+      estado: bien.estado || 'DISPONIBLE',
+      ubicacion: bien.ubicacion || '',
+      marca: bien.marca || '',
+      descripcion: bien.descripcion || '',
+      numeroSerie: bien.numeroSerie || '',
+      detallesTecnicos: bien.detallesTecnicos || '',
+      custodio: bien.custodio || '',
+      observaciones: bien.observaciones || '',
+    })
+    setShowForm(true)
   }
 
   const handleDelete = async (id) => {
@@ -614,27 +652,38 @@ export default function InventarioPage() {
   }
 
   const generarReporteInventario = () => {
+    // Mismas columnas que la matriz institucional de inventario (Ord se omite:
+    // es solo la numeracion de fila de la hoja de Excel, no un dato del bien).
     const filas = bienesFiltrados.map((b) => `
       <tr>
         <td>${escapeHtml(b.nombre)}</td>
-        <td>${escapeHtml(b.codigoIC || '—')}</td>
-        <td>${escapeHtml(b.codigoInventario || '—')}</td>
         <td>${escapeHtml(b.marca || '—')}</td>
-        <td>${escapeHtml(b.custodio || '—')}</td>
+        <td>${escapeHtml(b.descripcion || '—')}</td>
+        <td>${escapeHtml(b.codigoIC || '—')}</td>
+        <td>${escapeHtml(b.numeroSerie || '—')}</td>
+        <td>${escapeHtml(b.codigoInventario || '—')}</td>
+        <td>${escapeHtml(b.detallesTecnicos || '—')}</td>
         <td>${ESTADO_LABEL[b.estado] || b.estado}</td>
+        <td>${escapeHtml(b.custodio || '—')}</td>
+        <td>${escapeHtml(b.observaciones || '—')}</td>
       </tr>`).join('')
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte de Inventario</title>
       <style>
         ${estiloEncabezadoReporte()}
-        table{width:100%;border-collapse:collapse;font-size:12px}
-        th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
+        @page{size:landscape}
+        table{width:100%;border-collapse:collapse;font-size:10px}
+        th,td{border:1px solid #ccc;padding:5px 6px;text-align:left;vertical-align:top}
         th{background:#0e6b3c;color:#fff}
       </style></head><body>
       ${htmlEncabezadoReporte('Reporte de Inventario', `Generado: ${new Date().toLocaleString()} — Total de bienes: ${bienesFiltrados.length}`)}
       <table>
-        <thead><tr><th>Nombre (equipo)</th><th>Código IC</th><th>Código interno</th><th>Marca</th><th>Custodio</th><th>Estado</th></tr></thead>
-        <tbody>${filas || '<tr><td colspan="6">Sin registros</td></tr>'}</tbody>
+        <thead><tr>
+          <th>Nombre del Item</th><th>Marca</th><th>Descripción</th><th>Código de Bien ESPE</th>
+          <th>Número de Serie</th><th>Código Laboratorio</th><th>Detalles técnicos</th>
+          <th>Estado</th><th>Custodio</th><th>Observación</th>
+        </tr></thead>
+        <tbody>${filas || '<tr><td colspan="10">Sin registros</td></tr>'}</tbody>
       </table>
       ${htmlFirmasReporte(['Jefe de Laboratorio', 'Admin. Infraestructura'])}
       </body></html>`
@@ -686,7 +735,7 @@ export default function InventarioPage() {
                 >
                   <Trash2 className="w-4 h-4" /> {eliminandoTodo ? 'Eliminando...' : 'Eliminar todo'}
                 </button>
-                <PrimaryButton onClick={() => setShowForm(true)}>
+                <PrimaryButton onClick={abrirNuevoBien}>
                   <Plus className="w-4 h-4" /> Nuevo bien
                 </PrimaryButton>
               </>
@@ -822,6 +871,9 @@ export default function InventarioPage() {
                       <option key={s} value={s} disabled={s === 'EN_USO'}>{ESTADO_LABEL[s]}</option>
                     ))}
                   </select>
+                  <button onClick={() => abrirEditarBien(b)} className="text-gray-400 hover:text-[#0e6b3c]" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                   <button onClick={() => handleDelete(b.id)} className="text-red-500 hover:text-red-700">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -1042,25 +1094,41 @@ export default function InventarioPage() {
       </div>
 
       {showForm && (
-        <Modal title="Nuevo bien de inventario" onClose={() => setShowForm(false)}>
+        <Modal title={editandoId ? 'Editar bien de inventario' : 'Nuevo bien de inventario'} onClose={() => { setShowForm(false); setEditandoId(null) }}>
           <form onSubmit={handleCreate} className="space-y-3">
             <Field label="Nombre (equipo)">
               <input required className="input" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Codigo IC">
+              <Field label="Marca">
+                <input className="input" value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
+              </Field>
+              <Field label="Numero de serie">
+                <input className="input" value={form.numeroSerie} onChange={(e) => setForm({ ...form, numeroSerie: e.target.value })} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Codigo de Bien ESPE (Codigo IC)">
                 <input className="input" value={form.codigoIC} onChange={(e) => setForm({ ...form, codigoIC: e.target.value })} />
               </Field>
-              <Field label="Codigo interno">
+              <Field label="Codigo Laboratorio (interno)">
                 <input className="input" value={form.codigoInventario} onChange={(e) => setForm({ ...form, codigoInventario: e.target.value })} />
               </Field>
             </div>
-            <Field label="Cantidad">
-              <input type="number" className="input" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} />
+            <Field label="Descripcion">
+              <textarea rows={2} className="input" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
             </Field>
-            <Field label="Categoria">
-              <input className="input" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+            <Field label="Detalles tecnicos">
+              <textarea rows={3} className="input" value={form.detallesTecnicos} onChange={(e) => setForm({ ...form, detallesTecnicos: e.target.value })} />
             </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Cantidad">
+                <input type="number" className="input" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} />
+              </Field>
+              <Field label="Categoria">
+                <input className="input" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+              </Field>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Estado">
                 <select className="input" value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })}>
@@ -1071,8 +1139,14 @@ export default function InventarioPage() {
                 <input className="input" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} />
               </Field>
             </div>
+            <Field label="Custodio">
+              <input className="input" value={form.custodio} onChange={(e) => setForm({ ...form, custodio: e.target.value })} />
+            </Field>
+            <Field label="Observaciones">
+              <textarea rows={2} className="input" value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} />
+            </Field>
             <PrimaryButton type="submit" disabled={saving} className="w-full justify-center">
-              {saving ? 'Guardando...' : 'Registrar bien'}
+              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Registrar bien'}
             </PrimaryButton>
           </form>
         </Modal>

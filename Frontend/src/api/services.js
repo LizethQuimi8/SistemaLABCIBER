@@ -112,6 +112,7 @@ export const notificacionesApi = {
 export const inventarioApi = {
   list: () => apiFetch('/api/inventario'),
   create: (data) => apiFetch('/api/inventario', { method: 'POST', body: data }),
+  update: (id, data) => apiFetch(`/api/inventario/${id}`, { method: 'PUT', body: data }),
   setEstado: (id, estado) => apiFetch(`/api/inventario/${id}/estado?estado=${estado}`, { method: 'PATCH' }),
   /** Importa/actualiza en bloque la matriz institucional de inventario (Excel .xlsx). */
   importar: (file) => apiUpload('/api/inventario/importar', file),

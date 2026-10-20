@@ -57,6 +57,12 @@ public class BienInventarioController {
         bien.setCantidad(request.getCantidad());
         bien.setEstado(request.getEstado());
         bien.setUbicacion(request.getUbicacion());
+        bien.setMarca(request.getMarca());
+        bien.setDescripcion(request.getDescripcion());
+        bien.setNumeroSerie(request.getNumeroSerie());
+        bien.setDetallesTecnicos(request.getDetallesTecnicos());
+        bien.setCustodio(request.getCustodio());
+        bien.setObservaciones(request.getObservaciones());
         return bienInventarioRepository.save(bien);
     }
 
