@@ -16,7 +16,7 @@ export function estiloEncabezadoReporte() {
     .encabezado-reporte .institucion{font-size:10.5px;letter-spacing:0.4px;color:#777;text-transform:uppercase;margin:0 0 4px}
     .encabezado-reporte h1{font-size:19px;color:#052a18;margin:0}
     .encabezado-reporte img{height:58px;width:auto;object-fit:contain;flex-shrink:0}
-    .encabezado-reporte .logo-lici{border-radius:50%}
+    .encabezado-reporte .logo-lici{height:84px;border-radius:50%}
     .encabezado-reporte .centro{flex:1;text-align:center}
     .subinfo-reporte{font-size:11.5px;color:#555;margin:0 0 18px;text-align:center}
   `
