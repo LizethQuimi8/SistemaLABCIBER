@@ -439,6 +439,8 @@ export default function PlanificacionEstrategicaPage() {
           grupos={jefeLaboratorio}
           loading={loadingGrupos}
           isAdmin={isAdmin}
+          ocultarNombre
+          etiquetaResponsable="Responsable:"
           onNuevo={() => openCreateGrupo('JEFE_LABORATORIO')}
           onEditar={openEditGrupo}
           onEliminar={handleDeleteGrupo}
@@ -644,7 +646,7 @@ function AccordionSection({ icon, title, open, onToggle, children }) {
   )
 }
 
-function GrupoSeccion({ titulo, subtitulo, grupos, loading, isAdmin, numerado, onNuevo, onEditar, onEliminar }) {
+function GrupoSeccion({ titulo, subtitulo, grupos, loading, isAdmin, numerado, ocultarNombre, etiquetaResponsable, onNuevo, onEditar, onEliminar }) {
   return (
     <div className={subtitulo ? '' : 'bg-white rounded-xl border border-gray-200 shadow-sm p-5'}>
       <div className="flex items-center justify-between gap-3 mb-3">
@@ -664,13 +666,15 @@ function GrupoSeccion({ titulo, subtitulo, grupos, loading, isAdmin, numerado, o
           {grupos.map((g, i) => (
             <div key={g.id} className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2.5 last:border-b-0 last:pb-0">
               <div className="text-xs">
-                <p className="font-bold text-[#052a18]">
-                  {numerado && <span>{i + 1}. </span>}
-                  {g.sigla && <span>{g.sigla} — </span>}
-                  {g.nombre}
-                </p>
-                <p className="text-gray-600 mt-0.5">
-                  {g.responsables ? <><span className="font-semibold">Responsable(s):</span> {g.responsables}</> : <span className="text-gray-400">Sin responsable asignado</span>}
+                {!ocultarNombre && (
+                  <p className="font-bold text-[#052a18]">
+                    {numerado && <span>{i + 1}. </span>}
+                    {g.sigla && <span>{g.sigla} — </span>}
+                    {g.nombre}
+                  </p>
+                )}
+                <p className={ocultarNombre ? 'text-gray-600' : 'text-gray-600 mt-0.5'}>
+                  {g.responsables ? <><span className="font-semibold">{etiquetaResponsable || 'Responsable(s):'}</span> {g.responsables}</> : <span className="text-gray-400">Sin responsable asignado</span>}
                   {g.observacion && <span className="text-gray-400"> {g.observacion}</span>}
                 </p>
               </div>
