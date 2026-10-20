@@ -18,12 +18,12 @@ import { useAuth } from '../context/AuthContext'
 
 const menuItems = [
   { id: 'dashboard', label: 'Inicio', icon: Home },
+  { id: 'planificacion', label: 'Planificación Estratégica', icon: Target },
   { id: 'proyectos', label: 'Portafolio de Proyectos', icon: Briefcase },
   { id: 'investigadores', label: 'Docentes Investigadores', icon: UserCheck },
   { id: 'publicaciones', label: 'Artículos y Publicaciones', icon: BookOpen },
   { id: 'documentos', label: 'Documentos y Correspondencia', icon: FileText },
   { id: 'manuales', label: 'Manuales y Procesos', icon: BookMarked },
-  { id: 'planificacion', label: 'Planificación Estratégica', icon: Target },
   { id: 'cyberrange', label: 'CyberRange y Prácticas-Ensayos', icon: FlaskConical },
   { id: 'inventario', label: 'Inventario', icon: Package },
   { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },

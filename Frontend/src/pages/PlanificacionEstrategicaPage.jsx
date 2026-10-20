@@ -10,8 +10,8 @@ const ANIO_INICIAL = 2026
 const anioActual = new Date().getFullYear()
 const FORM_INICIAL = { titulo: '', anio: String(Math.max(ANIO_INICIAL, anioActual)), descripcion: '' }
 const INFO_INICIAL = { queEsElLaboratorio: '', ambitosActuacion: '', mision: '', vision: '', objetivos: '', indicadoresClave: '', consejoCientifico: '' }
-const CATEGORIA_LABEL = { COORDINADOR_AREA: 'Coordinador de Área', COMISION: 'Comisión', MACRO_AREA: 'Macro-área' }
-const GRUPO_FORM_INICIAL = { categoria: 'COORDINADOR_AREA', sigla: '', nombre: '', observacion: '', orden: '' }
+const CATEGORIA_LABEL = { JEFE_LABORATORIO: 'Jefe de Laboratorio', COORDINADOR_AREA: 'Coordinador de Área', COMISION: 'Comisión', MACRO_AREA: 'Macro-área' }
+const GRUPO_FORM_INICIAL = { categoria: 'JEFE_LABORATORIO', sigla: '', nombre: '', observacion: '', orden: '' }
 
 export default function PlanificacionEstrategicaPage() {
   const { isAdmin } = useAuth()
@@ -233,6 +233,7 @@ export default function PlanificacionEstrategicaPage() {
     return { titulo: titulo.trim(), descripcion: resto.join('||').trim() }
   })
 
+  const jefeLaboratorio = useMemo(() => grupos.filter((g) => g.categoria === 'JEFE_LABORATORIO'), [grupos])
   const coordinadores = useMemo(() => grupos.filter((g) => g.categoria === 'COORDINADOR_AREA'), [grupos])
   const comisiones = useMemo(() => grupos.filter((g) => g.categoria === 'COMISION'), [grupos])
   const macroAreas = useMemo(() => grupos.filter((g) => g.categoria === 'MACRO_AREA'), [grupos])
@@ -433,6 +434,15 @@ export default function PlanificacionEstrategicaPage() {
 
       {tab === 'estructura' && (
       <div className="space-y-5">
+        <GrupoSeccion
+          titulo="Jefe de Laboratorio"
+          grupos={jefeLaboratorio}
+          loading={loadingGrupos}
+          isAdmin={isAdmin}
+          onNuevo={() => openCreateGrupo('JEFE_LABORATORIO')}
+          onEditar={openEditGrupo}
+          onEliminar={handleDeleteGrupo}
+        />
         <GrupoSeccion
           titulo="Coordinadores de Áreas de Trabajo de Investigación del Laboratorio"
           grupos={coordinadores}
