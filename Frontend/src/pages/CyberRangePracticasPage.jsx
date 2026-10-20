@@ -5,6 +5,7 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
+import { estiloEncabezadoReporte, htmlEncabezadoReporte } from '../utils/reportePlantilla'
 
 export default function CyberRangePracticasPage() {
   const [tab, setTab] = useState('cyberrange')
@@ -320,15 +321,12 @@ function PracticasTab() {
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Practicas y Ensayos</title>
       <style>
-        body{font-family:Arial,sans-serif;padding:24px;color:#111}
-        h1{font-size:18px;margin:0 0 2px}
-        p{font-size:12px;color:#555;margin:0 0 16px}
+        ${estiloEncabezadoReporte()}
         table{width:100%;border-collapse:collapse;font-size:12px}
         th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
         th{background:#0e6b3c;color:#fff}
       </style></head><body>
-      <h1>Reporte de Prácticas y Ensayos — LICI</h1>
-      <p>Generado: ${new Date().toLocaleString()} — Total de registros: ${data.length}</p>
+      ${htmlEncabezadoReporte('Reporte de Prácticas y Ensayos', `Generado: ${new Date().toLocaleString()} — Total de registros: ${data.length}`)}
       <table>
         <thead><tr><th>Título</th><th>Fecha</th><th>Responsable</th><th>Descripción</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="4">Sin registros</td></tr>'}</tbody>

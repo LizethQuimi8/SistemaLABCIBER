@@ -5,6 +5,7 @@ import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner } from '../components/ui/PageShell'
 import { useAuth } from '../context/AuthContext'
 import { nombreRol } from '../constants/roles'
+import { estiloEncabezadoReporte, htmlEncabezadoReporte } from '../utils/reportePlantilla'
 
 const FASES = ['PREPARATORIA', 'PRECONTRACTUAL', 'CONTRACTUAL', 'ENTREGA_BIENES', 'PAGO_PROVEEDOR']
 
@@ -85,16 +86,14 @@ function ReporteComprasPublicas() {
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Compras Publicas</title>
       <style>
-        body{font-family:Arial,sans-serif;padding:24px;color:#111}
-        h1{font-size:18px;margin:0 0 2px}
-        p{font-size:12px;color:#555;margin:0 0 16px}
+        ${estiloEncabezadoReporte()}
+        p.detalle{font-size:12px;color:#333;margin:0 0 16px}
         table{width:100%;border-collapse:collapse;font-size:12px}
         th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
         th{background:#0e6b3c;color:#fff}
       </style></head><body>
-      <h1>Reporte de Compras Públicas — LICI</h1>
-      <p>${criterios} — Generado: ${new Date().toLocaleString()}</p>
-      <p><strong>${filtradas.length}</strong> compras públicas encontradas, de las cuales <strong>${pagadas.length}</strong> ya llegaron a fase de pago al proveedor, por un monto total de <strong>${formatoMonto(totalMonto)}</strong>.</p>
+      ${htmlEncabezadoReporte('Reporte de Compras Públicas', `${criterios} — Generado: ${new Date().toLocaleString()}`)}
+      <p class="detalle"><strong>${filtradas.length}</strong> compras públicas encontradas, de las cuales <strong>${pagadas.length}</strong> ya llegaron a fase de pago al proveedor, por un monto total de <strong>${formatoMonto(totalMonto)}</strong>.</p>
       <table>
         <thead><tr><th>Objeto de contratación</th><th>Año</th><th>Etapa</th><th>Responsables</th><th>Monto</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody>
@@ -248,16 +247,14 @@ function ReportePublicaciones() {
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Publicaciones</title>
       <style>
-        body{font-family:Arial,sans-serif;padding:24px;color:#111}
-        h1{font-size:18px;margin:0 0 2px}
-        p{font-size:12px;color:#555;margin:0 0 16px}
+        ${estiloEncabezadoReporte()}
+        p.detalle{font-size:12px;color:#333;margin:0 0 16px}
         table{width:100%;border-collapse:collapse;font-size:12px}
         th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}
         th{background:#0e6b3c;color:#fff}
       </style></head><body>
-      <h1>Reporte de Artículos y Publicaciones — LICI</h1>
-      <p>${criterios} — Generado: ${new Date().toLocaleString()}</p>
-      <p><strong>${filtradas.length}</strong> publicaciones encontradas, de las cuales <strong>${conDoi.length}</strong> tienen DOI registrado.</p>
+      ${htmlEncabezadoReporte('Reporte de Artículos y Publicaciones', `${criterios} — Generado: ${new Date().toLocaleString()}`)}
+      <p class="detalle"><strong>${filtradas.length}</strong> publicaciones encontradas, de las cuales <strong>${conDoi.length}</strong> tienen DOI registrado.</p>
       <table>
         <thead><tr><th>Titulo</th><th>Revista</th><th>Año</th><th>DOI</th><th>Investigador</th></tr></thead>
         <tbody>${filas || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody>
@@ -392,17 +389,15 @@ function ReporteISO27001() {
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Cumplimiento ISO 27001</title>
       <style>
-        body{font-family:Arial,sans-serif;padding:24px;color:#111}
-        h1{font-size:18px;margin:0 0 2px}
+        ${estiloEncabezadoReporte()}
         h2{font-size:14px;margin:20px 0 8px;color:#0e6b3c}
-        p{font-size:12px;color:#555;margin:0 0 10px}
+        p.detalle{font-size:12px;color:#333;margin:0 0 10px}
         table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
         th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}
         th{background:#0e6b3c;color:#fff}
       </style></head><body>
-      <h1>Reporte de Cumplimiento ISO/IEC 27001 — Sistema de Gestión Documental LICI</h1>
-      <p>Generado: ${new Date().toLocaleString()}</p>
-      <p>Este reporte resume los controles de seguridad de la información implementados en el sistema y un
+      ${htmlEncabezadoReporte('Reporte de Cumplimiento ISO/IEC 27001', `Generado: ${new Date().toLocaleString()}`)}
+      <p class="detalle">Este reporte resume los controles de seguridad de la información implementados en el sistema y un
       corte del estado actual (usuarios, activos y documentos gestionados), como evidencia de cumplimiento
       frente a los dominios del Anexo A de la norma ISO/IEC 27001.</p>
 
