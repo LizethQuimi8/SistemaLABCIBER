@@ -19,20 +19,23 @@ const FASE_LABEL = {
   PAGO_PROVEEDOR: 'Pago al proveedor',
 }
 
+// Semaforizacion del proceso de compra: rojo/naranja en las etapas
+// iniciales, amarillo en Contractual, y verde (claro -> oscuro) a medida
+// que se acerca al cierre (Entrega de bienes y Pago al proveedor).
 const FASE_BADGE = {
   PREPARATORIA: 'bg-red-50 text-red-700',
   PRECONTRACTUAL: 'bg-orange-50 text-orange-700',
-  CONTRACTUAL: 'bg-lime-50 text-lime-700',
-  ENTREGA_BIENES: 'bg-green-50 text-green-700',
-  PAGO_PROVEEDOR: 'bg-blue-50 text-blue-700',
+  CONTRACTUAL: 'bg-yellow-50 text-yellow-700',
+  ENTREGA_BIENES: 'bg-green-100 text-green-700',
+  PAGO_PROVEEDOR: 'bg-green-700 text-white',
 }
 
 const FASE_DOT = {
   PREPARATORIA: 'bg-red-500',
   PRECONTRACTUAL: 'bg-orange-500',
-  CONTRACTUAL: 'bg-lime-500',
-  ENTREGA_BIENES: 'bg-green-500',
-  PAGO_PROVEEDOR: 'bg-blue-500',
+  CONTRACTUAL: 'bg-yellow-500',
+  ENTREGA_BIENES: 'bg-green-400',
+  PAGO_PROVEEDOR: 'bg-green-700',
 }
 
 const anioActual = new Date().getFullYear()
