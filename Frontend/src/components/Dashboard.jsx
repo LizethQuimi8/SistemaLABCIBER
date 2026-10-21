@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { FileText, FilePlus, Upload, RefreshCw, Search, Loader2 } from 'lucide-react'
+import { FileText, FilePlus, Upload, RefreshCw, Search, Loader2, Target, FolderOpen, FlaskConical } from 'lucide-react'
 import BarChart from './BarChart'
-import { reportesApi, documentosApi } from '../api/services'
+import { reportesApi, documentosApi, informacionLaboratorioApi } from '../api/services'
 import { useAuth } from '../context/AuthContext'
 
 // ── Tarjeta de resumen de documentos (datos reales del reporting-service) ─────
@@ -80,10 +80,59 @@ function PendingSignatureTable({ pendientes, loading }) {
   )
 }
 
+// ── Resumen de Planificación Estratégica (para el rol Estudiante, que no
+// tiene acceso a Documentos y por lo tanto no ve la tabla de firmas) ──────────
+function PlanificacionCard({ info, loading, onNavigate }) {
+  const vacio = info && !info.mision && !info.vision
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="bg-[#0e6b3c] text-white p-2 rounded">
+          <Target className="w-5 h-5" />
+        </div>
+        <h3 className="text-sm font-bold text-[#052a18]">Planificación Estratégica</h3>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center text-gray-400 text-xs py-6">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Cargando...
+        </div>
+      ) : vacio ? (
+        <p className="text-xs text-gray-400 mb-3">Esta sección todavía no ha sido completada.</p>
+      ) : (
+        <div className="space-y-3 mb-3">
+          {info?.mision && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Misión</p>
+              <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{info.mision}</p>
+            </div>
+          )}
+          {info?.vision && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Visión</p>
+              <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{info.vision}</p>
+            </div>
+          )}
+        </div>
+      )}
+      <button
+        onClick={() => onNavigate?.('planificacion')}
+        className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18]"
+      >
+        Ver planificación completa →
+      </button>
+    </div>
+  )
+}
+
 // ── Accesos directos ───────────────────────────────────────────────────────────
 function ShortcutsRow({ onNavigate }) {
-  const { canEditInventario } = useAuth()
-  const shortcuts = [
+  const { canEditInventario, isEstudiante } = useAuth()
+  const shortcuts = isEstudiante ? [
+    { label: 'Ver Planificación Estratégica', icon: Target, view: 'planificacion' },
+    { label: 'Ver Portafolio de Proyectos', icon: FolderOpen, view: 'proyectos' },
+    { label: 'Consultar Publicaciones', icon: Search, view: 'publicaciones' },
+    { label: 'CyberRange y Prácticas', icon: FlaskConical, view: 'cyberrange' },
+  ] : [
     { label: 'Registrar Nuevo Proyecto', icon: FilePlus, view: 'proyectos' },
     { label: 'Subir Memorando', icon: Upload, view: 'documentos' },
     canEditInventario && { label: 'Actualizar Inventario', icon: RefreshCw, view: 'inventario' },
@@ -111,9 +160,10 @@ function ShortcutsRow({ onNavigate }) {
 
 // ── Dashboard principal ───────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isEstudiante } = useAuth()
   const [resumen, setResumen] = useState(null)
   const [pendientes, setPendientes] = useState([])
+  const [infoPlanificacion, setInfoPlanificacion] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -123,13 +173,26 @@ export default function Dashboard({ onNavigate }) {
       setLoading(true)
       setError(null)
       try {
-        const [resumenData, documentos] = await Promise.all([
-          reportesApi.resumen(),
-          documentosApi.list().catch(() => []),
-        ])
-        if (cancelled) return
-        setResumen(resumenData)
-        setPendientes((documentos || []).filter((d) => d.estado === 'PENDIENTE_FIRMA'))
+        if (isEstudiante) {
+          // El rol Estudiante no tiene acceso a Documentos y Correspondencia
+          // (la tabla de firmas pendientes no aplica), se le muestra en su
+          // lugar un resumen de Planificación Estratégica.
+          const [resumenData, info] = await Promise.all([
+            reportesApi.resumen(),
+            informacionLaboratorioApi.obtener().catch(() => null),
+          ])
+          if (cancelled) return
+          setResumen(resumenData)
+          setInfoPlanificacion(info)
+        } else {
+          const [resumenData, documentos] = await Promise.all([
+            reportesApi.resumen(),
+            documentosApi.list().catch(() => []),
+          ])
+          if (cancelled) return
+          setResumen(resumenData)
+          setPendientes((documentos || []).filter((d) => d.estado === 'PENDIENTE_FIRMA'))
+        }
       } catch (err) {
         if (!cancelled) setError(err.message)
       } finally {
@@ -138,7 +201,7 @@ export default function Dashboard({ onNavigate }) {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [isEstudiante])
 
   const chartData = resumen ? [
     { label: 'Proyectos', value: resumen.totalProyectos ?? 0, color: 'bg-green-500' },
@@ -175,7 +238,11 @@ export default function Dashboard({ onNavigate }) {
           <BarChart data={chartData} loading={loading} />
         </div>
         <div className="lg:col-span-1">
-          <PendingSignatureTable pendientes={pendientes} loading={loading} />
+          {isEstudiante ? (
+            <PlanificacionCard info={infoPlanificacion} loading={loading} onNavigate={onNavigate} />
+          ) : (
+            <PendingSignatureTable pendientes={pendientes} loading={loading} />
+          )}
         </div>
       </div>
 
