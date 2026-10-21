@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Plus, Pencil, Trash2, Users, Power, Wand2, ShieldAlert } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Plus, Pencil, Trash2, Users, Power, Wand2, ShieldAlert, UserCheck, UserX } from 'lucide-react'
 import { usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -15,6 +15,18 @@ const ROLES = [
   'RESPONSABLE_COMPRAS',
 ]
 const FORM_INICIAL = { nombres: '', apellidos: '', email: '', password: '', cedula: '', rol: 'DOCENTE_INVESTIGADOR' }
+
+// Un color por rol, reutilizado en el avatar y el distintivo de rol de cada fila.
+const ROL_COLOR = {
+  ADMINISTRADOR: { badge: 'bg-emerald-100 text-emerald-700', avatar: 'bg-emerald-500' },
+  ADMIN_INFRAESTRUCTURA: { badge: 'bg-sky-100 text-sky-700', avatar: 'bg-sky-500' },
+  DOCENTE_INVESTIGADOR: { badge: 'bg-purple-100 text-purple-700', avatar: 'bg-purple-500' },
+  INVESTIGADOR_COLABORADOR: { badge: 'bg-indigo-100 text-indigo-700', avatar: 'bg-indigo-500' },
+  ESTUDIANTE: { badge: 'bg-amber-100 text-amber-700', avatar: 'bg-amber-500' },
+  RESPONSABLE_COMPRAS: { badge: 'bg-rose-100 text-rose-700', avatar: 'bg-rose-500' },
+}
+const rolColor = (rol) => ROL_COLOR[rol] || { badge: 'bg-slate-100 text-slate-700', avatar: 'bg-slate-500' }
+const iniciales = (nombres, apellidos) => `${(nombres || '?')[0]}${(apellidos || '')[0] || ''}`.toUpperCase()
 
 /** Contraseña temporal aleatoria: la persona la cambia en su primer ingreso. */
 function generarPasswordPredeterminada() {
@@ -117,6 +129,9 @@ export default function UsuariosPage() {
     }
   }
 
+  const activos = useMemo(() => data.filter((u) => u.activo).length, [data])
+  const inactivos = data.length - activos
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
@@ -145,36 +160,55 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      <Table headers={['Nombre', 'Email', 'Rol', 'Estado', '']}>
-        {loading && <LoadingRow colSpan={5} />}
-        {!loading && data.length === 0 && <EmptyRow colSpan={5} />}
-        {!loading && data.map((u) => (
-          <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <Users className="w-3.5 h-3.5 text-gray-400" /> {u.nombres} {u.apellidos}
-            </td>
-            <td className="px-3 py-2 text-gray-600">{u.email}</td>
-            <td className="px-3 py-2">
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold">{nombreRol(u.rol)}</span>
-            </td>
-            <td className="px-3 py-2">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${u.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                {u.activo ? 'Activo' : 'Inactivo'}
-              </span>
-            </td>
-            <td className="px-3 py-2 text-right flex items-center justify-end gap-2">
-              <button onClick={() => openEdit(u)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => toggleEstado(u)} className="text-gray-500 hover:text-[#052a18]" title="Activar/Desactivar">
-                <Power className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => handleDelete(u.id)} className="text-red-500 hover:text-red-700">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </td>
-          </tr>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        <StatCard icon={Users} label="Usuarios" value={data.length} color="from-[#0e6b3c] to-[#052a18]" />
+        <StatCard icon={UserCheck} label="Activos" value={activos} color="from-emerald-500 to-emerald-700" />
+        <StatCard icon={UserX} label="Inactivos" value={inactivos} color="from-slate-400 to-slate-600" />
+      </div>
+
+      <Table headers={['Usuario', 'Rol', 'Estado', '']}>
+          {loading && <LoadingRow colSpan={4} />}
+          {!loading && data.length === 0 && <EmptyRow colSpan={4} />}
+          {!loading && data.map((u) => {
+            const colores = rolColor(u.rol)
+            return (
+              <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className={`${colores.avatar} text-white w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0`}>
+                      {iniciales(u.nombres, u.apellidos)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-800 truncate">{u.nombres} {u.apellidos}</p>
+                      <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${colores.badge}`}>{nombreRol(u.rol)}</span>
+                </td>
+                <td className="px-3 py-2">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${u.activo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${u.activo ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    {u.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => openEdit(u)} className="text-gray-400 hover:text-[#052a18]" title="Editar">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => toggleEstado(u)} className="text-gray-400 hover:text-[#052a18]" title="Activar/Desactivar">
+                      <Power className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(u.id)} className="text-red-400 hover:text-red-600" title="Eliminar">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
       </Table>
 
       {showForm && (
@@ -243,5 +277,19 @@ function Field({ label, children }) {
       <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+function StatCard({ icon: Icon, label, value, color }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+      <div className={`bg-gradient-to-br ${color} text-white p-2.5 rounded-lg flex-shrink-0 shadow`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-2xl font-black text-[#052a18] leading-none">{value}</p>
+        <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1.5 truncate">{label}</p>
+      </div>
+    </div>
   )
 }
