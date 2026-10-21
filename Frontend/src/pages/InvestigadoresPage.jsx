@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, FileUp, Eye, Info, CalendarDays, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileUp, Eye, Info, CalendarDays, BookOpen, Loader2, Users, FileCheck2 } from 'lucide-react'
 import { investigadoresApi, usuariosApi, publicacionesApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { useAuth } from '../context/AuthContext'
-import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
+import { PageHeader, ErrorBanner, PrimaryButton } from '../components/ui/PageShell'
 import Modal from '../components/ui/Modal'
 
 const FORM_INICIAL = { nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '', usuarioId: '' }
@@ -140,61 +140,86 @@ export default function InvestigadoresPage() {
 
       <ErrorBanner message={error} />
 
-      <Table headers={['Docente', 'Curriculum', 'Horario de clases', 'Detalle', '']}>
-        {loading && <LoadingRow colSpan={5} />}
-        {!loading && data.length === 0 && <EmptyRow colSpan={5} />}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+        <MiniStat icon={Users} label="Docentes registrados" value={data.length} color="from-[#0e6b3c] to-[#052a18]" />
+        <MiniStat icon={FileCheck2} label="Con currículum" value={data.filter((i) => i.curriculumRuta).length} color="from-sky-500 to-sky-700" />
+        <MiniStat icon={CalendarDays} label="Con horario" value={data.filter((i) => i.horarioRuta).length} color="from-purple-500 to-purple-700" />
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center text-gray-400 text-sm py-10">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Cargando...
+        </div>
+      )}
+      {!loading && data.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center text-gray-400 text-sm">
+          Sin perfiles de investigador todavía.
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {!loading && data.map((inv) => (
-          <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800">
-              <div className="flex items-center gap-2.5">
-                <span className={`${colorAvatar(inv.id)} text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0`}>
-                  {inicialesDe(inv.nombreCompleto)}
-                </span>
-                {inv.nombreCompleto}
-              </div>
-            </td>
-            <td className="px-3 py-2">
-              <ArchivoBoton
-                disponible={!!inv.curriculumRuta}
-                cargando={viewingId === `curriculum-${inv.id}`}
-                titulo={inv.curriculumNombreArchivo}
-                onClick={() => handleVerArchivo(inv, 'curriculum')}
-              />
-            </td>
-            <td className="px-3 py-2">
-              <ArchivoBoton
-                disponible={!!inv.horarioRuta}
-                cargando={viewingId === `horario-${inv.id}`}
-                titulo={inv.horarioNombreArchivo}
-                icon={CalendarDays}
-                onClick={() => handleVerArchivo(inv, 'horario')}
-              />
-            </td>
-            <td className="px-3 py-2">
-              <button
-                onClick={() => setDetalle(inv)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-[#0e6b3c]"
-              >
-                <Info className="w-3.5 h-3.5" /> Detalle
-              </button>
-            </td>
-            <td className="px-3 py-2 text-right">
-              <div className="flex items-center justify-end gap-2">
-                {!isEstudiante && (isAdmin || inv.usuarioId === usuario?.id) && (
-                  <button onClick={() => openEdit(inv)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
+          <div key={inv.id} className="group relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
+            {!isEstudiante && (isAdmin || inv.usuarioId === usuario?.id) && (
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <button onClick={() => openEdit(inv)} className="bg-white/90 text-gray-600 hover:text-[#052a18] p-1.5 rounded-full shadow" title="Editar">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
                 {isAdmin && (
-                  <button onClick={() => handleDelete(inv.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                  <button onClick={() => handleDelete(inv.id)} className="bg-white/90 text-red-500 hover:text-red-700 p-1.5 rounded-full shadow" title="Eliminar">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-            </td>
-          </tr>
+            )}
+
+            <div className="bg-gradient-to-br from-[#0e6b3c] via-[#0b5c33] to-[#052a18] p-5 flex items-center gap-3.5">
+              <div className={`${colorAvatar(inv.id)} w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-black flex-shrink-0 ring-4 ring-white/15`}>
+                {inicialesDe(inv.nombreCompleto)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-white font-bold text-sm leading-tight truncate">{inv.nombreCompleto}</p>
+                <p className="text-emerald-200 text-[11px] truncate mt-0.5">{inv.tituloAcademico || 'Docente Investigador'}</p>
+              </div>
+            </div>
+
+            <div className="p-4">
+              {inv.areaInvestigacion ? (
+                <span className="inline-block px-2.5 py-1 rounded-full bg-[#f3faf6] text-[#0e6b3c] text-[10px] font-semibold mb-3">
+                  {inv.areaInvestigacion}
+                </span>
+              ) : (
+                <p className="text-[11px] text-gray-300 mb-3">Sin área de investigación registrada</p>
+              )}
+
+              <div className="flex items-center gap-4 mb-3">
+                <ArchivoBoton
+                  disponible={!!inv.curriculumRuta}
+                  cargando={viewingId === `curriculum-${inv.id}`}
+                  titulo={inv.curriculumNombreArchivo}
+                  etiqueta="Currículum"
+                  onClick={() => handleVerArchivo(inv, 'curriculum')}
+                />
+                <ArchivoBoton
+                  disponible={!!inv.horarioRuta}
+                  cargando={viewingId === `horario-${inv.id}`}
+                  titulo={inv.horarioNombreArchivo}
+                  icon={CalendarDays}
+                  etiqueta="Horario"
+                  onClick={() => handleVerArchivo(inv, 'horario')}
+                />
+              </div>
+
+              <button
+                onClick={() => setDetalle(inv)}
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-[#0e6b3c] border-t border-gray-100 pt-3 transition-colors"
+              >
+                <Info className="w-3.5 h-3.5" /> Ver detalle completo
+              </button>
+            </div>
+          </div>
         ))}
-      </Table>
+      </div>
 
       {showForm && (
         <Modal title={editingId ? 'Editar perfil de investigador' : 'Nuevo perfil de investigador'} onClose={() => setShowForm(false)}>
@@ -265,14 +290,14 @@ export default function InvestigadoresPage() {
                 disponible={!!detalle.curriculumRuta}
                 cargando={viewingId === `curriculum-${detalle.id}`}
                 titulo={detalle.curriculumNombreArchivo}
-                etiqueta="Ver curriculum"
+                etiqueta="Currículum"
                 onClick={() => handleVerArchivo(detalle, 'curriculum')}
               />
               <ArchivoBoton
                 disponible={!!detalle.horarioRuta}
                 cargando={viewingId === `horario-${detalle.id}`}
                 titulo={detalle.horarioNombreArchivo}
-                etiqueta="Ver horario"
+                etiqueta="Horario"
                 icon={CalendarDays}
                 onClick={() => handleVerArchivo(detalle, 'horario')}
               />
@@ -303,7 +328,13 @@ export default function InvestigadoresPage() {
 }
 
 function ArchivoBoton({ disponible, cargando, titulo, onClick, icon: Icon = Eye, etiqueta = 'Ver' }) {
-  if (!disponible) return <span className="text-gray-400 text-xs">Sin subir</span>
+  if (!disponible) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-gray-300">
+        <Icon className="w-3.5 h-3.5" /> {etiqueta}: sin subir
+      </span>
+    )
+  }
   return (
     <button
       onClick={onClick}
@@ -313,6 +344,20 @@ function ArchivoBoton({ disponible, cargando, titulo, onClick, icon: Icon = Eye,
     >
       <Icon className="w-3.5 h-3.5" /> {cargando ? 'Abriendo...' : etiqueta}
     </button>
+  )
+}
+
+function MiniStat({ icon: Icon, label, value, color }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3.5 flex items-center gap-3">
+      <div className={`bg-gradient-to-br ${color} text-white p-2.5 rounded-lg flex-shrink-0 shadow-sm`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xl font-black text-[#052a18] leading-none">{value}</p>
+        <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1.5 truncate">{label}</p>
+      </div>
+    </div>
   )
 }
 
