@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag, FileText, Network } from 'lucide-react'
+import { Plus, Pencil, Trash2, Target, Eye, Upload, Search, Compass, ArrowRight, ChevronDown, Flag, FileText, Network, Crown, Users, ShieldCheck, Layers } from 'lucide-react'
 import { planificacionEstrategicaApi, informacionLaboratorioApi, estructuraOrganizacionalApi, usuariosApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } from '../components/ui/PageShell'
@@ -439,14 +439,14 @@ export default function PlanificacionEstrategicaPage() {
           grupos={jefeLaboratorio}
           loading={loadingGrupos}
           isAdmin={isAdmin}
-          ocultarNombre
-          etiquetaResponsable="Responsable:"
+          variante="lider"
           onNuevo={() => openCreateGrupo('JEFE_LABORATORIO')}
           onEditar={openEditGrupo}
           onEliminar={handleDeleteGrupo}
         />
         <GrupoSeccion
           titulo="Coordinadores de Áreas de Trabajo de Investigación del Laboratorio"
+          icon={Users}
           grupos={coordinadores}
           loading={loadingGrupos}
           isAdmin={isAdmin}
@@ -456,6 +456,7 @@ export default function PlanificacionEstrategicaPage() {
         />
         <GrupoSeccion
           titulo="Comisiones de Operatividad del Laboratorio"
+          icon={ShieldCheck}
           grupos={comisiones}
           loading={loadingGrupos}
           isAdmin={isAdmin}
@@ -465,30 +466,36 @@ export default function PlanificacionEstrategicaPage() {
           onEliminar={handleDeleteGrupo}
         />
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <h2 className="text-sm font-bold text-[#052a18]">Consejo Científico del Laboratorio</h2>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-5 py-4 bg-[#052a18]">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+              <span className="bg-white/10 p-2 rounded"><ShieldCheck className="w-4 h-4" /></span>
+              Consejo Científico del Laboratorio
+            </h2>
             {isAdmin && (
-              <button onClick={abrirEditarInfo} className="text-xs font-semibold text-gray-500 hover:text-[#052a18] flex items-center gap-1">
+              <button onClick={abrirEditarInfo} className="text-xs font-semibold text-emerald-100 hover:text-white flex items-center gap-1">
                 <Pencil className="w-3.5 h-3.5" /> Editar
               </button>
             )}
           </div>
-          {info?.consejoCientifico ? (
-            <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line mb-4">{info.consejoCientifico}</p>
-          ) : (
-            <p className="text-xs text-gray-400 mb-4">{isAdmin ? 'Aún no se ha descrito su composición. Usa "Editar" para completarla.' : 'Esta sección todavía no ha sido completada.'}</p>
-          )}
-          <GrupoSeccion
-            titulo="Macro-áreas de trabajo"
-            subtitulo
-            grupos={macroAreas}
-            loading={loadingGrupos}
-            isAdmin={isAdmin}
-            onNuevo={() => openCreateGrupo('MACRO_AREA')}
-            onEditar={openEditGrupo}
-            onEliminar={handleDeleteGrupo}
-          />
+          <div className="p-5">
+            {info?.consejoCientifico ? (
+              <p className="text-xs leading-relaxed text-gray-700 whitespace-pre-line mb-5">{info.consejoCientifico}</p>
+            ) : (
+              <p className="text-xs text-gray-400 mb-5">{isAdmin ? 'Aún no se ha descrito su composición. Usa "Editar" para completarla.' : 'Esta sección todavía no ha sido completada.'}</p>
+            )}
+            <GrupoSeccion
+              titulo="Macro-áreas de trabajo"
+              icon={Layers}
+              subtitulo
+              grupos={macroAreas}
+              loading={loadingGrupos}
+              isAdmin={isAdmin}
+              onNuevo={() => openCreateGrupo('MACRO_AREA')}
+              onEditar={openEditGrupo}
+              onEliminar={handleDeleteGrupo}
+            />
+          </div>
         </div>
       </div>
       )}
@@ -646,44 +653,83 @@ function AccordionSection({ icon, title, open, onToggle, children }) {
   )
 }
 
-function GrupoSeccion({ titulo, subtitulo, grupos, loading, isAdmin, numerado, ocultarNombre, etiquetaResponsable, onNuevo, onEditar, onEliminar }) {
+function GrupoSeccion({ titulo, icon: Icon = Users, subtitulo, grupos, loading, isAdmin, numerado, variante, onNuevo, onEditar, onEliminar }) {
+  const esLider = variante === 'lider'
   return (
     <div className={subtitulo ? '' : 'bg-white rounded-xl border border-gray-200 shadow-sm p-5'}>
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 className={subtitulo ? 'text-xs font-bold uppercase tracking-wide text-[#0e6b3c]' : 'text-sm font-bold text-[#052a18]'}>{titulo}</h2>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className={`flex items-center gap-2 ${subtitulo ? 'text-xs font-bold uppercase tracking-wide text-[#0e6b3c]' : 'text-sm font-bold text-[#052a18]'}`}>
+          {!subtitulo && (
+            <span className="bg-[#0e6b3c] text-white p-1.5 rounded-lg flex-shrink-0">
+              <Icon className="w-3.5 h-3.5" />
+            </span>
+          )}
+          {titulo}
+        </h2>
         {isAdmin && (
-          <button onClick={onNuevo} className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] flex items-center gap-1">
+          <button onClick={onNuevo} className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18] flex items-center gap-1 flex-shrink-0">
             <Plus className="w-3.5 h-3.5" /> Agregar
           </button>
         )}
       </div>
+
       {loading && <p className="text-xs text-gray-400">Cargando...</p>}
       {!loading && grupos.length === 0 && (
         <p className="text-xs text-gray-400">{isAdmin ? 'Aún no hay registros. Usa "Agregar" para añadir el primero.' : 'Sin registros todavía.'}</p>
       )}
-      {!loading && grupos.length > 0 && (
-        <div className="space-y-2.5">
-          {grupos.map((g, i) => (
-            <div key={g.id} className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2.5 last:border-b-0 last:pb-0">
-              <div className="text-xs">
-                {!ocultarNombre && (
-                  <p className="font-bold text-[#052a18]">
-                    {numerado && <span>{i + 1}. </span>}
-                    {g.sigla && <span>{g.sigla} — </span>}
-                    {g.nombre}
-                  </p>
-                )}
-                <p className={ocultarNombre ? 'text-gray-600' : 'text-gray-600 mt-0.5'}>
-                  {g.responsables ? <><span className="font-semibold">{etiquetaResponsable || 'Responsable(s):'}</span> {g.responsables}</> : <span className="text-gray-400">Sin responsable asignado</span>}
-                  {g.observacion && <span className="text-gray-400"> {g.observacion}</span>}
-                </p>
+
+      {!loading && grupos.length > 0 && esLider && (
+        <div className="space-y-3">
+          {grupos.map((g) => (
+            <div key={g.id} className="group relative flex items-center gap-4 bg-gradient-to-br from-[#0e6b3c] via-[#0b5c33] to-[#052a18] text-white rounded-xl p-4 shadow">
+              <div className="bg-white/15 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                <Crown className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold">{g.responsables || 'Sin responsable asignado'}</p>
+                <p className="text-[11px] text-emerald-200 uppercase tracking-wide font-semibold mt-0.5">{titulo}</p>
+                {g.observacion && <p className="text-[11px] text-emerald-100/80 mt-0.5">{g.observacion}</p>}
               </div>
               {isAdmin && (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => onEditar(g)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
+                <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => onEditar(g)} className="text-white/80 hover:text-white" title="Editar">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => onEliminar(g.id)} className="text-red-500 hover:text-red-700" title="Eliminar">
+                  <button onClick={() => onEliminar(g.id)} className="text-red-200 hover:text-red-50" title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && grupos.length > 0 && !esLider && (
+        <div className="grid sm:grid-cols-2 gap-3">
+          {grupos.map((g, i) => (
+            <div key={g.id} className="group relative bg-[#f7fcfa] border border-gray-100 rounded-lg p-3.5 hover:border-[#0e6b3c]/40 hover:shadow-sm transition-all">
+              <div className="flex items-start gap-3">
+                <div className="bg-[#0e6b3c]/10 text-[#0e6b3c] w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-black">
+                  {numerado ? i + 1 : (g.sigla || g.nombre || '?').slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1 text-xs">
+                  <p className="font-bold text-[#052a18]">
+                    {g.sigla && <span className="text-[#0e6b3c]">{g.sigla} — </span>}
+                    {g.nombre}
+                  </p>
+                  <p className="text-gray-600 mt-0.5">
+                    {g.responsables ? <><span className="font-semibold">Responsable(s):</span> {g.responsables}</> : <span className="text-gray-400">Sin responsable asignado</span>}
+                  </p>
+                  {g.observacion && <p className="text-gray-400 mt-0.5">{g.observacion}</p>}
+                </div>
+              </div>
+              {isAdmin && (
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => onEditar(g)} className="text-gray-400 hover:text-[#052a18]" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => onEliminar(g.id)} className="text-red-400 hover:text-red-600" title="Eliminar">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
