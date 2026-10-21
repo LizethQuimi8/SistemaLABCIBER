@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FileText, FilePlus, Upload, RefreshCw, Search, Loader2, Target, FolderOpen, FlaskConical, UserCheck, BookOpen, Sparkles } from 'lucide-react'
 import BarChart from './BarChart'
-import { reportesApi, documentosApi, informacionLaboratorioApi } from '../api/services'
+import { reportesApi, informacionLaboratorioApi } from '../api/services'
 import { useAuth } from '../context/AuthContext'
 
 // ── Tarjeta de resumen de documentos (datos reales del reporting-service) ─────
@@ -9,73 +9,34 @@ function DocSummaryCard({ resumen }) {
   const total = resumen?.totalDocumentos ?? 0
   const items = [
     { label: 'Documentos', count: resumen?.totalDocumentos ?? 0, color: 'bg-green-500' },
-    { label: 'Portafolio de Proyectos', count: resumen?.totalProyectos ?? 0, color: 'bg-yellow-500' },
-    { label: 'Publicaciones', count: resumen?.totalPublicaciones ?? 0, color: 'bg-blue-400' },
-    { label: 'Investigadores', count: resumen?.totalInvestigadores ?? 0, color: 'bg-purple-400' },
+    { label: 'Portafolio de Proyectos', count: resumen?.totalProyectos ?? 0, color: 'bg-amber-500' },
+    { label: 'Publicaciones', count: resumen?.totalPublicaciones ?? 0, color: 'bg-blue-500' },
+    { label: 'Investigadores', count: resumen?.totalInvestigadores ?? 0, color: 'bg-purple-500' },
   ]
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 h-full">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="bg-[#0e6b3c] text-white p-2 rounded">
-            <FileText className="w-6 h-6" />
+          <div className="bg-gradient-to-br from-[#0e6b3c] to-[#052a18] text-white p-2.5 rounded-lg shadow">
+            <FileText className="w-5 h-5" />
           </div>
-          <span className="text-sm font-semibold text-gray-600">Documentos y Correspondencia</span>
+          <span className="text-sm font-bold text-[#052a18]">Documentos y Correspondencia</span>
         </div>
         <span className="text-3xl font-black text-[#052a18]">{total}</span>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-1">
         {items.map(({ label, count, color }) => (
-          <li key={label} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
-            <div className="flex items-center gap-2">
-              <span className={`w-3 h-3 rounded-sm flex-shrink-0 ${color}`} />
+          <li key={label} className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${color}`} />
               <span className="text-xs text-gray-700">{label}</span>
             </div>
             <span className="text-xs font-bold text-gray-800">{count}</span>
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
-
-// ── Tabla documentos pendientes de firma (datos reales) ───────────────────────
-function PendingSignatureTable({ pendientes, loading }) {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-bold text-[#052a18] mb-3">Documentos Pendientes de Firma</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-[#0e6b3c] text-white">
-              <th className="text-left px-3 py-2 font-semibold rounded-tl-sm">Documento</th>
-              <th className="text-center px-3 py-2 font-semibold">Firmante</th>
-              <th className="text-center px-3 py-2 font-semibold rounded-tr-sm">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr><td colSpan={3} className="px-3 py-4 text-center text-gray-400">
-                <Loader2 className="w-4 h-4 animate-spin inline mr-2" />Cargando...
-              </td></tr>
-            )}
-            {!loading && pendientes.length === 0 && (
-              <tr className="border-b border-gray-100">
-                <td className="px-3 py-2 text-gray-600" colSpan={3}>No hay documentos pendientes de firma</td>
-              </tr>
-            )}
-            {!loading && pendientes.map((d) => (
-              <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-3 py-2 text-gray-700">{d.titulo}</td>
-                <td className="px-3 py-2 text-center font-semibold text-gray-800">#{d.firmanteId}</td>
-                <td className="px-3 py-2 text-center font-semibold text-amber-600">{d.estado}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   )
 }
@@ -169,29 +130,34 @@ function EstudianteStats({ resumen, loading, onNavigate }) {
 function ShortcutsRow({ onNavigate }) {
   const { canEditInventario, isEstudiante } = useAuth()
   const shortcuts = isEstudiante ? [
-    { label: 'Ver Planificación Estratégica', icon: Target, view: 'planificacion' },
-    { label: 'Ver Portafolio de Proyectos', icon: FolderOpen, view: 'proyectos' },
-    { label: 'Consultar Publicaciones', icon: Search, view: 'publicaciones' },
-    { label: 'CyberRange y Prácticas', icon: FlaskConical, view: 'cyberrange' },
+    { label: 'Planificación Estratégica', icon: Target, view: 'planificacion', color: 'from-emerald-500 to-emerald-700' },
+    { label: 'Portafolio de Proyectos', icon: FolderOpen, view: 'proyectos', color: 'from-amber-400 to-amber-600' },
+    { label: 'Publicaciones', icon: Search, view: 'publicaciones', color: 'from-purple-400 to-purple-600' },
+    { label: 'CyberRange y Prácticas', icon: FlaskConical, view: 'cyberrange', color: 'from-sky-400 to-sky-600' },
   ] : [
-    { label: 'Registrar Nuevo Proyecto', icon: FilePlus, view: 'proyectos' },
-    { label: 'Subir Memorando', icon: Upload, view: 'documentos' },
-    canEditInventario && { label: 'Actualizar Inventario', icon: RefreshCw, view: 'inventario' },
-    { label: 'Consultar Publicaciones', icon: Search, view: 'publicaciones' },
+    { label: 'Registrar Nuevo Proyecto', icon: FilePlus, view: 'proyectos', color: 'from-amber-400 to-amber-600' },
+    { label: 'Subir Memorando', icon: Upload, view: 'documentos', color: 'from-sky-400 to-sky-600' },
+    canEditInventario && { label: 'Actualizar Inventario', icon: RefreshCw, view: 'inventario', color: 'from-rose-400 to-rose-600' },
+    { label: 'Consultar Publicaciones', icon: Search, view: 'publicaciones', color: 'from-purple-400 to-purple-600' },
   ].filter(Boolean)
   return (
     <div>
-      <h3 className="text-sm font-bold text-[#052a18] mb-3">Accesos Directos Destacados</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {shortcuts.map(({ label, icon: Icon, view }) => (
+      <h3 className="text-sm font-bold text-[#052a18] mb-3 flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-[#0e6b3c]" /> Accesos Directos Destacados
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {shortcuts.map(({ label, icon: Icon, view, color }) => (
           <button
             key={label}
             onClick={() => onNavigate?.(view)}
-            className="bg-[#0e6b3c] hover:bg-[#16874c] text-white text-xs font-semibold px-4 py-4 rounded-lg
-              flex items-center justify-center gap-2 text-center transition-colors shadow"
+            className="group relative overflow-hidden bg-white border border-gray-200 rounded-xl p-5
+              flex flex-col items-center gap-3 text-center shadow-sm
+              hover:shadow-lg hover:-translate-y-1 hover:border-transparent transition-all duration-200"
           >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            {label}
+            <div className={`bg-gradient-to-br ${color} text-white p-3 rounded-full shadow group-hover:scale-110 transition-transform duration-200`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-[#052a18] leading-snug">{label}</span>
           </button>
         ))}
       </div>
@@ -201,9 +167,8 @@ function ShortcutsRow({ onNavigate }) {
 
 // ── Dashboard principal ───────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate }) {
-  const { isAdmin, isEstudiante } = useAuth()
+  const { isAdmin, isEstudiante, usuario } = useAuth()
   const [resumen, setResumen] = useState(null)
-  const [pendientes, setPendientes] = useState([])
   const [infoPlanificacion, setInfoPlanificacion] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -214,26 +179,15 @@ export default function Dashboard({ onNavigate }) {
       setLoading(true)
       setError(null)
       try {
-        if (isEstudiante) {
-          // El rol Estudiante no tiene acceso a Documentos y Correspondencia
-          // (la tabla de firmas pendientes no aplica), se le muestra en su
-          // lugar un resumen de Planificación Estratégica.
-          const [resumenData, info] = await Promise.all([
-            reportesApi.resumen(),
-            informacionLaboratorioApi.obtener().catch(() => null),
-          ])
-          if (cancelled) return
-          setResumen(resumenData)
-          setInfoPlanificacion(info)
-        } else {
-          const [resumenData, documentos] = await Promise.all([
-            reportesApi.resumen(),
-            documentosApi.list().catch(() => []),
-          ])
-          if (cancelled) return
-          setResumen(resumenData)
-          setPendientes((documentos || []).filter((d) => d.estado === 'PENDIENTE_FIRMA'))
-        }
+        const [resumenData, info] = await Promise.all([
+          reportesApi.resumen(),
+          // El rol Estudiante no tiene acceso a Documentos y Correspondencia;
+          // para el resto esta llamada simplemente no se usa.
+          isEstudiante ? informacionLaboratorioApi.obtener().catch(() => null) : Promise.resolve(null),
+        ])
+        if (cancelled) return
+        setResumen(resumenData)
+        setInfoPlanificacion(info)
       } catch (err) {
         if (!cancelled) setError(err.message)
       } finally {
@@ -256,13 +210,18 @@ export default function Dashboard({ onNavigate }) {
     ] : []),
   ] : []
 
+  const fecha = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
-      <div className="mb-4">
-        <h2 className="text-base font-black text-[#052a18] uppercase tracking-wide">
-          Dashboard de Gestión Documental
-        </h2>
-        <div className="h-0.5 bg-[#0e6b3c] mt-1 w-48" />
+      <div className="mb-5 flex items-end justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="text-lg font-black text-[#052a18]">
+            Hola, {usuario?.nombres || 'bienvenido'}
+          </h2>
+          <p className="text-xs text-gray-500 capitalize mt-0.5">{fecha}</p>
+          <div className="h-0.5 bg-gradient-to-r from-[#0e6b3c] to-transparent mt-2 w-40" />
+        </div>
       </div>
 
       {error && (
@@ -277,16 +236,9 @@ export default function Dashboard({ onNavigate }) {
           <EstudianteStats resumen={resumen} loading={loading} onNavigate={onNavigate} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-          <div className="lg:col-span-1">
-            <DocSummaryCard resumen={resumen} />
-          </div>
-          <div className="lg:col-span-1">
-            <BarChart data={chartData} loading={loading} />
-          </div>
-          <div className="lg:col-span-1">
-            <PendingSignatureTable pendientes={pendientes} loading={loading} />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <DocSummaryCard resumen={resumen} />
+          <BarChart data={chartData} loading={loading} />
         </div>
       )}
 
