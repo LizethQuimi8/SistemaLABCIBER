@@ -22,13 +22,15 @@ import java.util.Collection;
  * Reglas de rol de la seccion 8 de la documentacion:
  * Inventario -> Administrador y Admin. Infraestructura CRUD completo, el resto
  * (Docente, Responsable Compras) solo lectura.
- * Prestamos -> los 4 roles pueden solicitar/ver; aprobar es de Administrador y
- * Admin. Infraestructura, rechazar es exclusivo de Administrador (verificado
- * en PrestamoController).
- * Compras Publicas -> los 4 roles pueden crear/ver/subir archivos; editar el
- * proceso o su archivo es de los responsables de cada compra (o quien la
- * creo) o Administrador; eliminar es exclusivo de Administrador (verificado
- * en CompraPublicaController).
+ * Prestamos -> los roles con acceso a Inventario pueden solicitar/ver; aprobar
+ * es de Administrador y Admin. Infraestructura, rechazar es exclusivo de
+ * Administrador (verificado en PrestamoController).
+ * Compras Publicas -> los roles habilitados pueden crear/ver/subir archivos;
+ * editar el proceso o su archivo es de los responsables de cada compra (o
+ * quien la creo) o Administrador; eliminar es exclusivo de Administrador
+ * (verificado en CompraPublicaController).
+ * El rol ESTUDIANTE no tiene acceso a Inventario, Prestamos, Mantenimientos
+ * ni Compras Publicas (ver tambien el menu lateral del frontend).
  */
 @Configuration
 @EnableWebSecurity
@@ -60,17 +62,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/inventario/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/inventario/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers(HttpMethod.GET, "/api/mantenimientos/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers(HttpMethod.PUT, "/api/mantenimientos/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/mantenimientos/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers("/api/prestamos/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/compras/**")
-                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

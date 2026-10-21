@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 const FORM_INICIAL = { titulo: '', revista: '', anioPublicacion: new Date().getFullYear(), doi: '', resumen: '', usuarioAutorId: '' }
 
 export default function PublicacionesPage() {
-  const { isAdmin, usuario } = useAuth()
+  const { isAdmin, usuario, isEstudiante } = useAuth()
   const fetcher = useCallback(() => publicacionesApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const investigadoresFetcher = useCallback(() => investigadoresApi.list(), [])
@@ -143,11 +143,11 @@ export default function PublicacionesPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Artículos Científicos y Publicaciones"
-        action={
+        action={!isEstudiante && (
           <PrimaryButton onClick={abrirCrear}>
             <Plus className="w-4 h-4" /> Nueva publicacion
           </PrimaryButton>
-        }
+        )}
       />
 
       <ErrorBanner message={error} />

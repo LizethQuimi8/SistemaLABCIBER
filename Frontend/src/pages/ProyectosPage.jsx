@@ -10,7 +10,7 @@ const ESTADOS = ['PLANIFICACION', 'EN_EJECUCION', 'FINALIZADO', 'CANCELADO']
 const FORM_INICIAL = { nombre: '', descripcion: '', estado: 'PLANIFICACION', presupuesto: '', avancePorcentaje: 0, usuarioResponsableId: '' }
 
 export default function ProyectosPage() {
-  const { isAdmin, usuario } = useAuth()
+  const { isAdmin, usuario, isEstudiante } = useAuth()
   const fetcher = useCallback(() => proyectosApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
@@ -113,11 +113,11 @@ export default function ProyectosPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Portafolio de Proyectos"
-        action={
+        action={!isEstudiante && (
           <PrimaryButton onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nuevo proyecto
           </PrimaryButton>
-        }
+        )}
       />
 
       <ErrorBanner message={error} />

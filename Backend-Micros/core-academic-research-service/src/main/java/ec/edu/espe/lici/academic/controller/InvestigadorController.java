@@ -28,6 +28,7 @@ import java.util.List;
  * autenticados (directorio del laboratorio): cualquiera puede crearlos, pero
  * solo puede editar (datos, curriculum, horario) su propio perfil o el
  * ADMINISTRADOR cualquiera. Eliminar tambien queda restringido a ADMINISTRADOR.
+ * El rol ESTUDIANTE solo puede ver: no crea perfiles ni edita ninguno.
  */
 @RestController
 @RequestMapping("/api/investigadores")
@@ -54,6 +55,9 @@ public class InvestigadorController {
 
     @PostMapping
     public ResponseEntity<Investigador> crear(@Valid @RequestBody Investigador investigador) {
+        if (CurrentUser.isEstudiante()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Los estudiantes no pueden crear perfiles de investigador");
+        }
         if (investigador.getUsuarioId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar el usuario dueno del perfil");
         }
@@ -165,6 +169,9 @@ public class InvestigadorController {
     }
 
     private void verificarPropiedad(Investigador investigador) {
+        if (CurrentUser.isEstudiante()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Los estudiantes no pueden editar perfiles de investigador");
+        }
         if (!CurrentUser.isAdministrador() && !investigador.getUsuarioId().equals(CurrentUser.id())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puedes editar tu propio perfil de investigador");
         }

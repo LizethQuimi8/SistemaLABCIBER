@@ -15,7 +15,8 @@ import java.util.List;
  * Todas las publicaciones son visibles para cualquier usuario autenticado
  * (repositorio compartido del laboratorio); editar o eliminar una publicacion
  * concreta solo lo puede hacer quien la registro (usuarioId == id del
- * usuario autenticado en el JWT) o el ADMINISTRADOR.
+ * usuario autenticado en el JWT) o el ADMINISTRADOR. El rol ESTUDIANTE solo
+ * puede ver: no crea, edita ni elimina publicaciones.
  */
 @RestController
 @RequestMapping("/api/publicaciones")
@@ -39,6 +40,9 @@ public class PublicacionController {
 
     @PostMapping
     public ResponseEntity<Publicacion> crear(@Valid @RequestBody Publicacion publicacion) {
+        if (CurrentUser.isEstudiante()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Los estudiantes no pueden crear publicaciones");
+        }
         if (!CurrentUser.isAdministrador()) {
             publicacion.setUsuarioId(CurrentUser.id());
         }

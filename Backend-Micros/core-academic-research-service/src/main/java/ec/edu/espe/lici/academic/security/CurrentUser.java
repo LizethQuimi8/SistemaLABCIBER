@@ -23,6 +23,10 @@ public final class CurrentUser {
         return jwt().getClaimAsStringList("roles").contains("ADMINISTRADOR");
     }
 
+    public static boolean isEstudiante() {
+        return jwt().getClaimAsStringList("roles").contains("ESTUDIANTE");
+    }
+
     private static Jwt jwt() {
         JwtAuthenticationToken token = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         return token.getToken();

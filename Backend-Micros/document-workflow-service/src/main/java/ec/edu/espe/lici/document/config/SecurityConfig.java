@@ -46,6 +46,16 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
+                        // El rol ESTUDIANTE no tiene acceso a Documentos y Correspondencia,
+                        // Manuales y Procesos ni Notificaciones (ver tambien el menu lateral
+                        // del frontend); el resto de modulos de este servicio (planificacion
+                        // estrategica, practicas/ensayos, cyberrange) si son visibles para el.
+                        .requestMatchers("/api/documentos/**")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                        .requestMatchers("/api/manuales/**")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                        .requestMatchers("/api/notificaciones/**")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

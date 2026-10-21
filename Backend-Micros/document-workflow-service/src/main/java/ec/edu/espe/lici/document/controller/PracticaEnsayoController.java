@@ -25,9 +25,10 @@ import java.util.List;
 
 /**
  * Registro del desarrollo de practicas y ensayos del laboratorio. Cualquier
- * usuario autenticado puede listar, ver y crear (quedando como responsable);
+ * usuario autenticado puede listar y ver; crear (quedando como responsable),
  * editar, subir archivo o eliminar una practica concreta solo lo puede hacer
- * su responsable o el ADMINISTRADOR.
+ * su responsable o el ADMINISTRADOR. El rol ESTUDIANTE solo puede listar y
+ * ver: no crea, edita ni elimina practicas.
  */
 @RestController
 @RequestMapping("/api/practicas")
@@ -54,6 +55,9 @@ public class PracticaEnsayoController {
 
     @PostMapping
     public ResponseEntity<PracticaEnsayo> crear(@Valid @RequestBody PracticaEnsayo request) {
+        if (CurrentUser.isEstudiante()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Los estudiantes no pueden registrar practicas/ensayos");
+        }
         request.setId(null);
         if (!CurrentUser.isAdministrador() || request.getResponsableId() == null) {
             request.setResponsableId(CurrentUser.id());

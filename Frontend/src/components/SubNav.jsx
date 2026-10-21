@@ -7,21 +7,22 @@ import { nombreRol } from '../constants/roles'
 const tabs = [
   { label: 'Inicio', icon: Home, view: 'dashboard' },
   { label: 'Proyectos', icon: FolderOpen, view: 'proyectos' },
-  { label: 'Documentos', icon: FileText, view: 'documentos' },
+  { label: 'Documentos', icon: FileText, view: 'documentos', hideForEstudiante: true },
   { label: 'Personal', icon: Users, view: 'investigadores' },
 ]
 
 export default function SubNav({ currentView, onNavigate, onToggleMenu }) {
-  const { usuario, logout } = useAuth()
+  const { usuario, logout, isEstudiante } = useAuth()
   const [notificaciones, setNotificaciones] = useState([])
   const [showNotif, setShowNotif] = useState(false)
   const [showAccount, setShowAccount] = useState(false)
 
   useEffect(() => {
+    if (isEstudiante) return
     let cancelled = false
     notificacionesApi.list().then((data) => { if (!cancelled) setNotificaciones(data || []) }).catch(() => {})
     return () => { cancelled = true }
-  }, [])
+  }, [isEstudiante])
 
   const unread = notificaciones.filter((n) => !n.leida).length
 
@@ -52,7 +53,7 @@ export default function SubNav({ currentView, onNavigate, onToggleMenu }) {
           </button>
 
           <div className="hidden md:flex items-stretch overflow-x-auto">
-            {tabs.map(({ label, icon: Icon, view }) => {
+            {tabs.filter((t) => !(t.hideForEstudiante && isEstudiante)).map(({ label, icon: Icon, view }) => {
               const active = view && currentView === view
               return (
                 <button
@@ -103,44 +104,46 @@ export default function SubNav({ currentView, onNavigate, onToggleMenu }) {
           </div>
 
           {/* Notificaciones */}
-          <div className="relative flex">
-            <button
-              onClick={() => { setShowNotif((v) => !v); setShowAccount(false) }}
-              className="flex items-center gap-2 px-3 sm:px-5 py-3 text-sm font-medium text-gray-300 hover:bg-[#052a18] hover:text-white transition-colors"
-            >
-              <div className="relative">
-                <Bell className="w-4 h-4" />
-                {unread > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                    {unread}
-                  </span>
-                )}
-              </div>
-              <span className="hidden sm:inline">Notificaciones</span>
-            </button>
-            {showNotif && (
-              <div className="absolute right-0 top-full w-72 max-w-[90vw] bg-white border border-gray-200 rounded-b-lg shadow-lg py-2 z-30 max-h-80 overflow-y-auto">
-                {notificaciones.length === 0 && (
-                  <p className="px-4 py-3 text-xs text-gray-400">Sin notificaciones</p>
-                )}
-                {notificaciones.map((n) => (
+          {!isEstudiante && (
+            <div className="relative flex">
+              <button
+                onClick={() => { setShowNotif((v) => !v); setShowAccount(false) }}
+                className="flex items-center gap-2 px-3 sm:px-5 py-3 text-sm font-medium text-gray-300 hover:bg-[#052a18] hover:text-white transition-colors"
+              >
+                <div className="relative">
+                  <Bell className="w-4 h-4" />
+                  {unread > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                      {unread}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden sm:inline">Notificaciones</span>
+              </button>
+              {showNotif && (
+                <div className="absolute right-0 top-full w-72 max-w-[90vw] bg-white border border-gray-200 rounded-b-lg shadow-lg py-2 z-30 max-h-80 overflow-y-auto">
+                  {notificaciones.length === 0 && (
+                    <p className="px-4 py-3 text-xs text-gray-400">Sin notificaciones</p>
+                  )}
+                  {notificaciones.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => marcarLeida(n.id)}
+                      className={`w-full text-left px-4 py-2 text-xs border-b border-gray-50 last:border-0 hover:bg-gray-50 ${!n.leida ? 'bg-green-50/50 font-medium text-gray-800' : 'text-gray-500'}`}
+                    >
+                      {n.mensaje}
+                    </button>
+                  ))}
                   <button
-                    key={n.id}
-                    onClick={() => marcarLeida(n.id)}
-                    className={`w-full text-left px-4 py-2 text-xs border-b border-gray-50 last:border-0 hover:bg-gray-50 ${!n.leida ? 'bg-green-50/50 font-medium text-gray-800' : 'text-gray-500'}`}
+                    onClick={() => { onNavigate?.('notificaciones'); closeAll() }}
+                    className="w-full text-center px-4 py-2 text-[11px] text-[#0e6b3c] hover:underline"
                   >
-                    {n.mensaje}
+                    Ver todas
                   </button>
-                ))}
-                <button
-                  onClick={() => { onNavigate?.('notificaciones'); closeAll() }}
-                  className="w-full text-center px-4 py-2 text-[11px] text-[#0e6b3c] hover:underline"
-                >
-                  Ver todas
-                </button>
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </nav>

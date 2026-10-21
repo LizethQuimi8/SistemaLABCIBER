@@ -22,19 +22,19 @@ const menuItems = [
   { id: 'proyectos', label: 'Portafolio de Proyectos', icon: Briefcase },
   { id: 'investigadores', label: 'Docentes Investigadores', icon: UserCheck },
   { id: 'publicaciones', label: 'Artículos y Publicaciones', icon: BookOpen },
-  { id: 'documentos', label: 'Documentos y Correspondencia', icon: FileText },
-  { id: 'manuales', label: 'Manuales y Procesos', icon: BookMarked },
+  { id: 'documentos', label: 'Documentos y Correspondencia', icon: FileText, hideForEstudiante: true },
+  { id: 'manuales', label: 'Manuales y Procesos', icon: BookMarked, hideForEstudiante: true },
   { id: 'cyberrange', label: 'CyberRange y Prácticas-Ensayos', icon: FlaskConical },
-  { id: 'inventario', label: 'Inventario', icon: Package },
-  { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart },
+  { id: 'inventario', label: 'Inventario', icon: Package, hideForEstudiante: true },
+  { id: 'compras', label: 'Compras Públicas', icon: ShoppingCart, hideForEstudiante: true },
   { id: 'usuarios', label: 'Gestión de Usuarios', icon: Users, adminOnly: true },
   { id: 'reportes', label: 'Reportes', icon: BarChart2, adminOnly: true },
-  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Bell, hideForEstudiante: true },
 ]
 
 export default function Sidebar({ currentView, onNavigate, open, onClose }) {
-  const { isAdmin } = useAuth()
-  const items = menuItems.filter((item) => !item.adminOnly || isAdmin)
+  const { isAdmin, isEstudiante } = useAuth()
+  const items = menuItems.filter((item) => (!item.adminOnly || isAdmin) && !(item.hideForEstudiante && isEstudiante))
 
   return (
     <>

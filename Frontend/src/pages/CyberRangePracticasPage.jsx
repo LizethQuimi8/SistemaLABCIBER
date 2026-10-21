@@ -217,7 +217,7 @@ function CyberRangeTab() {
 const PRACTICA_FORM_INICIAL = { titulo: '', fecha: '', descripcion: '' }
 
 function PracticasTab() {
-  const { isAdmin, usuario } = useAuth()
+  const { isAdmin, usuario, isEstudiante } = useAuth()
   const fetcher = useCallback(() => practicasApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
@@ -351,9 +351,11 @@ function PracticasTab() {
         >
           <FileDown className="w-4 h-4" /> Generar reporte
         </button>
-        <PrimaryButton onClick={openCreate}>
-          <Plus className="w-4 h-4" /> Registrar práctica/ensayo
-        </PrimaryButton>
+        {!isEstudiante && (
+          <PrimaryButton onClick={openCreate}>
+            <Plus className="w-4 h-4" /> Registrar práctica/ensayo
+          </PrimaryButton>
+        )}
       </div>
 
       <ErrorBanner message={error} />

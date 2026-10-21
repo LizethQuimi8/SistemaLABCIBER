@@ -28,7 +28,7 @@ import java.util.List;
  * (repositorio compartido del laboratorio); editar o eliminar un proyecto
  * concreto, asi como subir su documento de aprobacion, solo lo puede hacer su
  * responsable (usuarioResponsableId == id del usuario autenticado en el JWT)
- * o el ADMINISTRADOR.
+ * o el ADMINISTRADOR. El rol ESTUDIANTE solo puede ver: no crea proyectos.
  */
 @RestController
 @RequestMapping("/api/proyectos")
@@ -55,6 +55,9 @@ public class ProyectoController {
 
     @PostMapping
     public ResponseEntity<Proyecto> crear(@Valid @RequestBody Proyecto proyecto) {
+        if (CurrentUser.isEstudiante()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Los estudiantes no pueden crear proyectos");
+        }
         if (!CurrentUser.isAdministrador()) {
             proyecto.setUsuarioResponsableId(CurrentUser.id());
         }

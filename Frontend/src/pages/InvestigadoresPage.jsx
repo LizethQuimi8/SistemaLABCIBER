@@ -9,7 +9,7 @@ import Modal from '../components/ui/Modal'
 const FORM_INICIAL = { nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '', usuarioId: '' }
 
 export default function InvestigadoresPage() {
-  const { isAdmin, usuario } = useAuth()
+  const { isAdmin, usuario, isEstudiante } = useAuth()
   const fetcher = useCallback(() => investigadoresApi.list(), [])
   const { data, loading, error, reload, setError } = useList(fetcher)
   const directorioFetcher = useCallback(() => usuariosApi.directorio(), [])
@@ -122,11 +122,11 @@ export default function InvestigadoresPage() {
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
         title="Investigadores"
-        action={
+        action={!isEstudiante && (
           <PrimaryButton onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nuevo perfil
           </PrimaryButton>
-        }
+        )}
       />
 
       <ErrorBanner message={error} />
@@ -166,7 +166,7 @@ export default function InvestigadoresPage() {
             </td>
             <td className="px-3 py-2 text-right">
               <div className="flex items-center justify-end gap-2">
-                {(isAdmin || inv.usuarioId === usuario?.id) && (
+                {!isEstudiante && (isAdmin || inv.usuarioId === usuario?.id) && (
                   <button onClick={() => openEdit(inv)} className="text-gray-500 hover:text-[#052a18]" title="Editar">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
