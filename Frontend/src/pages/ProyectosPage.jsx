@@ -7,6 +7,19 @@ import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
 
 const ESTADOS = ['PLANIFICACION', 'EN_EJECUCION', 'FINALIZADO', 'CANCELADO']
+const ESTADO_LABEL = { PLANIFICACION: 'Planificación', EN_EJECUCION: 'En ejecución', FINALIZADO: 'Finalizado', CANCELADO: 'Cancelado' }
+const ESTADO_BADGE = {
+  PLANIFICACION: 'bg-sky-50 text-sky-700',
+  EN_EJECUCION: 'bg-amber-50 text-amber-700',
+  FINALIZADO: 'bg-green-50 text-green-700',
+  CANCELADO: 'bg-red-50 text-red-700',
+}
+const ESTADO_DOT = {
+  PLANIFICACION: 'bg-sky-500',
+  EN_EJECUCION: 'bg-amber-500',
+  FINALIZADO: 'bg-green-500',
+  CANCELADO: 'bg-red-500',
+}
 const FORM_INICIAL = { nombre: '', descripcion: '', estado: 'PLANIFICACION', presupuesto: '', avancePorcentaje: 0, usuarioResponsableId: '' }
 
 export default function ProyectosPage() {
@@ -109,6 +122,12 @@ export default function ProyectosPage() {
 
   const puedeEditar = (p) => isAdmin || p.usuarioResponsableId === usuario?.id
 
+  const conteoPorEstado = useMemo(() => {
+    const conteo = Object.fromEntries(ESTADOS.map((e) => [e, 0]))
+    data.forEach((p) => { if (conteo[p.estado] !== undefined) conteo[p.estado] += 1 })
+    return conteo
+  }, [data])
+
   return (
     <main className="flex-1 bg-[#f3faf6] p-5 overflow-y-auto">
       <PageHeader
@@ -122,20 +141,44 @@ export default function ProyectosPage() {
 
       <ErrorBanner message={error} />
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {ESTADOS.map((e) => (
+          <div key={e} className="bg-white rounded-xl border border-gray-200 shadow-sm p-3.5 flex items-center gap-3">
+            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ESTADO_DOT[e]}`} />
+            <div>
+              <p className="text-xl font-black text-[#052a18] leading-none">{conteoPorEstado[e]}</p>
+              <p className="text-[10px] text-gray-500 mt-1">{ESTADO_LABEL[e]}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <Table headers={['Nombre', 'Estado', 'Avance', 'Presupuesto', 'Responsable', 'Doc. aprobación', '']}>
         {loading && <LoadingRow colSpan={7} />}
         {!loading && data.length === 0 && <EmptyRow colSpan={7} />}
         {!loading && data.map((p) => (
-          <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <FolderOpen className="w-3.5 h-3.5 text-gray-400" /> {p.nombre}
+          <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-amber-100 text-amber-700 p-1.5 rounded-lg flex-shrink-0">
+                  <FolderOpen className="w-3.5 h-3.5" />
+                </span>
+                {p.nombre}
+              </div>
             </td>
             <td className="px-3 py-2">
-              <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-semibold">
-                {p.estado}
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${ESTADO_BADGE[p.estado] || 'bg-gray-100 text-gray-600'}`}>
+                {ESTADO_LABEL[p.estado] || p.estado}
               </span>
             </td>
-            <td className="px-3 py-2 text-gray-600">{p.avancePorcentaje ?? 0}%</td>
+            <td className="px-3 py-2 text-gray-600">
+              <div className="flex items-center gap-2 w-24">
+                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#0e6b3c] rounded-full" style={{ width: `${Math.min(100, Math.max(0, p.avancePorcentaje ?? 0))}%` }} />
+                </div>
+                <span className="text-[10px] font-semibold flex-shrink-0">{p.avancePorcentaje ?? 0}%</span>
+              </div>
+            </td>
             <td className="px-3 py-2 text-gray-600">{p.presupuesto ?? '—'}</td>
             <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.usuarioResponsableId) || `#${p.usuarioResponsableId}`}</td>
             <td className="px-3 py-2">

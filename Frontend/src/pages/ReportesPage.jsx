@@ -110,7 +110,7 @@ function ReporteComprasPublicas() {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5 mt-4">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mt-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="bg-[#0e6b3c] text-white p-2 rounded">
@@ -272,7 +272,7 @@ function ReportePublicaciones() {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5 mt-4">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mt-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="bg-[#0e6b3c] text-white p-2 rounded">
@@ -563,7 +563,7 @@ function ReporteISO27001() {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5 mt-4">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mt-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="bg-[#0e6b3c] text-white p-2 rounded">
@@ -649,9 +649,9 @@ export default function ReportesPage() {
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Cargando reporte...
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="bg-[#0e6b3c] text-white p-2 rounded">
+            <div className="bg-gradient-to-br from-[#0e6b3c] to-[#052a18] text-white p-2.5 rounded-lg shadow-sm">
               <BarChart2 className="w-5 h-5" />
             </div>
             <div>

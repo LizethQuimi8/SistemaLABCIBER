@@ -180,12 +180,23 @@ export default function PublicacionesPage() {
         {!loading && dataFiltrada.length === 0 && <EmptyRow colSpan={6} message={data.length === 0 ? 'Sin registros todavia' : 'Ningún artículo coincide con los filtros aplicados'} />}
         {!loading && dataFiltrada.map((p) => (
           <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <BookOpen className="w-3.5 h-3.5 text-gray-400" /> {p.titulo}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-blue-100 text-blue-700 p-1.5 rounded-lg flex-shrink-0">
+                  <BookOpen className="w-3.5 h-3.5" />
+                </span>
+                {p.titulo}
+              </div>
             </td>
             <td className="px-3 py-2 text-gray-600">{p.revista || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{p.anioPublicacion || '—'}</td>
-            <td className="px-3 py-2 text-gray-600">{p.doi || '—'}</td>
+            <td className="px-3 py-2">
+              {p.doi ? (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">{p.doi}</span>
+              ) : (
+                <span className="text-gray-300 text-xs">Sin DOI</span>
+              )}
+            </td>
             <td className="px-3 py-2 text-gray-600">{nombreAutorDe(p) || '—'}</td>
             <td className="px-3 py-2 text-right">
               <div className="flex items-center justify-end gap-2">

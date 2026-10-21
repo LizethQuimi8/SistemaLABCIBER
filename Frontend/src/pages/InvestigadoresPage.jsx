@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, UserCheck, FileUp, Eye, Info, CalendarDays, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileUp, Eye, Info, CalendarDays, BookOpen } from 'lucide-react'
 import { investigadoresApi, usuariosApi, publicacionesApi } from '../api/services'
 import { useList } from '../hooks/useList'
 import { useAuth } from '../context/AuthContext'
@@ -7,6 +7,15 @@ import { PageHeader, ErrorBanner, LoadingRow, EmptyRow, PrimaryButton, Table } f
 import Modal from '../components/ui/Modal'
 
 const FORM_INICIAL = { nombreCompleto: '', tituloAcademico: '', areaInvestigacion: '', biografia: '', usuarioId: '' }
+
+const AVATAR_COLORES = ['bg-emerald-500', 'bg-sky-500', 'bg-purple-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500']
+function colorAvatar(id) {
+  return AVATAR_COLORES[(id || 0) % AVATAR_COLORES.length]
+}
+function inicialesDe(nombreCompleto) {
+  const partes = (nombreCompleto || '').trim().split(/\s+/)
+  return `${partes[0]?.[0] || '?'}${partes[1]?.[0] || ''}`.toUpperCase()
+}
 
 export default function InvestigadoresPage() {
   const { isAdmin, usuario, isEstudiante } = useAuth()
@@ -136,8 +145,13 @@ export default function InvestigadoresPage() {
         {!loading && data.length === 0 && <EmptyRow colSpan={5} />}
         {!loading && data.map((inv) => (
           <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <UserCheck className="w-3.5 h-3.5 text-gray-400" /> {inv.nombreCompleto}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className={`${colorAvatar(inv.id)} text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0`}>
+                  {inicialesDe(inv.nombreCompleto)}
+                </span>
+                {inv.nombreCompleto}
+              </div>
             </td>
             <td className="px-3 py-2">
               <ArchivoBoton

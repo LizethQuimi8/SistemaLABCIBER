@@ -21,6 +21,14 @@ const TIPO_LABEL = {
   OTRO: 'Otro',
 }
 const ESTADOS = ['BORRADOR', 'PENDIENTE_FIRMA', 'FIRMADO', 'ARCHIVADO']
+const ESTADO_LABEL = { BORRADOR: 'Borrador', PENDIENTE_FIRMA: 'Pendiente de firma', FIRMADO: 'Firmado', ARCHIVADO: 'Archivado' }
+const ESTADO_BADGE = {
+  BORRADOR: 'bg-slate-100 text-slate-600',
+  PENDIENTE_FIRMA: 'bg-amber-50 text-amber-700',
+  FIRMADO: 'bg-green-50 text-green-700',
+  ARCHIVADO: 'bg-gray-100 text-gray-500',
+}
+const ESTADO_DOT = { BORRADOR: 'bg-slate-400', PENDIENTE_FIRMA: 'bg-amber-500', FIRMADO: 'bg-green-500', ARCHIVADO: 'bg-gray-400' }
 const FORM_INICIAL = { titulo: '', asunto: '', tipo: 'MEMORANDO', firmanteId: '', estado: 'BORRADOR' }
 
 const FILTROS = [
@@ -148,6 +156,18 @@ export default function DocumentosPage() {
 
       <ErrorBanner message={error} />
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {ESTADOS.map((e) => (
+          <div key={e} className="bg-white rounded-xl border border-gray-200 shadow-sm p-3.5 flex items-center gap-3">
+            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ESTADO_DOT[e]}`} />
+            <div>
+              <p className="text-xl font-black text-[#052a18] leading-none">{data.filter((d) => d.estado === e).length}</p>
+              <p className="text-[10px] text-gray-500 mt-1">{ESTADO_LABEL[e]}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {FILTROS.map((f) => (
           <button
@@ -174,13 +194,20 @@ export default function DocumentosPage() {
         {!loading && filtrados.length === 0 && <EmptyRow colSpan={8} />}
         {!loading && filtrados.map((d) => (
           <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <FileText className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-sky-100 text-sky-700 p-1.5 rounded-lg flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5" />
+                </span>
+                {d.titulo}
+              </div>
             </td>
             <td className="px-3 py-2 text-gray-600 max-w-[220px] truncate" title={d.asunto}>{d.asunto || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{TIPO_LABEL[d.tipo] || d.tipo}</td>
             <td className="px-3 py-2">
-              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold">{d.estado}</span>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${ESTADO_BADGE[d.estado] || 'bg-gray-100 text-gray-500'}`}>
+                {ESTADO_LABEL[d.estado] || d.estado}
+              </span>
             </td>
             <td className="px-3 py-2 text-gray-600">{d.firmanteId ? (nombrePorUsuarioId.get(d.firmanteId) || `#${d.firmanteId}`) : '—'}</td>
             <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(d.usuarioId) || `#${d.usuarioId}`}</td>

@@ -292,8 +292,8 @@ export default function ComprasPage() {
       {/* Semaforizacion: conteo por fase del anio filtrado */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         {FASES.map((f) => (
-          <div key={f} className="bg-white rounded-lg border border-gray-200 p-3 flex items-center gap-3">
-            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${FASE_DOT[f]}`} />
+          <div key={f} className="bg-white rounded-xl border border-gray-200 shadow-sm p-3.5 flex items-center gap-3">
+            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${FASE_DOT[f]}`} />
             <div>
               <div className="text-xl font-black text-[#052a18] leading-none">{conteoPorFase[f]}</div>
               <div className="text-[10px] text-gray-500 mt-1">{FASE_LABEL[f]}</div>
@@ -329,8 +329,13 @@ export default function ComprasPage() {
           const faseEntregaOTardia = c.fase === 'ENTREGA_BIENES' || c.fase === 'PAGO_PROVEEDOR'
           return (
           <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <ShoppingCart className="w-3.5 h-3.5 text-gray-400" /> {c.objetoContratacion}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-[#0e6b3c]/10 text-[#0e6b3c] p-1.5 rounded-lg flex-shrink-0">
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                </span>
+                {c.objetoContratacion}
+              </div>
             </td>
             <td className="px-3 py-2 text-gray-600">{c.numeroProceso || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{c.tipoContratacion || '—'}</td>

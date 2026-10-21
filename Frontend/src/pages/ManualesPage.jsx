@@ -8,6 +8,16 @@ import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['MANUAL', 'PROCESO', 'OTRO']
 const TIPO_LABEL = { MANUAL: 'Manual', PROCESO: 'Proceso', OTRO: 'Otro' }
+const TIPO_BADGE = {
+  MANUAL: 'bg-sky-50 text-sky-700',
+  PROCESO: 'bg-purple-50 text-purple-700',
+  OTRO: 'bg-slate-100 text-slate-600',
+}
+const TIPO_ICONO = {
+  MANUAL: 'bg-sky-100 text-sky-700',
+  PROCESO: 'bg-purple-100 text-purple-700',
+  OTRO: 'bg-slate-100 text-slate-600',
+}
 const FORM_INICIAL = { titulo: '', descripcion: '', tipo: 'MANUAL' }
 
 export default function ManualesPage() {
@@ -136,11 +146,16 @@ export default function ManualesPage() {
         )}
         {!loading && filtrados.map((m) => (
           <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <FileText className="w-3.5 h-3.5 text-gray-400" /> {m.titulo}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className={`p-1.5 rounded-lg flex-shrink-0 ${TIPO_ICONO[m.tipo] || TIPO_ICONO.MANUAL}`}>
+                  <FileText className="w-3.5 h-3.5" />
+                </span>
+                {m.titulo}
+              </div>
             </td>
             <td className="px-3 py-2">
-              <span className="px-2 py-0.5 rounded-full bg-[#f3faf6] text-[#0e6b3c] text-[10px] font-semibold">
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${TIPO_BADGE[m.tipo] || TIPO_BADGE.MANUAL}`}>
                 {TIPO_LABEL[m.tipo] || TIPO_LABEL.MANUAL}
               </span>
             </td>

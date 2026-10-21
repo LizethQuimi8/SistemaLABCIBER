@@ -1403,8 +1403,8 @@ function Field({ label, children }) {
 
 function StatCard({ icon: Icon, label, value, color }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-3 flex items-center gap-3">
-      <div className={`${color} text-white p-2 rounded-lg flex-shrink-0`}>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3.5 flex items-center gap-3">
+      <div className={`${color} text-white p-2.5 rounded-lg flex-shrink-0 shadow-sm`}>
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0">

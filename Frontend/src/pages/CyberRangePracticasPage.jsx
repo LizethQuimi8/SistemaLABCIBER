@@ -154,8 +154,13 @@ function CyberRangeTab() {
         )}
         {!loading && filtrados.map((d) => (
           <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <Server className="w-3.5 h-3.5 text-gray-400" /> {d.titulo}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-indigo-100 text-indigo-700 p-1.5 rounded-lg flex-shrink-0">
+                  <Server className="w-3.5 h-3.5" />
+                </span>
+                {d.titulo}
+              </div>
             </td>
             <td className="px-3 py-2 text-gray-600 max-w-[320px] truncate" title={d.descripcion}>{d.descripcion || '—'}</td>
             <td className="px-3 py-2">
@@ -365,8 +370,13 @@ function PracticasTab() {
         {!loading && data.length === 0 && <EmptyRow colSpan={6} message="Sin prácticas o ensayos registrados todavía" />}
         {!loading && data.map((p) => (
           <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="px-3 py-2 font-medium text-gray-800 flex items-center gap-2">
-              <FlaskConical className="w-3.5 h-3.5 text-gray-400" /> {p.titulo}
+            <td className="px-3 py-2 font-medium text-gray-800">
+              <div className="flex items-center gap-2.5">
+                <span className="bg-fuchsia-100 text-fuchsia-700 p-1.5 rounded-lg flex-shrink-0">
+                  <FlaskConical className="w-3.5 h-3.5" />
+                </span>
+                {p.titulo}
+              </div>
             </td>
             <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{p.fecha || '—'}</td>
             <td className="px-3 py-2 text-gray-600">{nombrePorUsuarioId.get(p.responsableId) || `#${p.responsableId}`}</td>
