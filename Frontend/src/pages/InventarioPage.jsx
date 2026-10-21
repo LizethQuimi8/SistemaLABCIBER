@@ -134,6 +134,7 @@ export default function InventarioPage() {
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS')
   const [pagina, setPagina] = useState(1)
   const [showMantenimientoForm, setShowMantenimientoForm] = useState(false)
+  const [editandoMantenimientoId, setEditandoMantenimientoId] = useState(null)
   const [mantenimientoForm, setMantenimientoForm] = useState({ bienId: '', tipo: 'PREVENTIVO', fecha: '', descripcion: '' })
   const [mantenimientoArchivo, setMantenimientoArchivo] = useState(null)
   const [savingMantenimiento, setSavingMantenimiento] = useState(false)
@@ -383,7 +384,15 @@ export default function InventarioPage() {
   }
 
   const abrirMantenimiento = (bien) => {
+    setEditandoMantenimientoId(null)
     setMantenimientoForm({ bienId: bien ? String(bien.id) : '', tipo: 'PREVENTIVO', fecha: new Date().toISOString().slice(0, 10), descripcion: '' })
+    setMantenimientoArchivo(null)
+    setShowMantenimientoForm(true)
+  }
+
+  const abrirEditarMantenimiento = (m) => {
+    setEditandoMantenimientoId(m.id)
+    setMantenimientoForm({ bienId: String(m.bienId), tipo: m.tipo, fecha: m.fecha || '', descripcion: m.descripcion || '' })
     setMantenimientoArchivo(null)
     setShowMantenimientoForm(true)
   }
@@ -393,16 +402,20 @@ export default function InventarioPage() {
     setSavingMantenimiento(true)
     setError(null)
     try {
-      const creado = await mantenimientosApi.crear({
+      const payload = {
         bienId: Number(mantenimientoForm.bienId),
         tipo: mantenimientoForm.tipo,
         fecha: mantenimientoForm.fecha,
         descripcion: mantenimientoForm.descripcion,
-      })
+      }
+      const guardado = editandoMantenimientoId
+        ? await mantenimientosApi.actualizar(editandoMantenimientoId, payload)
+        : await mantenimientosApi.crear(payload)
       if (mantenimientoArchivo) {
-        await mantenimientosApi.subirArchivo(creado.id, mantenimientoArchivo)
+        await mantenimientosApi.subirArchivo(guardado.id, mantenimientoArchivo)
       }
       setShowMantenimientoForm(false)
+      setEditandoMantenimientoId(null)
       setMantenimientoArchivo(null)
       reloadMantenimientos()
     } catch (err) {
@@ -1063,9 +1076,9 @@ export default function InventarioPage() {
             </button>
           )}
         </div>
-        <Table headers={['Bien', 'Tipo', 'Fecha', 'Descripción', 'Archivo', canEditInventario ? '' : undefined].filter(Boolean)}>
-          {loadingMantenimientos && <LoadingRow colSpan={canEditInventario ? 6 : 5} />}
-          {!loadingMantenimientos && mantenimientos.length === 0 && <EmptyRow colSpan={canEditInventario ? 6 : 5} message="Sin mantenimientos registrados todavía" />}
+        <Table headers={['Bien', 'Tipo', 'Fecha', 'Descripción', 'Archivo', '', canEditInventario ? '' : undefined].filter(Boolean)}>
+          {loadingMantenimientos && <LoadingRow colSpan={canEditInventario ? 7 : 6} />}
+          {!loadingMantenimientos && mantenimientos.length === 0 && <EmptyRow colSpan={canEditInventario ? 7 : 6} message="Sin mantenimientos registrados todavía" />}
           {!loadingMantenimientos && mantenimientos.map((m) => (
             <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="px-3 py-2 font-medium text-gray-800">{nombrePorBienId.get(m.bienId) || `#${m.bienId}`}</td>
@@ -1089,6 +1102,11 @@ export default function InventarioPage() {
                 ) : (
                   <span className="text-gray-400 text-xs">Sin archivo</span>
                 )}
+              </td>
+              <td className="px-3 py-2">
+                <button onClick={() => abrirEditarMantenimiento(m)} className="text-gray-400 hover:text-[#0e6b3c]" title="Editar">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
               </td>
               {canEditInventario && (
                 <td className="px-3 py-2 text-right">
@@ -1285,7 +1303,10 @@ export default function InventarioPage() {
       )}
 
       {showMantenimientoForm && (
-        <Modal title="Registrar mantenimiento" onClose={() => setShowMantenimientoForm(false)}>
+        <Modal
+          title={editandoMantenimientoId ? 'Editar mantenimiento' : 'Registrar mantenimiento'}
+          onClose={() => { setShowMantenimientoForm(false); setEditandoMantenimientoId(null) }}
+        >
           <form onSubmit={handleSubmitMantenimiento} className="space-y-3">
             <Field label="Bien">
               <select
@@ -1323,15 +1344,17 @@ export default function InventarioPage() {
                 onChange={(e) => setMantenimientoForm({ ...mantenimientoForm, descripcion: e.target.value })}
               />
             </Field>
-            <Field label="Documento de respaldo (opcional)">
-              <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
-                <Upload className="w-4 h-4 flex-shrink-0" />
-                {mantenimientoArchivo ? mantenimientoArchivo.name : 'Subir informe, factura o bitácora'}
-                <input type="file" className="hidden" onChange={(e) => setMantenimientoArchivo(e.target.files?.[0] || null)} />
-              </label>
-            </Field>
+            {canEditInventario && (
+              <Field label={editandoMantenimientoId ? 'Reemplazar documento de respaldo (opcional)' : 'Documento de respaldo (opcional)'}>
+                <label className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-3 py-3 text-xs text-gray-500 cursor-pointer hover:border-[#0e6b3c] hover:text-[#0e6b3c]">
+                  <Upload className="w-4 h-4 flex-shrink-0" />
+                  {mantenimientoArchivo ? mantenimientoArchivo.name : 'Subir informe, factura o bitácora'}
+                  <input type="file" className="hidden" onChange={(e) => setMantenimientoArchivo(e.target.files?.[0] || null)} />
+                </label>
+              </Field>
+            )}
             <PrimaryButton type="submit" disabled={savingMantenimiento} className="w-full justify-center">
-              {savingMantenimiento ? 'Guardando...' : 'Registrar mantenimiento'}
+              {savingMantenimiento ? 'Guardando...' : editandoMantenimientoId ? 'Guardar cambios' : 'Registrar mantenimiento'}
             </PrimaryButton>
           </form>
         </Modal>

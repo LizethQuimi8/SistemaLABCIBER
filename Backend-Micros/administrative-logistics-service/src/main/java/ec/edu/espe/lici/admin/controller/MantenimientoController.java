@@ -28,9 +28,9 @@ import java.util.List;
 /**
  * Registro de mantenimientos correctivos y preventivos de los bienes de
  * Inventario, con documento de respaldo opcional (informe, factura,
- * bitacora). GET habilitado para los 4 roles; escritura (crear/editar/subir
- * archivo/eliminar) restringida a ADMINISTRADOR y ADMIN_INFRAESTRUCTURA (ver
- * SecurityConfig).
+ * bitacora). GET y PUT (editar) habilitados para los 4 roles; crear, subir
+ * archivo y eliminar quedan restringidos a ADMINISTRADOR y
+ * ADMIN_INFRAESTRUCTURA (ver SecurityConfig).
  */
 @RestController
 @RequestMapping("/api/mantenimientos")

@@ -64,6 +64,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/inventario/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers(HttpMethod.GET, "/api/mantenimientos/**")
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
+                        .requestMatchers(HttpMethod.PUT, "/api/mantenimientos/**")
+                            .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
                         .requestMatchers("/api/mantenimientos/**").hasAnyRole("ADMINISTRADOR", "ADMIN_INFRAESTRUCTURA")
                         .requestMatchers("/api/prestamos/**")
                             .hasAnyRole("ADMINISTRADOR", "DOCENTE_INVESTIGADOR", "INVESTIGADOR_COLABORADOR", "ESTUDIANTE", "ADMIN_INFRAESTRUCTURA", "RESPONSABLE_COMPRAS")
