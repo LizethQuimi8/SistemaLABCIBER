@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, FilePlus, Upload, RefreshCw, Search, Loader2, Target, FolderOpen, FlaskConical } from 'lucide-react'
+import { FileText, FilePlus, Upload, RefreshCw, Search, Loader2, Target, FolderOpen, FlaskConical, UserCheck, BookOpen, Sparkles } from 'lucide-react'
 import BarChart from './BarChart'
 import { reportesApi, documentosApi, informacionLaboratorioApi } from '../api/services'
 import { useAuth } from '../context/AuthContext'
@@ -80,46 +80,87 @@ function PendingSignatureTable({ pendientes, loading }) {
   )
 }
 
-// ── Resumen de Planificación Estratégica (para el rol Estudiante, que no
-// tiene acceso a Documentos y por lo tanto no ve la tabla de firmas) ──────────
-function PlanificacionCard({ info, loading, onNavigate }) {
+// ── Banner de Planificación Estratégica (vitrina de bienvenida para el rol
+// Estudiante, que no tiene acceso a Documentos y por lo tanto no ve el resto
+// del dashboard documental) ────────────────────────────────────────────────
+function PlanificacionHero({ info, loading, onNavigate }) {
   const vacio = info && !info.mision && !info.vision
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="bg-[#0e6b3c] text-white p-2 rounded">
-          <Target className="w-5 h-5" />
+    <div className="relative overflow-hidden rounded-xl shadow-lg bg-gradient-to-br from-[#0e6b3c] via-[#0b5c33] to-[#052a18] text-white p-6">
+      <Sparkles className="absolute -right-4 -top-4 w-28 h-28 text-white/10" />
+      <div className="relative">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-white/15 backdrop-blur p-2.5 rounded-lg">
+            <Target className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-200">Laboratorio de Investigación de Ciberseguridad</p>
+            <h3 className="text-base font-bold">Planificación Estratégica</h3>
+          </div>
         </div>
-        <h3 className="text-sm font-bold text-[#052a18]">Planificación Estratégica</h3>
+
+        {loading ? (
+          <div className="flex items-center text-emerald-100 text-xs py-6">
+            <Loader2 className="w-4 h-4 animate-spin mr-2" /> Cargando...
+          </div>
+        ) : vacio ? (
+          <p className="text-xs text-emerald-100/80 mb-4">Esta sección todavía no ha sido completada.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4 mb-5">
+            {info?.mision && (
+              <div className="bg-white/10 backdrop-blur rounded-lg p-3.5 border border-white/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200 mb-1.5">Misión</p>
+                <p className="text-xs leading-relaxed text-emerald-50 line-clamp-4">{info.mision}</p>
+              </div>
+            )}
+            {info?.vision && (
+              <div className="bg-white/10 backdrop-blur rounded-lg p-3.5 border border-white/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200 mb-1.5">Visión</p>
+                <p className="text-xs leading-relaxed text-emerald-50 line-clamp-4">{info.vision}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => onNavigate?.('planificacion')}
+          className="inline-flex items-center gap-1.5 bg-white text-[#052a18] text-xs font-bold px-4 py-2 rounded-full hover:bg-emerald-50 transition-colors shadow"
+        >
+          Ver planificación completa <span aria-hidden>→</span>
+        </button>
       </div>
-      {loading ? (
-        <div className="flex items-center justify-center text-gray-400 text-xs py-6">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Cargando...
-        </div>
-      ) : vacio ? (
-        <p className="text-xs text-gray-400 mb-3">Esta sección todavía no ha sido completada.</p>
-      ) : (
-        <div className="space-y-3 mb-3">
-          {info?.mision && (
-            <div>
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Misión</p>
-              <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{info.mision}</p>
-            </div>
-          )}
-          {info?.vision && (
-            <div>
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Visión</p>
-              <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{info.vision}</p>
-            </div>
-          )}
-        </div>
-      )}
-      <button
-        onClick={() => onNavigate?.('planificacion')}
-        className="text-xs font-semibold text-[#0e6b3c] hover:text-[#052a18]"
-      >
-        Ver planificación completa →
-      </button>
+    </div>
+  )
+}
+
+// ── Tarjetas de estadísticas para el rol Estudiante (solo los módulos que
+// puede ver: Proyectos, Investigadores, Publicaciones) ───────────────────────
+function EstudianteStats({ resumen, loading, onNavigate }) {
+  const items = [
+    { label: 'Portafolio de Proyectos', value: resumen?.totalProyectos ?? 0, icon: FolderOpen, color: 'bg-amber-500', view: 'proyectos' },
+    { label: 'Docentes Investigadores', value: resumen?.totalInvestigadores ?? 0, icon: UserCheck, color: 'bg-purple-500', view: 'investigadores' },
+    { label: 'Artículos y Publicaciones', value: resumen?.totalPublicaciones ?? 0, icon: BookOpen, color: 'bg-blue-500', view: 'publicaciones' },
+  ]
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-full">
+      {items.map(({ label, value, icon: Icon, color, view }) => (
+        <button
+          key={label}
+          onClick={() => onNavigate?.(view)}
+          className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3 text-left hover:border-[#0e6b3c] hover:shadow-md transition-all"
+        >
+          <div className={`${color} text-white p-2.5 rounded-lg flex-shrink-0`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-2xl font-black text-[#052a18] leading-none">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin text-gray-300" /> : value}
+            </p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1.5">{label}</p>
+          </div>
+        </button>
+      ))}
     </div>
   )
 }
@@ -230,21 +271,24 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <div className="lg:col-span-1">
-          <DocSummaryCard resumen={resumen} />
+      {isEstudiante ? (
+        <div className="space-y-4 mb-4">
+          <PlanificacionHero info={infoPlanificacion} loading={loading} onNavigate={onNavigate} />
+          <EstudianteStats resumen={resumen} loading={loading} onNavigate={onNavigate} />
         </div>
-        <div className="lg:col-span-1">
-          <BarChart data={chartData} loading={loading} />
-        </div>
-        <div className="lg:col-span-1">
-          {isEstudiante ? (
-            <PlanificacionCard info={infoPlanificacion} loading={loading} onNavigate={onNavigate} />
-          ) : (
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <div className="lg:col-span-1">
+            <DocSummaryCard resumen={resumen} />
+          </div>
+          <div className="lg:col-span-1">
+            <BarChart data={chartData} loading={loading} />
+          </div>
+          <div className="lg:col-span-1">
             <PendingSignatureTable pendientes={pendientes} loading={loading} />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <ShortcutsRow onNavigate={onNavigate} />
