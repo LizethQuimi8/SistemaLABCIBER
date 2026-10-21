@@ -346,16 +346,34 @@ function ReportePublicaciones() {
 }
 
 const CONTROLES_ISO = [
-  { dominio: 'A.5 Políticas de seguridad', control: 'Roles y permisos definidos por módulo (Administrador, Admin. Infraestructura, Responsable Compras, Docente Investigador)', estado: 'Implementado' },
-  { dominio: 'A.6 Organización de la seguridad', control: 'Separación de funciones: cada rol solo puede escribir en su módulo asignado; el resto queda en solo lectura', estado: 'Implementado' },
-  { dominio: 'A.9 Control de acceso', control: 'Autenticación OAuth2 / JWT (firmado RS256), control de acceso basado en roles (RBAC) verificado en cada endpoint', estado: 'Implementado' },
-  { dominio: 'A.10 Criptografía', control: 'Tokens JWT firmados con clave RSA; tráfico cifrado en tránsito (HTTPS) en el despliegue público', estado: 'Implementado' },
-  { dominio: 'A.11 Seguridad física y del entorno', control: 'Depende de la infraestructura donde se aloje el servidor (fuera del alcance del software)', estado: 'No aplica al software' },
-  { dominio: 'A.12 Seguridad de las operaciones', control: 'Registro de fecha de creación/carga en documentos, bienes, compras y publicaciones; respaldo de base de datos a cargo del administrador del servidor', estado: 'Parcial' },
-  { dominio: 'A.13 Seguridad de las comunicaciones', control: 'CORS restringido a orígenes autorizados; comunicación entre microservicios vía red interna', estado: 'Implementado' },
-  { dominio: 'A.16 Gestión de incidentes', control: 'Sistema interno de notificaciones (solicitudes de préstamo, aprobaciones, avisos) para trazabilidad de eventos', estado: 'Parcial' },
-  { dominio: 'A.18 Cumplimiento', control: 'Este reporte, generado a partir de datos reales del sistema', estado: 'Implementado' },
+  { codigo: 'A.5', dominio: 'A.5 Políticas de seguridad', control: 'Roles y permisos definidos por módulo (Administrador, Admin. Infraestructura, Responsable Compras, Docente Investigador)', estado: 'Implementado' },
+  { codigo: 'A.6', dominio: 'A.6 Organización de la seguridad', control: 'Separación de funciones: cada rol solo puede escribir en su módulo asignado; el resto queda en solo lectura', estado: 'Implementado' },
+  { codigo: 'A.9', dominio: 'A.9 Control de acceso', control: 'Autenticación OAuth2 / JWT (firmado RS256), control de acceso basado en roles (RBAC) verificado en cada endpoint', estado: 'Implementado' },
+  { codigo: 'A.10', dominio: 'A.10 Criptografía', control: 'Tokens JWT firmados con clave RSA; tráfico cifrado en tránsito (HTTPS) en el despliegue público', estado: 'Implementado' },
+  {
+    codigo: 'A.11', dominio: 'A.11 Seguridad física y del entorno',
+    control: 'Depende de la infraestructura donde se aloje el servidor (fuera del alcance del software)', estado: 'No aplica al software',
+    recomendacion: 'Documentar, a cargo del administrador del servidor, los controles físicos del sitio donde se aloja el sistema (acceso restringido a la sala/rack, UPS, climatización, videovigilancia). Aunque este dominio no lo cubre el software, sigue siendo responsabilidad institucional evidenciarlo.',
+  },
+  {
+    codigo: 'A.12', dominio: 'A.12 Seguridad de las operaciones',
+    control: 'Registro de fecha de creación/carga en documentos, bienes, compras y publicaciones; respaldo de base de datos a cargo del administrador del servidor', estado: 'Parcial',
+    recomendacion: 'Formalizar una política de respaldos automatizados y periódicos (frecuencia, retención y pruebas de restauración) en vez de respaldos manuales, y documentar un procedimiento de gestión de cambios para despliegues en producción.',
+  },
+  { codigo: 'A.13', dominio: 'A.13 Seguridad de las comunicaciones', control: 'CORS restringido a orígenes autorizados; comunicación entre microservicios vía red interna', estado: 'Implementado' },
+  {
+    codigo: 'A.16', dominio: 'A.16 Gestión de incidentes',
+    control: 'Sistema interno de notificaciones (solicitudes de préstamo, aprobaciones, avisos) para trazabilidad de eventos', estado: 'Parcial',
+    recomendacion: 'Ampliar el registro de eventos para incluir un log dedicado de incidentes de seguridad (intentos fallidos de acceso, bloqueos de cuenta, accesos sospechosos) con un responsable designado para revisarlo periódicamente.',
+  },
+  { codigo: 'A.18', dominio: 'A.18 Cumplimiento', control: 'Este reporte, generado a partir de datos reales del sistema', estado: 'Implementado' },
 ]
+
+function colorEstadoIso(estado) {
+  if (estado === 'Implementado') return 'implementado'
+  if (estado === 'Parcial') return 'parcial'
+  return 'no-aplica'
+}
 
 function ReporteISO27001() {
   const [resumen, setResumen] = useState(null)
@@ -387,6 +405,21 @@ function ReporteISO27001() {
         <td>${escapeHtml(c.estado)}</td>
       </tr>`).join('')
 
+    const celdasMapaCalor = CONTROLES_ISO.map((c) => `
+      <div class="celda-calor ${colorEstadoIso(c.estado)}">
+        <p class="codigo">${escapeHtml(c.codigo)}</p>
+        <p class="nombre">${escapeHtml(c.dominio.replace(`${c.codigo} `, ''))}</p>
+        <span class="estado-tag">${escapeHtml(c.estado)}</span>
+      </div>`).join('')
+
+    const pendientes = CONTROLES_ISO.filter((c) => c.recomendacion)
+    const filasRecomendaciones = pendientes.map((c) => `
+      <tr>
+        <td>${escapeHtml(c.dominio)}</td>
+        <td><span class="estado-tag ${colorEstadoIso(c.estado)}">${escapeHtml(c.estado)}</span></td>
+        <td>${escapeHtml(c.recomendacion)}</td>
+      </tr>`).join('')
+
     const filasRoles = Object.entries(porRol).map(([rol, n]) => `<tr><td>${escapeHtml(nombreRol(rol))}</td><td>${n}</td></tr>`).join('')
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Cumplimiento ISO 27001</title>
@@ -397,6 +430,24 @@ function ReporteISO27001() {
         table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
         th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}
         th{background:#0e6b3c;color:#fff}
+        .mapa-calor{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+        .celda-calor{border-radius:8px;padding:10px 12px;color:#fff;page-break-inside:avoid}
+        .celda-calor .codigo{font-size:15px;font-weight:800;margin:0 0 2px}
+        .celda-calor .nombre{font-size:10px;line-height:1.3;margin:0 0 8px;opacity:.95;min-height:26px}
+        .celda-calor .estado-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;background:rgba(255,255,255,.28);padding:2px 7px;border-radius:999px}
+        .celda-calor.implementado{background:#0e6b3c}
+        .celda-calor.parcial{background:#c58a1f}
+        .celda-calor.no-aplica{background:#6b7280}
+        .leyenda-calor{display:flex;gap:16px;font-size:10.5px;color:#444;margin-bottom:18px}
+        .leyenda-calor span{display:flex;align-items:center;gap:5px}
+        .leyenda-calor i{width:10px;height:10px;border-radius:3px;display:inline-block}
+        .leyenda-calor i.implementado{background:#0e6b3c}
+        .leyenda-calor i.parcial{background:#c58a1f}
+        .leyenda-calor i.no-aplica{background:#6b7280}
+        td .estado-tag{color:#fff;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
+        td .estado-tag.implementado{background:#0e6b3c}
+        td .estado-tag.parcial{background:#c58a1f}
+        td .estado-tag.no-aplica{background:#6b7280}
       </style></head><body>
       ${htmlEncabezadoReporte('Reporte de Cumplimiento ISO/IEC 27001', `Generado: ${new Date().toLocaleString()}`)}
       <p class="detalle">Este reporte resume los controles de seguridad de la información implementados en el sistema y un
@@ -409,7 +460,22 @@ function ReporteISO27001() {
         <tbody>${filasControles}</tbody>
       </table>
 
-      <h2>2. Usuarios del sistema</h2>
+      <h2>2. Mapa de calor de cumplimiento (Anexo A)</h2>
+      <div class="mapa-calor">${celdasMapaCalor}</div>
+      <div class="leyenda-calor">
+        <span><i class="implementado"></i> Implementado</span>
+        <span><i class="parcial"></i> Parcial</span>
+        <span><i class="no-aplica"></i> No aplica al software</span>
+      </div>
+
+      <h2>3. Recomendaciones de mejora</h2>
+      ${pendientes.length > 0 ? `
+      <table>
+        <thead><tr><th>Dominio</th><th>Estado</th><th>Recomendación</th></tr></thead>
+        <tbody>${filasRecomendaciones}</tbody>
+      </table>` : '<p class="detalle">Todos los controles evaluados están Implementados; no hay recomendaciones pendientes.</p>'}
+
+      <h2>4. Usuarios del sistema</h2>
       <table>
         <thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
         <tbody>
@@ -422,7 +488,7 @@ function ReporteISO27001() {
         <tbody>${filasRoles || '<tr><td colspan="2">Sin datos</td></tr>'}</tbody>
       </table>
 
-      <h2>3. Activos de información gestionados</h2>
+      <h2>5. Activos de información gestionados</h2>
       <table>
         <thead><tr><th>Módulo</th><th>Registros</th></tr></thead>
         <tbody>
