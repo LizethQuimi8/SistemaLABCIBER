@@ -345,10 +345,19 @@ function ReportePublicaciones() {
   )
 }
 
+// Los 14 dominios del Anexo A de ISO/IEC 27001:2013, evaluados contra lo que
+// realmente hace el sistema (no el SGSI institucional completo, que excede
+// el alcance de este software: ver la nota de alcance en el reporte).
 const CONTROLES_ISO = [
-  { codigo: 'A.5', dominio: 'A.5 Políticas de seguridad', control: 'Roles y permisos definidos por módulo (Administrador, Admin. Infraestructura, Responsable Compras, Docente Investigador)', estado: 'Implementado' },
-  { codigo: 'A.6', dominio: 'A.6 Organización de la seguridad', control: 'Separación de funciones: cada rol solo puede escribir en su módulo asignado; el resto queda en solo lectura', estado: 'Implementado' },
-  { codigo: 'A.9', dominio: 'A.9 Control de acceso', control: 'Autenticación OAuth2 / JWT (firmado RS256), control de acceso basado en roles (RBAC) verificado en cada endpoint', estado: 'Implementado' },
+  { codigo: 'A.5', dominio: 'A.5 Políticas de seguridad', control: 'Roles y permisos definidos por módulo (Administrador, Admin. Infraestructura, Responsable Compras, Docente Investigador, Investigador Colaborador, Estudiante)', estado: 'Implementado' },
+  { codigo: 'A.6', dominio: 'A.6 Organización de la seguridad', control: 'Separación de funciones: cada rol solo puede escribir en su módulo asignado; el resto queda en solo lectura o sin acceso (verificado en cada endpoint, no solo ocultando botones en el frontend)', estado: 'Implementado' },
+  {
+    codigo: 'A.7', dominio: 'A.7 Seguridad de los recursos humanos',
+    control: 'El alta de usuarios queda registrada con el rol institucional asignado por el Administrador; no existe un procedimiento formal de baja/revocación de accesos al finalizar la relación laboral o académica, ni registro de capacitaciones de concientización', estado: 'Parcial',
+    recomendacion: 'Documentar un procedimiento formal de alta y baja de usuarios (onboarding/offboarding) que incluya la desactivación inmediata de la cuenta al finalizar la relación laboral o académica, y registrar las capacitaciones de concientización en seguridad de la información que reciba el personal.',
+  },
+  { codigo: 'A.8', dominio: 'A.8 Gestión de activos', control: 'Inventario de bienes tecnológicos del laboratorio gestionado dentro del propio sistema (módulo Inventario), con código de bien, custodio, estado y trazabilidad de préstamos', estado: 'Implementado' },
+  { codigo: 'A.9', dominio: 'A.9 Control de acceso', control: 'Autenticación OAuth2 / JWT (firmado RS256), control de acceso basado en roles (RBAC) verificado en cada endpoint de cada microservicio', estado: 'Implementado' },
   { codigo: 'A.10', dominio: 'A.10 Criptografía', control: 'Tokens JWT firmados con clave RSA; tráfico cifrado en tránsito (HTTPS) en el despliegue público', estado: 'Implementado' },
   {
     codigo: 'A.11', dominio: 'A.11 Seguridad física y del entorno',
@@ -357,16 +366,31 @@ const CONTROLES_ISO = [
   },
   {
     codigo: 'A.12', dominio: 'A.12 Seguridad de las operaciones',
-    control: 'Registro de fecha de creación/carga en documentos, bienes, compras y publicaciones; respaldo de base de datos a cargo del administrador del servidor', estado: 'Parcial',
+    control: 'Registro de fecha de creación/carga en documentos, bienes, compras y publicaciones; respaldo de base de datos a cargo del administrador del servidor, sin política formal ni pruebas de restauración periódicas', estado: 'Parcial',
     recomendacion: 'Formalizar una política de respaldos automatizados y periódicos (frecuencia, retención y pruebas de restauración) en vez de respaldos manuales, y documentar un procedimiento de gestión de cambios para despliegues en producción.',
   },
-  { codigo: 'A.13', dominio: 'A.13 Seguridad de las comunicaciones', control: 'CORS restringido a orígenes autorizados; comunicación entre microservicios vía red interna', estado: 'Implementado' },
+  { codigo: 'A.13', dominio: 'A.13 Seguridad de las comunicaciones', control: 'CORS restringido a orígenes autorizados; comunicación entre microservicios vía red interna, no expuesta públicamente', estado: 'Implementado' },
+  {
+    codigo: 'A.14', dominio: 'A.14 Adquisición, desarrollo y mantenimiento de sistemas',
+    control: 'Los cambios se construyen, prueban y despliegan manualmente siguiendo el procedimiento del Manual de Mantenimiento; no existe un entorno de pruebas (staging) separado de producción ni un pipeline de integración/despliegue continuo', estado: 'Parcial',
+    recomendacion: 'Implementar un entorno de pruebas (staging) separado de producción para validar cambios antes de desplegarlos, y evaluar automatizar el proceso de build y despliegue (CI/CD) para reducir errores manuales.',
+  },
+  {
+    codigo: 'A.15', dominio: 'A.15 Relaciones con proveedores',
+    control: 'El sistema depende de servicios externos (túnel ngrok, proveedor de hosting) sin acuerdos de nivel de servicio (SLA) ni cláusulas de seguridad/confidencialidad formalizadas con esos proveedores', estado: 'No aplica al software',
+    recomendacion: 'Formalizar, a nivel institucional, acuerdos o políticas de seguridad con los proveedores de infraestructura externa utilizados (túnel de acceso remoto, hosting), incluyendo cláusulas de disponibilidad, confidencialidad y notificación de incidentes.',
+  },
   {
     codigo: 'A.16', dominio: 'A.16 Gestión de incidentes',
-    control: 'Sistema interno de notificaciones (solicitudes de préstamo, aprobaciones, avisos) para trazabilidad de eventos', estado: 'Parcial',
+    control: 'Sistema interno de notificaciones (solicitudes de préstamo, aprobaciones, avisos) para trazabilidad de eventos operativos; no existe un registro dedicado de incidentes de seguridad (accesos fallidos, bloqueos, actividad sospechosa)', estado: 'Parcial',
     recomendacion: 'Ampliar el registro de eventos para incluir un log dedicado de incidentes de seguridad (intentos fallidos de acceso, bloqueos de cuenta, accesos sospechosos) con un responsable designado para revisarlo periódicamente.',
   },
-  { codigo: 'A.18', dominio: 'A.18 Cumplimiento', control: 'Este reporte, generado a partir de datos reales del sistema', estado: 'Implementado' },
+  {
+    codigo: 'A.17', dominio: 'A.17 Continuidad del negocio',
+    control: 'El sistema corre en un único servidor, sin un plan de recuperación ante desastres documentado ni pruebas periódicas de restauración de respaldos', estado: 'Parcial',
+    recomendacion: 'Documentar y poner a prueba periódicamente un plan de recuperación ante desastres (DRP), con un tiempo objetivo de recuperación (RTO) y un punto objetivo de recuperación (RPO) definidos para los datos del sistema.',
+  },
+  { codigo: 'A.18', dominio: 'A.18 Cumplimiento', control: 'Este reporte, generado a partir de datos reales del sistema, sirve como evidencia periódica de cumplimiento frente al Anexo A', estado: 'Implementado' },
 ]
 
 function colorEstadoIso(estado) {
@@ -422,6 +446,14 @@ function ReporteISO27001() {
 
     const filasRoles = Object.entries(porRol).map(([rol, n]) => `<tr><td>${escapeHtml(nombreRol(rol))}</td><td>${n}</td></tr>`).join('')
 
+    const totalDominios = CONTROLES_ISO.length
+    const implementados = CONTROLES_ISO.filter((c) => c.estado === 'Implementado').length
+    const parciales = CONTROLES_ISO.filter((c) => c.estado === 'Parcial').length
+    const noAplican = CONTROLES_ISO.filter((c) => c.estado === 'No aplica al software').length
+    const aplicables = totalDominios - noAplican
+    const porcentajeImplementado = aplicables > 0 ? Math.round((implementados / aplicables) * 100) : 0
+    const porcentajeParcial = aplicables > 0 ? Math.round((parciales / aplicables) * 100) : 0
+
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte Cumplimiento ISO 27001</title>
       <style>
         ${estiloEncabezadoReporte()}
@@ -430,7 +462,12 @@ function ReporteISO27001() {
         table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
         th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}
         th{background:#0e6b3c;color:#fff}
-        .mapa-calor{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+        .resumen-ejecutivo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+        .tarjeta-resumen{border:1px solid #d7ece1;border-radius:8px;padding:12px;text-align:center;background:#f7fcfa}
+        .tarjeta-resumen .valor{font-size:22px;font-weight:800;color:#052a18}
+        .tarjeta-resumen .etiqueta{font-size:9.5px;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+        .nota-alcance{font-size:10.5px;color:#666;font-style:italic;background:#f7f7f7;border-left:3px solid #999;padding:8px 10px;margin-bottom:14px}
+        .mapa-calor{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
         .celda-calor{border-radius:8px;padding:10px 12px;color:#fff;page-break-inside:avoid}
         .celda-calor .codigo{font-size:15px;font-weight:800;margin:0 0 2px}
         .celda-calor .nombre{font-size:10px;line-height:1.3;margin:0 0 8px;opacity:.95;min-height:26px}
@@ -452,15 +489,29 @@ function ReporteISO27001() {
       ${htmlEncabezadoReporte('Reporte de Cumplimiento ISO/IEC 27001', `Generado: ${new Date().toLocaleString()}`)}
       <p class="detalle">Este reporte resume los controles de seguridad de la información implementados en el sistema y un
       corte del estado actual (usuarios, activos y documentos gestionados), como evidencia de cumplimiento
-      frente a los dominios del Anexo A de la norma ISO/IEC 27001.</p>
+      frente a los 14 dominios del Anexo A de la norma ISO/IEC 27001:2013.</p>
+      <p class="nota-alcance"><strong>Alcance:</strong> esta evaluación cubre el software del Sistema LABCIBER (autenticación, control de acceso,
+      cifrado, registro de actividad y los módulos de gestión del laboratorio). No sustituye al Sistema de Gestión de Seguridad de la
+      Información (SGSI) institucional completo, que incluye políticas, procesos y controles físicos que exceden el alcance de esta aplicación.</p>
 
-      <h2>1. Controles de seguridad implementados</h2>
+      <h2>1. Resumen ejecutivo</h2>
+      <div class="resumen-ejecutivo">
+        <div class="tarjeta-resumen"><p class="valor">${totalDominios}</p><p class="etiqueta">Dominios evaluados</p></div>
+        <div class="tarjeta-resumen"><p class="valor">${implementados}</p><p class="etiqueta">Implementados</p></div>
+        <div class="tarjeta-resumen"><p class="valor">${parciales}</p><p class="etiqueta">Parciales</p></div>
+        <div class="tarjeta-resumen"><p class="valor">${noAplican}</p><p class="etiqueta">No aplican al software</p></div>
+      </div>
+      <p class="detalle">De los <strong>${aplicables}</strong> dominios aplicables al software (excluyendo los que dependen de infraestructura o
+      terceros externos a la aplicación), <strong>${porcentajeImplementado}%</strong> están Implementados y <strong>${porcentajeParcial}%</strong>
+      están Parciales, con una recomendación de mejora concreta para cada uno (ver sección 4).</p>
+
+      <h2>2. Controles de seguridad implementados</h2>
       <table>
         <thead><tr><th>Dominio</th><th>Control aplicado</th><th>Estado</th></tr></thead>
         <tbody>${filasControles}</tbody>
       </table>
 
-      <h2>2. Mapa de calor de cumplimiento (Anexo A)</h2>
+      <h2>3. Mapa de calor de cumplimiento (Anexo A)</h2>
       <div class="mapa-calor">${celdasMapaCalor}</div>
       <div class="leyenda-calor">
         <span><i class="implementado"></i> Implementado</span>
@@ -468,14 +519,14 @@ function ReporteISO27001() {
         <span><i class="no-aplica"></i> No aplica al software</span>
       </div>
 
-      <h2>3. Recomendaciones de mejora</h2>
+      <h2>4. Recomendaciones de mejora</h2>
       ${pendientes.length > 0 ? `
       <table>
         <thead><tr><th>Dominio</th><th>Estado</th><th>Recomendación</th></tr></thead>
         <tbody>${filasRecomendaciones}</tbody>
       </table>` : '<p class="detalle">Todos los controles evaluados están Implementados; no hay recomendaciones pendientes.</p>'}
 
-      <h2>4. Usuarios del sistema</h2>
+      <h2>5. Usuarios del sistema</h2>
       <table>
         <thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
         <tbody>
@@ -488,7 +539,7 @@ function ReporteISO27001() {
         <tbody>${filasRoles || '<tr><td colspan="2">Sin datos</td></tr>'}</tbody>
       </table>
 
-      <h2>5. Activos de información gestionados</h2>
+      <h2>6. Activos de información gestionados</h2>
       <table>
         <thead><tr><th>Módulo</th><th>Registros</th></tr></thead>
         <tbody>
